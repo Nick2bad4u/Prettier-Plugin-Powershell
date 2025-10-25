@@ -1,0 +1,66 @@
+{
+    "name": "prettier-plugin-powershell",
+    "version": "0.1.0",
+    "description": "Prettier plugin for formatting PowerShell source files with idiomatic defaults.",
+    "keywords": [
+        "prettier",
+        "prettier-plugin",
+        "powershell",
+        "formatter"
+    ],
+    "homepage": "https://github.com/your-org/prettier-plugin-powershell",
+    "bugs": {
+        "url": "https://github.com/your-org/prettier-plugin-powershell/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/your-org/prettier-plugin-powershell.git"
+    },
+    "license": "MIT",
+    "type": "module",
+    "files": [
+        "dist"
+    ],
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "scripts": {
+        "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+        "build:watch": "tsup src/index.ts --format esm,cjs --dts --watch",
+        "clean": "rimraf dist",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "format": "prettier \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\" --write",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "typecheck": "tsc --project tsconfig.json --noEmit",
+        "prepare": "npm run build"
+    },
+    "peerDependencies": {
+        "prettier": "^3.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.11.0",
+        "@typescript-eslint/eslint-plugin": "^7.0.0",
+        "@typescript-eslint/parser": "^7.0.0",
+        "eslint": "^8.57.0",
+        "eslint-config-prettier": "^9.1.0",
+        "eslint-plugin-import": "^2.29.0",
+        "prettier": "^3.2.0",
+        "rimraf": "^5.0.0",
+        "tsup": "^7.2.0",
+        "typescript": "^5.4.0",
+        "vitest": "^1.5.0"
+    },
+    "engines": {
+        "node": ">=18.12.0"
+    },
+    "packageManager": "npm@10.7.0"
+}
