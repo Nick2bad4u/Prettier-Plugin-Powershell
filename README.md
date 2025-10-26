@@ -50,6 +50,12 @@ const formatted = await prettier.format(code, {
 | `powershellSortHashtableKeys` | `boolean` | `false` | Sort hashtable keys alphabetically when formatting. |
 | `powershellBlankLinesBetweenFunctions` | `number` | `1` | Minimum number of blank lines preserved between function declarations. |
 | `powershellBlankLineAfterParam` | `boolean` | `true` | Insert an empty line after `param (...)` blocks inside script blocks. |
+| `powershellBraceStyle` | `'1tbs' \| 'allman'` | `'1tbs'` | Control whether opening braces stay on the header line (`1tbs`) or move to the following line (`allman`). |
+| `powershellLineWidth` | `number` | `120` | Override the maximum line width used when formatting PowerShell documents. |
+| `powershellPreferSingleQuote` | `boolean` | `false` | Prefer single-quoted strings when interpolation is not required. |
+| `powershellKeywordCase` | `'preserve' \| 'lower' \| 'upper' \| 'pascal'` | `'preserve'` | Normalise the casing of PowerShell keywords. |
+| `powershellRewriteAliases` | `boolean` | `false` | Rewrite common cmdlet aliases (e.g. `ls`, `%`, `?`) to their canonical names. |
+| `powershellRewriteWriteHost` | `boolean` | `false` | Rewrite `Write-Host` invocations to `Write-Output`. |
 
 These options can be specified alongside other Prettier settings:
 

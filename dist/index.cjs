@@ -18,16 +18,16 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // src/index.ts
-var src_exports = {};
-__export(src_exports, {
-  default: () => src_default,
+var index_exports = {};
+__export(index_exports, {
+  default: () => index_default,
   defaultOptions: () => defaultOptions,
   languages: () => languages,
   options: () => pluginOptions,
   parsers: () => parsers,
   printers: () => printers
 });
-module.exports = __toCommonJS(src_exports);
+module.exports = __toCommonJS(index_exports);
 
 // src/tokenizer.ts
 var KEYWORDS = /* @__PURE__ */ new Set([
@@ -97,11 +97,6 @@ function tokenize(source) {
       let end = length;
       if (closing !== -1) {
         end = closing + 2;
-        if (source[end] === "\r" && source[end + 1] === "\n") {
-          end += 2;
-        } else if (source[end] === "\n") {
-          end += 1;
-        }
       }
       push({
         type: "heredoc",
@@ -270,6 +265,53 @@ var pluginOptions = {
     type: "boolean",
     default: true,
     description: "Insert a blank line after param(...) blocks inside script blocks."
+  },
+  powershellBraceStyle: {
+    category: "PowerShell",
+    type: "choice",
+    default: "1tbs",
+    description: "Control placement of opening braces for script blocks and functions.",
+    choices: [
+      { value: "1tbs", description: "One True Brace Style \u2013 keep opening braces on the same line." },
+      { value: "allman", description: "Allman style \u2013 place opening braces on the next line." }
+    ]
+  },
+  powershellLineWidth: {
+    category: "PowerShell",
+    type: "int",
+    default: 120,
+    description: "Maximum preferred line width for PowerShell documents.",
+    range: { start: 40, end: 200, step: 1 }
+  },
+  powershellPreferSingleQuote: {
+    category: "PowerShell",
+    type: "boolean",
+    default: false,
+    description: "Prefer single-quoted strings when no interpolation is required."
+  },
+  powershellKeywordCase: {
+    category: "PowerShell",
+    type: "choice",
+    default: "preserve",
+    description: "Normalise the casing of PowerShell keywords.",
+    choices: [
+      { value: "preserve", description: "Leave keyword casing unchanged." },
+      { value: "lower", description: "Convert keywords to lower-case." },
+      { value: "upper", description: "Convert keywords to upper-case." },
+      { value: "pascal", description: "Capitalise keywords (PascalCase)." }
+    ]
+  },
+  powershellRewriteAliases: {
+    category: "PowerShell",
+    type: "boolean",
+    default: false,
+    description: "Rewrite common cmdlet aliases to their canonical names."
+  },
+  powershellRewriteWriteHost: {
+    category: "PowerShell",
+    type: "boolean",
+    default: false,
+    description: "Rewrite Write-Host invocations to Write-Output to discourage host-only output."
   }
 };
 var defaultOptions = {
@@ -291,13 +333,28 @@ function resolveOptions(options) {
     Math.min(3, Number(options.powershellBlankLinesBetweenFunctions ?? 1))
   );
   const blankLineAfterParam = options.powershellBlankLineAfterParam === false ? false : true;
+  const braceStyle = options.powershellBraceStyle ?? "1tbs";
+  const lineWidth = Math.max(40, Math.min(200, Number(options.powershellLineWidth ?? 120)));
+  const preferSingleQuote = options.powershellPreferSingleQuote === true;
+  const keywordCase = options.powershellKeywordCase ?? "preserve";
+  const rewriteAliases = options.powershellRewriteAliases === true;
+  const rewriteWriteHost = options.powershellRewriteWriteHost === true;
+  if (!options.printWidth || options.printWidth > lineWidth) {
+    options.printWidth = lineWidth;
+  }
   return {
     indentStyle,
     indentSize,
     trailingComma,
     sortHashtableKeys,
     blankLinesBetweenFunctions,
-    blankLineAfterParam
+    blankLineAfterParam,
+    braceStyle,
+    lineWidth,
+    preferSingleQuote,
+    keywordCase,
+    rewriteAliases,
+    rewriteWriteHost
   };
 }
 
@@ -383,12 +440,18 @@ var Parser = class _Parser {
     const segments = [[]];
     let trailingComment;
     const structureStack = [];
+    let lineContinuation = false;
     while (!this.isEOF()) {
       const token = this.peek();
       if (!token) {
         break;
       }
       if (token.type === "newline") {
+        if (lineContinuation) {
+          this.advance();
+          lineContinuation = false;
+          continue;
+        }
         if (structureStack.length > 0) {
           const newlineToken = this.advance();
           segments[segments.length - 1].push(newlineToken);
@@ -414,10 +477,17 @@ var Parser = class _Parser {
       if (token.type === "operator" && token.value === "|") {
         this.advance();
         segments.push([]);
+        lineContinuation = false;
+        continue;
+      }
+      if (token.type === "unknown" && token.value === "`") {
+        this.advance();
+        lineContinuation = true;
         continue;
       }
       const currentSegment = segments[segments.length - 1];
       currentSegment.push(this.advance());
+      lineContinuation = false;
       if (isOpeningToken(token)) {
         structureStack.push(token.value);
       } else if (isClosingToken(token)) {
@@ -880,7 +950,7 @@ var locEnd = (node) => node.loc.end;
 
 // src/printer.ts
 var import_prettier = require("prettier");
-var { group, indent, line, softline, hardline, join, ifBreak, lineSuffix, dedentToRoot } = import_prettier.doc.builders;
+var { group, indent, line, softline, hardline, join, ifBreak, lineSuffix, dedentToRoot, align } = import_prettier.doc.builders;
 var powerShellPrinter = {
   print(path, options) {
     const node = path.getValue();
@@ -904,7 +974,7 @@ function printNode(node, options) {
     case "Expression":
       return printExpression(node, options);
     case "Text":
-      return printText(node);
+      return printText(node, options);
     case "Comment":
       return printComment(node);
     case "BlankLine":
@@ -933,14 +1003,18 @@ function concatDocs(docs) {
   }
   return acc;
 }
+function indentStatement(docToIndent, options) {
+  const indentUnit = options.indentStyle === "tabs" ? "	" : " ".repeat(options.indentSize);
+  return [indentUnit, align(indentUnit.length, docToIndent)];
+}
 function printScript(node, options) {
-  const bodyDoc = printStatementList(node.body, options);
+  const bodyDoc = printStatementList(node.body, options, false);
   if (!bodyDoc) {
     return "";
   }
   return [bodyDoc, hardline];
 }
-function printStatementList(body, options) {
+function printStatementList(body, options, indentStatements) {
   const docs = [];
   let previous = null;
   let pendingBlankLines = 0;
@@ -955,7 +1029,8 @@ function printStatementList(body, options) {
         docs.push(hardline);
       }
     }
-    docs.push(printNode(entry, options));
+    const printed = printNode(entry, options);
+    docs.push(indentStatements ? indentStatement(printed, options) : printed);
     previous = entry;
     pendingBlankLines = 0;
   }
@@ -976,10 +1051,11 @@ function printScriptBlock(node, options) {
   if (node.body.length === 0) {
     return "{}";
   }
-  const bodyDoc = printStatementList(node.body, options);
+  const bodyDoc = printStatementList(node.body, options, true);
   return group([
     "{",
-    indent([hardline, bodyDoc]),
+    hardline,
+    bodyDoc,
     hardline,
     "}"
   ]);
@@ -987,6 +1063,9 @@ function printScriptBlock(node, options) {
 function printFunction(node, options) {
   const headerDoc = printExpression(node.header, options);
   const bodyDoc = printScriptBlock(node.body, options);
+  if (options.braceStyle === "allman") {
+    return group([headerDoc, hardline, bodyDoc]);
+  }
   return group([headerDoc, " ", bodyDoc]);
 }
 function printPipeline(node, options) {
@@ -996,10 +1075,10 @@ function printPipeline(node, options) {
   }
   let pipelineDoc = segmentDocs[0];
   if (segmentDocs.length > 1) {
-    const restDocs = segmentDocs.slice(1).map((segmentDoc) => ["| ", segmentDoc]);
+    const restDocs = segmentDocs.slice(1).map((segmentDoc) => [line, ["| ", segmentDoc]]);
     pipelineDoc = group([
       segmentDocs[0],
-      indent(restDocs.flatMap((docItem) => [line, docItem]))
+      indent(restDocs.flatMap((docItem) => docItem))
     ]);
   }
   if (node.trailingComment) {
@@ -1011,65 +1090,71 @@ function printExpression(node, options) {
   const docs = [];
   let previous = null;
   for (const part of node.parts) {
+    if (shouldSkipPart(part)) {
+      continue;
+    }
     if (part.type === "Parenthesis" && isParamKeyword(previous)) {
       docs.push(printParamParenthesis(part, options));
       previous = part;
       continue;
     }
-    if (previous && shouldInsertSpace(previous, part)) {
-      docs.push(" ");
+    if (previous) {
+      const separator = gapBetween(previous, part);
+      if (separator) {
+        docs.push(separator);
+      }
     }
     docs.push(printNode(part, options));
     previous = part;
   }
   return docs.length === 0 ? "" : group(docs);
 }
-function shouldInsertSpace(previous, current) {
+function gapBetween(previous, current) {
   const prevSymbol = getSymbol(previous);
   const currentSymbol = getSymbol(current);
   if (current.type === "Parenthesis") {
     if (previous.type === "Text" && previous.value.toLowerCase() === "param") {
-      return false;
+      return null;
     }
     if (previous.type === "Text" && previous.role === "keyword") {
-      return true;
+      return " ";
     }
-    return true;
+    return " ";
   }
   if (previous.type === "Parenthesis") {
     if (currentSymbol && NO_SPACE_BEFORE.has(currentSymbol)) {
-      return false;
+      return null;
     }
-    return true;
+    return " ";
   }
   if (!prevSymbol && !currentSymbol) {
-    return true;
+    return " ";
   }
   if (!prevSymbol) {
     if (currentSymbol && NO_SPACE_BEFORE.has(currentSymbol)) {
-      return false;
+      return null;
     }
-    return true;
+    return " ";
   }
   if (NO_SPACE_AFTER.has(prevSymbol)) {
-    return false;
+    return null;
   }
   if (currentSymbol && NO_SPACE_BEFORE.has(currentSymbol)) {
-    return false;
+    return null;
   }
   if (prevSymbol && currentSymbol && SYMBOL_NO_GAP.has(`${prevSymbol}:${currentSymbol}`)) {
-    return false;
+    return null;
   }
   if (prevSymbol === "=" || currentSymbol === "=") {
-    return true;
+    return " ";
   }
   if (current.type === "ScriptBlock" || current.type === "Hashtable" || current.type === "ArrayLiteral") {
     if (prevSymbol && NO_SPACE_BEFORE_BLOCK.has(prevSymbol)) {
-      return false;
+      return null;
     }
-    return true;
+    return " ";
   }
-  return true;
+  return " ";
 }
 function isParamStatement(node) {
   if (!node || node.type !== "Pipeline") {
@@ -1107,8 +1192,59 @@ function getSymbol(node) {
 function isParamKeyword(node) {
   return Boolean(node && node.type === "Text" && node.value.toLowerCase() === "param");
 }
-function printText(node) {
-  return node.value;
+var KEYWORD_CASE_TRANSFORMS = {
+  preserve: (value) => value,
+  lower: (value) => value.toLowerCase(),
+  upper: (value) => value.toUpperCase(),
+  pascal: (value) => value.length === 0 ? value : value[0].toUpperCase() + value.slice(1).toLowerCase()
+};
+var CMDLET_ALIAS_MAP = {
+  gi: "Get-Item",
+  gci: "Get-ChildItem",
+  ls: "Get-ChildItem",
+  dir: "Get-ChildItem",
+  ld: "Get-ChildItem",
+  la: "Get-ChildItem",
+  gcm: "Get-Command",
+  gm: "Get-Member",
+  gps: "Get-Process",
+  ps: "Get-Process",
+  gwmi: "Get-WmiObject",
+  gsv: "Get-Service",
+  cat: "Get-Content",
+  gc: "Get-Content",
+  echo: "Write-Output",
+  write: "Write-Output",
+  "%": "ForEach-Object",
+  foreach: "ForEach-Object",
+  "?": "Where-Object",
+  where: "Where-Object"
+};
+var DISALLOWED_CMDLET_REWRITE = /* @__PURE__ */ new Map([
+  ["write-host", "Write-Output"]
+]);
+function printText(node, options) {
+  if (node.role === "string") {
+    return normalizeStringLiteral(node.value, options);
+  }
+  let value = node.value;
+  if (node.role === "keyword") {
+    const transform = KEYWORD_CASE_TRANSFORMS[options.keywordCase] ?? KEYWORD_CASE_TRANSFORMS.preserve;
+    value = transform(value);
+  }
+  if (options.rewriteAliases && (node.role === "word" || node.role === "operator" || node.role === "unknown")) {
+    const aliasKey = value.toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(CMDLET_ALIAS_MAP, aliasKey)) {
+      value = CMDLET_ALIAS_MAP[aliasKey];
+    }
+  }
+  if (node.role === "word" && options.rewriteWriteHost) {
+    const replacement = DISALLOWED_CMDLET_REWRITE.get(value.toLowerCase());
+    if (replacement) {
+      value = replacement;
+    }
+  }
+  return value;
 }
 function printComment(node) {
   return ["#", node.value];
@@ -1220,6 +1356,31 @@ function trailingCommaDoc(options, groupId, hasElements, delimiter) {
       return "";
   }
 }
+function normalizeStringLiteral(value, options) {
+  if (!options.preferSingleQuote) {
+    return value;
+  }
+  if (!value.startsWith('"') || !value.endsWith('"')) {
+    return value;
+  }
+  const inner = value.slice(1, -1);
+  if (inner.includes("'")) {
+    return value;
+  }
+  if (/[`$"\n]/.test(inner)) {
+    return value;
+  }
+  return `'${inner}'`;
+}
+function shouldSkipPart(part) {
+  if (part.type === "Text") {
+    const trimmed = part.value.trim();
+    if (trimmed === "`") {
+      return true;
+    }
+  }
+  return false;
+}
 
 // src/index.ts
 var languages = [
@@ -1254,7 +1415,7 @@ var plugin = {
   options: pluginOptions,
   defaultOptions
 };
-var src_default = plugin;
+var index_default = plugin;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   defaultOptions,

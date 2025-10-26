@@ -1,4 +1,4 @@
-import { SupportOptions, SupportLanguage, Plugin } from 'prettier';
+import { SupportOptions, Plugin, SupportLanguage } from 'prettier';
 
 declare const pluginOptions: SupportOptions;
 declare const defaultOptions: {

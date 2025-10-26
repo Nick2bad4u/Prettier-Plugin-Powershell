@@ -39,6 +39,9 @@
         "lint:fix": "eslint . --fix",
         "format": "prettier \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\" --write",
         "test": "vitest run",
+        "test:ci": "vitest run --reporter=summary",
+        "test:debug": "vitest --inspect-brk",
+        "test:coverage": "vitest run --coverage",
         "test:watch": "vitest",
         "typecheck": "tsc --project tsconfig.json --noEmit",
         "prepare": "npm run build"
@@ -47,17 +50,18 @@
         "prettier": "^3.0.0"
     },
     "devDependencies": {
-        "@types/node": "^20.11.0",
-        "@typescript-eslint/eslint-plugin": "^7.0.0",
-        "@typescript-eslint/parser": "^7.0.0",
-        "eslint": "^8.57.0",
-        "eslint-config-prettier": "^9.1.0",
-        "eslint-plugin-import": "^2.29.0",
-        "prettier": "^3.2.0",
-        "rimraf": "^5.0.0",
-        "tsup": "^7.2.0",
-        "typescript": "^5.4.0",
-        "vitest": "^1.5.0"
+        "@types/node": "^24.9.1",
+        "@typescript-eslint/eslint-plugin": "^8.46.2",
+        "@typescript-eslint/parser": "^8.46.2",
+        "@vitest/coverage-v8": "^4.0.3",
+        "eslint": "^9.38.0",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-import": "^2.32.0",
+        "prettier": "^3.6.2",
+        "rimraf": "^6.0.1",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.3"
     },
     "engines": {
         "node": ">=18.12.0"
