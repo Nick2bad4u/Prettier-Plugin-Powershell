@@ -1,6 +1,6 @@
 {
     "name": "prettier-plugin-powershell",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "description": "Prettier plugin for formatting PowerShell source files with idiomatic defaults.",
     "keywords": [
         "prettier",
@@ -32,7 +32,7 @@
         }
     },
     "scripts": {
-        "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+        "build": "tsup src/index.ts --format esm,cjs --dts src/index.ts --dts-resolve --clean --sourcemap --tsconfig tsconfig.json --shims --treeshake safest --cjsInterop --metafile",
         "build:watch": "tsup src/index.ts --format esm,cjs --dts --watch",
         "clean": "rimraf dist",
         "lint": "eslint .",
@@ -56,11 +56,13 @@
         "@vitest/coverage-v8": "^4.0.3",
         "eslint": "^9.38.0",
         "eslint-config-prettier": "^10.1.8",
+        "eslint-import-resolver-typescript": "^4.4.4",
         "eslint-plugin-import": "^2.32.0",
         "prettier": "^3.6.2",
         "rimraf": "^6.0.1",
         "tsup": "^8.5.0",
         "typescript": "^5.9.3",
+        "typescript-eslint": "^8.46.2",
         "vitest": "^4.0.3"
     },
     "engines": {

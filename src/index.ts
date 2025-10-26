@@ -1,7 +1,8 @@
 import type { Plugin, SupportLanguage } from 'prettier';
+
+import { pluginOptions, defaultOptions } from './options.js';
 import { parsePowerShell, locEnd, locStart } from './parser.js';
 import { powerShellPrinter } from './printer.js';
-import { pluginOptions, defaultOptions } from './options.js';
 
 const languages: SupportLanguage[] = [
   {
@@ -40,4 +41,3 @@ const plugin: Plugin = {
 };
 
 export default plugin;
-export { languages, parsers, printers, pluginOptions as options, defaultOptions };

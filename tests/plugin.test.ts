@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
 import { readFile } from 'node:fs/promises';
 import { URL } from 'node:url';
+
 import prettier from 'prettier';
+import { describe, expect, it } from 'vitest';
+
 import plugin from '../src/index.js';
 
 const baseConfig = {

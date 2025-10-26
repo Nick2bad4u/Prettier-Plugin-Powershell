@@ -1,13 +1,5 @@
-import { SupportOptions, Plugin, SupportLanguage } from 'prettier';
+import { Plugin } from 'prettier';
 
-declare const pluginOptions: SupportOptions;
-declare const defaultOptions: {
-    tabWidth: number;
-};
-
-declare const languages: SupportLanguage[];
-declare const parsers: Plugin['parsers'];
-declare const printers: Plugin['printers'];
 declare const plugin: Plugin;
 
-export { plugin as default, defaultOptions, languages, pluginOptions as options, parsers, printers };
+export { plugin as default };

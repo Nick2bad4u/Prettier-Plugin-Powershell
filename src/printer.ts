@@ -1,8 +1,8 @@
 import type { AstPath, Doc, ParserOptions, Printer } from 'prettier';
 import { doc } from 'prettier';
+
 import {
   type ArrayLiteralNode,
-  type BlankLineNode,
   type CommentNode,
   type ExpressionNode,
   type ExpressionPartNode,
@@ -73,9 +73,9 @@ function concatDocs(docs: Doc[]): Doc {
   if (docs.length === 0) {
     return '';
   }
-  let acc: Doc = docs[0]!;
+  let acc: Doc = docs[0];
   for (let index = 1; index < docs.length; index += 1) {
-    acc = [acc, docs[index]!] as Doc;
+    acc = [acc, docs[index]] as Doc;
   }
   return acc;
 }
@@ -172,11 +172,11 @@ function printPipeline(node: PipelineNode, options: ResolvedOptions): Doc {
     return '';
   }
 
-  let pipelineDoc: Doc = segmentDocs[0]!;
+  let pipelineDoc: Doc = segmentDocs[0];
 
   if (segmentDocs.length > 1) {
     const restDocs = segmentDocs.slice(1).map((segmentDoc) => [line, ['| ', segmentDoc]]);
-    pipelineDoc = group([segmentDocs[0]!, indent(restDocs.flatMap((docItem) => docItem))]);
+    pipelineDoc = group([segmentDocs[0], indent(restDocs.flatMap((docItem) => docItem))]);
   }
 
   if (node.trailingComment) {
@@ -284,7 +284,7 @@ function isParamStatement(node: ScriptBodyNode | null): boolean {
   if (node.segments.length === 0) {
     return false;
   }
-  const firstSegment = node.segments[0]!;
+  const firstSegment = node.segments[0];
   if (firstSegment.parts.length === 0) {
     return false;
   }
@@ -322,7 +322,7 @@ const KEYWORD_CASE_TRANSFORMS: Record<string, (value: string) => string> = {
   lower: (value) => value.toLowerCase(),
   upper: (value) => value.toUpperCase(),
   pascal: (value) =>
-    value.length === 0 ? value : value[0]!.toUpperCase() + value.slice(1).toLowerCase(),
+    value.length === 0 ? value : value[0].toUpperCase() + value.slice(1).toLowerCase(),
 };
 
 const CMDLET_ALIAS_MAP: Record<string, string> = {
@@ -471,7 +471,7 @@ function printParenthesis(node: ParenthesisNode, options: ResolvedOptions): Doc 
   const groupId = Symbol('parenthesis');
   const elementDocs = node.elements.map((element) => printExpression(element, options));
   if (elementDocs.length === 1 && !node.hasNewline) {
-    return group(['(', indent([softline, elementDocs[0]!]), softline, ')'], { id: groupId });
+    return group(['(', indent([softline, elementDocs[0]]), softline, ')'], { id: groupId });
   }
 
   const hasComma = node.hasComma;

@@ -1,3 +1,5 @@
+import type { ParserOptions } from 'prettier';
+
 import type {
   ArrayLiteralNode,
   BlankLineNode,
@@ -15,10 +17,9 @@ import type {
   ScriptNode,
   TextNode,
 } from './ast.js';
+import { resolveOptions } from './options.js';
 import type { Token } from './tokenizer.js';
 import { tokenize } from './tokenizer.js';
-import type { ParserOptions } from 'prettier';
-import { resolveOptions } from './options.js';
 
 class Parser {
   private index = 0;
@@ -30,7 +31,7 @@ class Parser {
 
   parseScript(terminators: Set<string> = new Set()): ScriptNode {
     const body: ScriptBodyNode[] = [];
-    const start = this.tokens.length > 0 ? this.tokens[0]!.start : 0;
+    const start = this.tokens.length > 0 ? this.tokens[0].start : 0;
 
     while (!this.isEOF()) {
       const token = this.peek();
@@ -70,7 +71,7 @@ class Parser {
       }
     }
 
-    const end = body.length > 0 ? body[body.length - 1]!.loc.end : start;
+    const end = body.length > 0 ? body[body.length - 1].loc.end : start;
     return {
       type: 'Script',
       body,
@@ -134,7 +135,7 @@ class Parser {
         }
         if (structureStack.length > 0) {
           const newlineToken = this.advance();
-          segments[segments.length - 1]!.push(newlineToken);
+          segments[segments.length - 1].push(newlineToken);
           continue;
         }
         if (structureStack.length === 0 && this.isPipelineContinuationAfterNewline()) {
@@ -171,7 +172,7 @@ class Parser {
         continue;
       }
 
-      const currentSegment = segments[segments.length - 1]!;
+      const currentSegment = segments[segments.length - 1];
       currentSegment.push(this.advance());
       lineContinuation = false;
 
@@ -190,7 +191,7 @@ class Parser {
     const expressionSegments = filteredSegments.map((segmentTokens) =>
       buildExpressionFromTokens(segmentTokens),
     );
-    const end = expressionSegments[expressionSegments.length - 1]!.loc.end;
+    const end = expressionSegments[expressionSegments.length - 1].loc.end;
 
     const pipelineNode: PipelineNode = {
       type: 'Pipeline',
@@ -264,7 +265,7 @@ class Parser {
 
   private consumeBlankLines(): BlankLineNode | null {
     let count = 0;
-    let start = this.peek()?.start ?? 0;
+    const start = this.peek()?.start ?? 0;
     let end = start;
     while (!this.isEOF()) {
       const token = this.peek();
@@ -327,7 +328,7 @@ class Parser {
   private advance(): Token {
     const token = this.tokens[this.index];
     this.index += 1;
-    return token!;
+    return token;
   }
 
   private isEOF(): boolean {
@@ -367,7 +368,7 @@ function buildExpressionFromTokens(tokens: Token[]): ExpressionNode {
   let index = 0;
 
   while (index < tokens.length) {
-    const token = tokens[index]!;
+    const token = tokens[index];
 
     if (token.type === 'newline') {
       index += 1;
@@ -429,7 +430,7 @@ function parseHashtablePart(
   tokens: Token[],
   startIndex: number,
 ): { node: HashtableNode; nextIndex: number } {
-  const startToken = tokens[startIndex]!;
+  const startToken = tokens[startIndex];
   const { contentTokens, endIndex, closingToken } = collectStructureTokens(tokens, startIndex);
   const entries = splitHashtableEntries(contentTokens).map((entryTokens) =>
     buildHashtableEntry(entryTokens),
@@ -449,7 +450,7 @@ function parseArrayPart(
   tokens: Token[],
   startIndex: number,
 ): { node: ArrayLiteralNode; nextIndex: number } {
-  const startToken = tokens[startIndex]!;
+  const startToken = tokens[startIndex];
   const { contentTokens, endIndex, closingToken } = collectStructureTokens(tokens, startIndex);
   const elements = splitArrayElements(contentTokens).map((elementTokens) =>
     buildExpressionFromTokens(elementTokens),
@@ -471,7 +472,7 @@ function parseParenthesisPart(
   tokens: Token[],
   startIndex: number,
 ): { node: ParenthesisNode; nextIndex: number } {
-  const startToken = tokens[startIndex]!;
+  const startToken = tokens[startIndex];
   const { contentTokens, endIndex, closingToken } = collectStructureTokens(tokens, startIndex);
   const elements = splitArrayElements(contentTokens).map((elementTokens) =>
     buildExpressionFromTokens(elementTokens),
@@ -495,7 +496,7 @@ function parseScriptBlockPart(
   tokens: Token[],
   startIndex: number,
 ): { node: ScriptBlockNode; nextIndex: number } {
-  const startToken = tokens[startIndex]!;
+  const startToken = tokens[startIndex];
   const { contentTokens, endIndex, closingToken } = collectStructureTokens(tokens, startIndex);
   const nestedParser = new Parser(contentTokens, '');
   const script = nestedParser.parseScript();
@@ -551,11 +552,11 @@ function collectStructureTokens(
   startIndex: number,
 ): { contentTokens: Token[]; endIndex: number; closingToken?: Token } {
   const contentTokens: Token[] = [];
-  const stack: string[] = [tokens[startIndex]!.value];
+  const stack: string[] = [tokens[startIndex].value];
   let index = startIndex + 1;
 
   while (index < tokens.length) {
-    const token = tokens[index]!;
+    const token = tokens[index];
 
     if (isOpeningToken(token)) {
       stack.push(token.value);
@@ -651,7 +652,7 @@ function buildHashtableEntry(tokens: Token[]): HashtableEntryNode {
 function findTopLevelEquals(tokens: Token[]): number {
   const stack: string[] = [];
   for (let index = 0; index < tokens.length; index += 1) {
-    const token = tokens[index]!;
+    const token = tokens[index];
     if (isOpeningToken(token)) {
       stack.push(token.value);
       continue;

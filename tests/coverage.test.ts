@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import prettier from 'prettier';
+import { describe, expect, it } from 'vitest';
+
 import plugin from '../src/index.js';
 import { tokenize } from '../src/tokenizer.js';
 
@@ -16,14 +17,14 @@ describe('Coverage - Tokenizer edge cases', () => {
     expect(result).toContain('function Foo');
   });
 
-  it('handles here-string with closing at line start after CRLF', async () => {
+  it('handles here-string with closing at line start after CRLF', () => {
     const input = `@"\r\nHello\r\n"@`;
     const tokens = tokenize(input);
     const heredoc = tokens.find((t) => t.type === 'heredoc');
     expect(heredoc).toBeDefined();
   });
 
-  it('handles here-string with closing not at line start', async () => {
+  it('handles here-string with closing not at line start', () => {
     const input = `@"\nHello world"@`;
     const tokens = tokenize(input);
     const heredoc = tokens.find((t) => t.type === 'heredoc');
@@ -42,24 +43,24 @@ describe('Coverage - Tokenizer edge cases', () => {
     expect(result).toBe('@"\n"@');
   });
 
-  it('handles string with escape at end', async () => {
+  it('handles string with escape at end', () => {
     const tokens = tokenize('"test`"');
     const string = tokens.find((t) => t.type === 'string');
     expect(string).toBeDefined();
   });
 
-  it('handles variable with unclosed braces', async () => {
+  it('handles variable with unclosed braces', () => {
     const tokens = tokenize('${unclosed');
     const variable = tokens.find((t) => t.type === 'variable');
     expect(variable).toBeDefined();
   });
 
-  it('handles number without decimal part', async () => {
+  it('handles number without decimal part', () => {
     const tokens = tokenize('42.');
     expect(tokens.some((t) => t.type === 'number')).toBe(true);
   });
 
-  it('handles identifier starting with dash', async () => {
+  it('handles identifier starting with dash', () => {
     const tokens = tokenize('-Parameter');
     const identifier = tokens.find((t) => t.type === 'identifier');
     expect(identifier?.value).toBe('-Parameter');
@@ -77,19 +78,19 @@ describe('Coverage - Tokenizer edge cases', () => {
     expect(result).toBe('Line1\nLine2\nLine3');
   });
 
-  it('handles form feed whitespace', async () => {
+  it('handles form feed whitespace', () => {
     const tokens = tokenize('$x\f=\f1');
     const identifiers = tokens.filter((t) => t.type === 'variable' || t.type === 'operator');
     expect(identifiers.length).toBeGreaterThan(0);
   });
 
-  it('handles unterminated here-string', async () => {
+  it('handles unterminated here-string', () => {
     const tokens = tokenize('@"\nHello');
     const heredoc = tokens.find((t) => t.type === 'heredoc');
     expect(heredoc).toBeDefined();
   });
 
-  it('handles single-quoted here-string', async () => {
+  it('handles single-quoted here-string', () => {
     const input = `@'
 Hello
 '@`;
@@ -98,19 +99,19 @@ Hello
     expect(heredoc?.quote).toBe('single');
   });
 
-  it('handles unterminated string with escape', async () => {
+  it('handles unterminated string with escape', () => {
     const tokens = tokenize('"Hello`');
     const string = tokens.find((t) => t.type === 'string');
     expect(string).toBeDefined();
   });
 
-  it('handles double equals operator', async () => {
+  it('handles double equals operator', () => {
     const tokens = tokenize('$x == 1');
     const operator = tokens.find((t) => t.value === '==');
     expect(operator?.type).toBe('operator');
   });
 
-  it('handles double pipe operator', async () => {
+  it('handles double pipe operator', () => {
     const tokens = tokenize('$x || $y');
     const operator = tokens.find((t) => t.value === '||');
     expect(operator?.type).toBe('operator');
@@ -122,26 +123,26 @@ Hello
     expect(result.trim()).toBe('${my-var}');
   });
 
-  it('handles decimal numbers', async () => {
+  it('handles decimal numbers', () => {
     const tokens = tokenize('3.14');
     const number = tokens.find((t) => t.type === 'number');
     expect(number?.value).toBe('3.14');
   });
 
-  it('handles unknown characters', async () => {
+  it('handles unknown characters', () => {
     const tokens = tokenize('~');
     const unknown = tokens.find((t) => t.type === 'unknown');
     expect(unknown?.value).toBe('~');
   });
 
-  it('handles here-string without closing delimiter found', async () => {
+  it('handles here-string without closing delimiter found', () => {
     const tokens = tokenize('@"\nHello world');
     const heredoc = tokens.find((t) => t.type === 'heredoc');
     expect(heredoc).toBeDefined();
     expect(heredoc?.value.length).toBeGreaterThan(0);
   });
 
-  it('handles single character variable', async () => {
+  it('handles single character variable', () => {
     const tokens = tokenize('$x');
     const variable = tokens.find((t) => t.type === 'variable');
     expect(variable?.value).toBe('$x');
@@ -356,7 +357,7 @@ Write-Host "Hi"
   });
 
   it('handles single quotes with special characters', async () => {
-    const input = `"Hello\$world"`;
+    const input = `"Hello$world"`;
     const result = await prettier.format(input, {
       ...baseConfig,
       powershellPreferSingleQuote: true,

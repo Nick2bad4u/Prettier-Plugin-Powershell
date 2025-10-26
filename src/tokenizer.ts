@@ -38,20 +38,6 @@ const KEYWORDS = new Set([
 ]);
 
 const PUNCTUATION = new Set(['{', '}', '(', ')', '[', ']', ',', ';', '.', ':']);
-const OPERATORS = new Set([
-  '|',
-  '=',
-  '==',
-  '!=',
-  '-eq',
-  '-ne',
-  '-gt',
-  '-lt',
-  '-ge',
-  '-le',
-  '=>',
-  '::',
-]);
 
 export function tokenize(source: string): Token[] {
   const tokens: Token[] = [];
@@ -189,7 +175,7 @@ export function tokenize(source: string): Token[] {
       index += 1;
       while (index < length) {
         const c = source[index];
-        if (/^[A-Za-z0-9_:\-]$/.test(c)) {
+        if (/^[A-Za-z0-9_:-]$/.test(c)) {
           index += 1;
           continue;
         }
@@ -226,7 +212,7 @@ export function tokenize(source: string): Token[] {
 
     if (/[A-Za-z_]/.test(char) || (char === '-' && /[A-Za-z]/.test(source[index + 1]))) {
       index += 1;
-      while (index < length && /[A-Za-z0-9_\-]/.test(source[index])) {
+      while (index < length && /[A-Za-z0-9_-]/.test(source[index])) {
         index += 1;
       }
       const raw = source.slice(start, index);

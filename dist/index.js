@@ -1,3 +1,152 @@
+import { doc } from 'prettier';
+
+// src/options.ts
+var pluginOptions = {
+  powershellIndentStyle: {
+    category: "PowerShell",
+    type: "choice",
+    default: "spaces",
+    description: "Indent PowerShell code using spaces or tabs.",
+    choices: [
+      { value: "spaces", description: "Use spaces for indentation." },
+      { value: "tabs", description: "Use tabs for indentation." }
+    ]
+  },
+  powershellIndentSize: {
+    category: "PowerShell",
+    type: "int",
+    default: 2,
+    description: "Number of indentation characters for each level.",
+    range: { start: 1, end: 8, step: 1 }
+  },
+  powershellTrailingComma: {
+    category: "PowerShell",
+    type: "choice",
+    default: "multiline",
+    description: "Control trailing commas for array and hashtable literals.",
+    choices: [
+      { value: "none", description: "Never add a trailing comma or semicolon." },
+      {
+        value: "multiline",
+        description: "Add trailing comma/semicolon when the literal spans multiple lines."
+      },
+      { value: "all", description: "Always add trailing comma/semicolon when possible." }
+    ]
+  },
+  powershellSortHashtableKeys: {
+    category: "PowerShell",
+    type: "boolean",
+    default: false,
+    description: "Sort hashtable keys alphabetically when formatting."
+  },
+  powershellBlankLinesBetweenFunctions: {
+    category: "PowerShell",
+    type: "int",
+    default: 1,
+    description: "Number of blank lines to ensure between function declarations.",
+    range: { start: 0, end: 3, step: 1 }
+  },
+  powershellBlankLineAfterParam: {
+    category: "PowerShell",
+    type: "boolean",
+    default: true,
+    description: "Insert a blank line after param(...) blocks inside script blocks."
+  },
+  powershellBraceStyle: {
+    category: "PowerShell",
+    type: "choice",
+    default: "1tbs",
+    description: "Control placement of opening braces for script blocks and functions.",
+    choices: [
+      {
+        value: "1tbs",
+        description: "One True Brace Style \u2013 keep opening braces on the same line."
+      },
+      { value: "allman", description: "Allman style \u2013 place opening braces on the next line." }
+    ]
+  },
+  powershellLineWidth: {
+    category: "PowerShell",
+    type: "int",
+    default: 120,
+    description: "Maximum preferred line width for PowerShell documents.",
+    range: { start: 40, end: 200, step: 1 }
+  },
+  powershellPreferSingleQuote: {
+    category: "PowerShell",
+    type: "boolean",
+    default: false,
+    description: "Prefer single-quoted strings when no interpolation is required."
+  },
+  powershellKeywordCase: {
+    category: "PowerShell",
+    type: "choice",
+    default: "preserve",
+    description: "Normalise the casing of PowerShell keywords.",
+    choices: [
+      { value: "preserve", description: "Leave keyword casing unchanged." },
+      { value: "lower", description: "Convert keywords to lower-case." },
+      { value: "upper", description: "Convert keywords to upper-case." },
+      { value: "pascal", description: "Capitalise keywords (PascalCase)." }
+    ]
+  },
+  powershellRewriteAliases: {
+    category: "PowerShell",
+    type: "boolean",
+    default: false,
+    description: "Rewrite common cmdlet aliases to their canonical names."
+  },
+  powershellRewriteWriteHost: {
+    category: "PowerShell",
+    type: "boolean",
+    default: false,
+    description: "Rewrite Write-Host invocations to Write-Output to discourage host-only output."
+  }
+};
+var defaultOptions = {
+  tabWidth: 2
+};
+function resolveOptions(options) {
+  const indentStyle = options.powershellIndentStyle ?? "spaces";
+  const indentSize = options.powershellIndentSize ?? options.tabWidth ?? 2;
+  if (indentStyle === "tabs") {
+    options.useTabs = true;
+  } else {
+    options.useTabs = false;
+  }
+  options.tabWidth = indentSize;
+  const trailingComma = options.powershellTrailingComma ?? "multiline";
+  const sortHashtableKeys = Boolean(options.powershellSortHashtableKeys);
+  const blankLinesBetweenFunctions = Math.max(
+    0,
+    Math.min(3, Number(options.powershellBlankLinesBetweenFunctions ?? 1))
+  );
+  const blankLineAfterParam = options.powershellBlankLineAfterParam === false ? false : true;
+  const braceStyle = options.powershellBraceStyle ?? "1tbs";
+  const lineWidth = Math.max(40, Math.min(200, Number(options.powershellLineWidth ?? 120)));
+  const preferSingleQuote = options.powershellPreferSingleQuote === true;
+  const keywordCase = options.powershellKeywordCase ?? "preserve";
+  const rewriteAliases = options.powershellRewriteAliases === true;
+  const rewriteWriteHost = options.powershellRewriteWriteHost === true;
+  if (!options.printWidth || options.printWidth > lineWidth) {
+    options.printWidth = lineWidth;
+  }
+  return {
+    indentStyle,
+    indentSize,
+    trailingComma,
+    sortHashtableKeys,
+    blankLinesBetweenFunctions,
+    blankLineAfterParam,
+    braceStyle,
+    lineWidth,
+    preferSingleQuote,
+    keywordCase,
+    rewriteAliases,
+    rewriteWriteHost
+  };
+}
+
 // src/tokenizer.ts
 var KEYWORDS = /* @__PURE__ */ new Set([
   "function",
@@ -133,7 +282,7 @@ function tokenize(source) {
       index += 1;
       while (index < length) {
         const c = source[index];
-        if (/^[A-Za-z0-9_:\-]$/.test(c)) {
+        if (/^[A-Za-z0-9_:-]$/.test(c)) {
           index += 1;
           continue;
         }
@@ -168,7 +317,7 @@ function tokenize(source) {
     }
     if (/[A-Za-z_]/.test(char) || char === "-" && /[A-Za-z]/.test(source[index + 1])) {
       index += 1;
-      while (index < length && /[A-Za-z0-9_\-]/.test(source[index])) {
+      while (index < length && /[A-Za-z0-9_-]/.test(source[index])) {
         index += 1;
       }
       const raw = source.slice(start, index);
@@ -184,147 +333,6 @@ function tokenize(source) {
     push({ type: "unknown", value: char, start, end: index });
   }
   return tokens;
-}
-
-// src/options.ts
-var pluginOptions = {
-  powershellIndentStyle: {
-    category: "PowerShell",
-    type: "choice",
-    default: "spaces",
-    description: "Indent PowerShell code using spaces or tabs.",
-    choices: [
-      { value: "spaces", description: "Use spaces for indentation." },
-      { value: "tabs", description: "Use tabs for indentation." }
-    ]
-  },
-  powershellIndentSize: {
-    category: "PowerShell",
-    type: "int",
-    default: 2,
-    description: "Number of indentation characters for each level.",
-    range: { start: 1, end: 8, step: 1 }
-  },
-  powershellTrailingComma: {
-    category: "PowerShell",
-    type: "choice",
-    default: "multiline",
-    description: "Control trailing commas for array and hashtable literals.",
-    choices: [
-      { value: "none", description: "Never add a trailing comma or semicolon." },
-      { value: "multiline", description: "Add trailing comma/semicolon when the literal spans multiple lines." },
-      { value: "all", description: "Always add trailing comma/semicolon when possible." }
-    ]
-  },
-  powershellSortHashtableKeys: {
-    category: "PowerShell",
-    type: "boolean",
-    default: false,
-    description: "Sort hashtable keys alphabetically when formatting."
-  },
-  powershellBlankLinesBetweenFunctions: {
-    category: "PowerShell",
-    type: "int",
-    default: 1,
-    description: "Number of blank lines to ensure between function declarations.",
-    range: { start: 0, end: 3, step: 1 }
-  },
-  powershellBlankLineAfterParam: {
-    category: "PowerShell",
-    type: "boolean",
-    default: true,
-    description: "Insert a blank line after param(...) blocks inside script blocks."
-  },
-  powershellBraceStyle: {
-    category: "PowerShell",
-    type: "choice",
-    default: "1tbs",
-    description: "Control placement of opening braces for script blocks and functions.",
-    choices: [
-      { value: "1tbs", description: "One True Brace Style \u2013 keep opening braces on the same line." },
-      { value: "allman", description: "Allman style \u2013 place opening braces on the next line." }
-    ]
-  },
-  powershellLineWidth: {
-    category: "PowerShell",
-    type: "int",
-    default: 120,
-    description: "Maximum preferred line width for PowerShell documents.",
-    range: { start: 40, end: 200, step: 1 }
-  },
-  powershellPreferSingleQuote: {
-    category: "PowerShell",
-    type: "boolean",
-    default: false,
-    description: "Prefer single-quoted strings when no interpolation is required."
-  },
-  powershellKeywordCase: {
-    category: "PowerShell",
-    type: "choice",
-    default: "preserve",
-    description: "Normalise the casing of PowerShell keywords.",
-    choices: [
-      { value: "preserve", description: "Leave keyword casing unchanged." },
-      { value: "lower", description: "Convert keywords to lower-case." },
-      { value: "upper", description: "Convert keywords to upper-case." },
-      { value: "pascal", description: "Capitalise keywords (PascalCase)." }
-    ]
-  },
-  powershellRewriteAliases: {
-    category: "PowerShell",
-    type: "boolean",
-    default: false,
-    description: "Rewrite common cmdlet aliases to their canonical names."
-  },
-  powershellRewriteWriteHost: {
-    category: "PowerShell",
-    type: "boolean",
-    default: false,
-    description: "Rewrite Write-Host invocations to Write-Output to discourage host-only output."
-  }
-};
-var defaultOptions = {
-  tabWidth: 2
-};
-function resolveOptions(options) {
-  const indentStyle = options.powershellIndentStyle ?? "spaces";
-  const indentSize = options.powershellIndentSize ?? options.tabWidth ?? 2;
-  if (indentStyle === "tabs") {
-    options.useTabs = true;
-  } else {
-    options.useTabs = false;
-  }
-  options.tabWidth = indentSize;
-  const trailingComma = options.powershellTrailingComma ?? "multiline";
-  const sortHashtableKeys = Boolean(options.powershellSortHashtableKeys);
-  const blankLinesBetweenFunctions = Math.max(
-    0,
-    Math.min(3, Number(options.powershellBlankLinesBetweenFunctions ?? 1))
-  );
-  const blankLineAfterParam = options.powershellBlankLineAfterParam === false ? false : true;
-  const braceStyle = options.powershellBraceStyle ?? "1tbs";
-  const lineWidth = Math.max(40, Math.min(200, Number(options.powershellLineWidth ?? 120)));
-  const preferSingleQuote = options.powershellPreferSingleQuote === true;
-  const keywordCase = options.powershellKeywordCase ?? "preserve";
-  const rewriteAliases = options.powershellRewriteAliases === true;
-  const rewriteWriteHost = options.powershellRewriteWriteHost === true;
-  if (!options.printWidth || options.printWidth > lineWidth) {
-    options.printWidth = lineWidth;
-  }
-  return {
-    indentStyle,
-    indentSize,
-    trailingComma,
-    sortHashtableKeys,
-    blankLinesBetweenFunctions,
-    blankLineAfterParam,
-    braceStyle,
-    lineWidth,
-    preferSingleQuote,
-    keywordCase,
-    rewriteAliases,
-    rewriteWriteHost
-  };
 }
 
 // src/parser.ts
@@ -471,12 +479,15 @@ var Parser = class _Parser {
       (segmentTokens) => buildExpressionFromTokens(segmentTokens)
     );
     const end = expressionSegments[expressionSegments.length - 1].loc.end;
-    return {
+    const pipelineNode = {
       type: "Pipeline",
       segments: expressionSegments,
-      trailingComment,
       loc: { start: startToken.start, end }
     };
+    if (trailingComment) {
+      pipelineNode.trailingComment = trailingComment;
+    }
+    return pipelineNode;
   }
   parseScriptBlock() {
     const openToken = this.peek();
@@ -525,7 +536,7 @@ var Parser = class _Parser {
   }
   consumeBlankLines() {
     let count = 0;
-    let start = this.peek()?.start ?? 0;
+    const start = this.peek()?.start ?? 0;
     let end = start;
     while (!this.isEOF()) {
       const token = this.peek();
@@ -663,7 +674,7 @@ function parseHashtablePart(tokens, startIndex) {
   const entries = splitHashtableEntries(contentTokens).map(
     (entryTokens) => buildHashtableEntry(entryTokens)
   );
-  const end = closingToken?.end ?? (contentTokens[contentTokens.length - 1]?.end ?? startToken.end);
+  const end = closingToken?.end ?? contentTokens[contentTokens.length - 1]?.end ?? startToken.end;
   return {
     node: {
       type: "Hashtable",
@@ -680,7 +691,7 @@ function parseArrayPart(tokens, startIndex) {
     (elementTokens) => buildExpressionFromTokens(elementTokens)
   );
   const kind = startToken.value === "@(" ? "implicit" : "explicit";
-  const end = closingToken?.end ?? (contentTokens[contentTokens.length - 1]?.end ?? startToken.end);
+  const end = closingToken?.end ?? contentTokens[contentTokens.length - 1]?.end ?? startToken.end;
   return {
     node: {
       type: "ArrayLiteral",
@@ -699,7 +710,7 @@ function parseParenthesisPart(tokens, startIndex) {
   );
   const hasComma = hasTopLevelComma(contentTokens);
   const hasNewline = contentTokens.some((token) => token.type === "newline");
-  const end = closingToken?.end ?? (contentTokens[contentTokens.length - 1]?.end ?? startToken.end);
+  const end = closingToken?.end ?? contentTokens[contentTokens.length - 1]?.end ?? startToken.end;
   return {
     node: {
       type: "Parenthesis",
@@ -716,7 +727,7 @@ function parseScriptBlockPart(tokens, startIndex) {
   const { contentTokens, endIndex, closingToken } = collectStructureTokens(tokens, startIndex);
   const nestedParser = new Parser(contentTokens, "");
   const script = nestedParser.parseScript();
-  const end = closingToken?.end ?? (contentTokens[contentTokens.length - 1]?.end ?? startToken.end);
+  const end = closingToken?.end ?? contentTokens[contentTokens.length - 1]?.end ?? startToken.end;
   return {
     node: {
       type: "ScriptBlock",
@@ -815,7 +826,7 @@ function buildHashtableEntry(tokens) {
   const keyExpression = buildExpressionFromTokens(keyTokens);
   const valueExpression = valueTokens.length > 0 ? buildExpressionFromTokens(valueTokens) : buildExpressionFromTokens([]);
   const key = extractKeyText(keyTokens);
-  const start = keyTokens[0]?.start ?? (valueTokens[0]?.start ?? 0);
+  const start = keyTokens[0]?.start ?? valueTokens[0]?.start ?? 0;
   const end = (valueTokens[valueTokens.length - 1] ?? keyTokens[keyTokens.length - 1])?.end ?? start;
   return {
     type: "HashtableEntry",
@@ -916,9 +927,6 @@ function parsePowerShell(source, options) {
 }
 var locStart = (node) => node.loc.start;
 var locEnd = (node) => node.loc.end;
-
-// src/printer.ts
-import { doc } from "prettier";
 var { group, indent, line, softline, hardline, join, ifBreak, lineSuffix, dedentToRoot, align } = doc.builders;
 var powerShellPrinter = {
   print(path, options) {
@@ -1021,13 +1029,7 @@ function printScriptBlock(node, options) {
     return "{}";
   }
   const bodyDoc = printStatementList(node.body, options, true);
-  return group([
-    "{",
-    hardline,
-    bodyDoc,
-    hardline,
-    "}"
-  ]);
+  return group(["{", hardline, bodyDoc, hardline, "}"]);
 }
 function printFunction(node, options) {
   const headerDoc = printExpression(node.header, options);
@@ -1045,10 +1047,7 @@ function printPipeline(node, options) {
   let pipelineDoc = segmentDocs[0];
   if (segmentDocs.length > 1) {
     const restDocs = segmentDocs.slice(1).map((segmentDoc) => [line, ["| ", segmentDoc]]);
-    pipelineDoc = group([
-      segmentDocs[0],
-      indent(restDocs.flatMap((docItem) => docItem))
-    ]);
+    pipelineDoc = group([segmentDocs[0], indent(restDocs.flatMap((docItem) => docItem))]);
   }
   if (node.trailingComment) {
     pipelineDoc = [pipelineDoc, lineSuffix([" #", node.trailingComment.value])];
@@ -1189,9 +1188,7 @@ var CMDLET_ALIAS_MAP = {
   "?": "Where-Object",
   where: "Where-Object"
 };
-var DISALLOWED_CMDLET_REWRITE = /* @__PURE__ */ new Map([
-  ["write-host", "Write-Output"]
-]);
+var DISALLOWED_CMDLET_REWRITE = /* @__PURE__ */ new Map([["write-host", "Write-Output"]]);
 function printText(node, options) {
   if (node.role === "string") {
     return normalizeStringLiteral(node.value, options);
@@ -1229,19 +1226,21 @@ function printArray(node, options) {
   const shouldBreak = elementDocs.length > 1;
   const separator = [",", line];
   const trailing = trailingCommaDoc(options, groupId, elementDocs.length > 0, ",");
-  return group([
-    open,
-    indent([
+  return group(
+    [
+      open,
+      indent([shouldBreak ? line : softline, join(separator, elementDocs)]),
+      trailing,
       shouldBreak ? line : softline,
-      join(separator, elementDocs)
-    ]),
-    trailing,
-    shouldBreak ? line : softline,
-    close
-  ], { id: groupId });
+      close
+    ],
+    { id: groupId }
+  );
 }
 function printHashtable(node, options) {
-  const entries = options.sortHashtableKeys ? [...node.entries].sort((a, b) => a.key.localeCompare(b.key, void 0, { sensitivity: "base" })) : node.entries;
+  const entries = options.sortHashtableKeys ? [...node.entries].sort(
+    (a, b) => a.key.localeCompare(b.key, void 0, { sensitivity: "base" })
+  ) : node.entries;
   if (entries.length === 0) {
     return "@{}";
   }
@@ -1252,12 +1251,7 @@ function printHashtable(node, options) {
     const separator = isLast ? trailingCommaDoc(options, groupId, true, ";") : ifBreak("", ";", { groupId });
     return [entryDoc, separator];
   });
-  return group([
-    "@{",
-    indent([line, join(line, entryDocs)]),
-    line,
-    "}"
-  ], { id: groupId });
+  return group(["@{", indent([line, join(line, entryDocs)]), line, "}"], { id: groupId });
 }
 function printHashtableEntry(node, options) {
   const keyDoc = printExpression(node.rawKey, options);
@@ -1277,12 +1271,9 @@ function printParamParenthesis(node, options) {
   const groupId = Symbol("param");
   const elementDocs = node.elements.map((element) => printExpression(element, options));
   const separator = [",", hardline];
-  return group([
-    "(",
-    indent([hardline, join(separator, elementDocs)]),
-    hardline,
-    ")"
-  ], { id: groupId });
+  return group(["(", indent([hardline, join(separator, elementDocs)]), hardline, ")"], {
+    id: groupId
+  });
 }
 function printParenthesis(node, options) {
   if (node.elements.length === 0) {
@@ -1291,25 +1282,23 @@ function printParenthesis(node, options) {
   const groupId = Symbol("parenthesis");
   const elementDocs = node.elements.map((element) => printExpression(element, options));
   if (elementDocs.length === 1 && !node.hasNewline) {
-    return group([
-      "(",
-      indent([softline, elementDocs[0]]),
-      softline,
-      ")"
-    ], { id: groupId });
+    return group(["(", indent([softline, elementDocs[0]]), softline, ")"], { id: groupId });
   }
   const hasComma = node.hasComma;
   const forceMultiline = node.hasNewline || !node.hasComma && elementDocs.length > 1;
   const separator = hasComma ? [",", forceMultiline ? hardline : line] : forceMultiline ? hardline : line;
-  return group([
-    "(",
-    indent([
+  return group(
+    [
+      "(",
+      indent([
+        forceMultiline ? hardline : hasComma ? line : softline,
+        join(separator, elementDocs)
+      ]),
       forceMultiline ? hardline : hasComma ? line : softline,
-      join(separator, elementDocs)
-    ]),
-    forceMultiline ? hardline : hasComma ? line : softline,
-    ")"
-  ], { id: groupId });
+      ")"
+    ],
+    { id: groupId }
+  );
 }
 function trailingCommaDoc(options, groupId, hasElements, delimiter) {
   if (!hasElements) {
@@ -1385,12 +1374,7 @@ var plugin = {
   defaultOptions
 };
 var index_default = plugin;
-export {
-  index_default as default,
-  defaultOptions,
-  languages,
-  pluginOptions as options,
-  parsers,
-  printers
-};
+
+export { index_default as default };
+//# sourceMappingURL=index.js.map
 //# sourceMappingURL=index.js.map
