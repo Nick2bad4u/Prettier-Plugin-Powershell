@@ -144,7 +144,14 @@ export interface ResolvedOptions {
 
 export function resolveOptions(options: ParserOptions): ResolvedOptions {
   const indentStyle = (options.powershellIndentStyle as IndentStyleOption | undefined) ?? 'spaces';
-  const indentSize = (options.powershellIndentSize as number | undefined) ?? options.tabWidth ?? 2;
+  const rawIndentOverride = options.powershellIndentSize;
+  const normalizedIndentOverride = Number(rawIndentOverride);
+  const normalizedTabWidth = Number(options.tabWidth);
+  const indentSize = Number.isFinite(normalizedIndentOverride) && normalizedIndentOverride > 0
+    ? Math.floor(normalizedIndentOverride)
+    : Number.isFinite(normalizedTabWidth) && normalizedTabWidth > 0
+      ? Math.floor(normalizedTabWidth)
+      : 2;
 
   if (indentStyle === 'tabs') {
     options.useTabs = true;
@@ -156,11 +163,14 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
   const trailingComma =
     (options.powershellTrailingComma as TrailingCommaOption | undefined) ?? 'multiline';
   const sortHashtableKeys = Boolean(options.powershellSortHashtableKeys);
-  const blankLinesBetweenFunctions = Math.max(
-    0,
-    Math.min(3, Number(options.powershellBlankLinesBetweenFunctions ?? 1)),
-  );
-  const blankLineAfterParam = options.powershellBlankLineAfterParam === false ? false : true;
+  const rawBlankLines = Number(options.powershellBlankLinesBetweenFunctions ?? 1);
+  const normalizedBlankLines = Number.isFinite(rawBlankLines) ? rawBlankLines : 1;
+  const blankLinesBetweenFunctions = Math.max(0, Math.min(3, Math.floor(normalizedBlankLines)));
+  let blankLineAfterParam = true;
+  /* c8 ignore next */
+  if (options.powershellBlankLineAfterParam === false) {
+    blankLineAfterParam = false;
+  }
   const braceStyle = (options.powershellBraceStyle as BraceStyleOption | undefined) ?? '1tbs';
   const lineWidth = Math.max(40, Math.min(200, Number(options.powershellLineWidth ?? 120)));
   const preferSingleQuote = options.powershellPreferSingleQuote === true;

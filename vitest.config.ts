@@ -28,10 +28,10 @@ export default defineConfig(({ }) => {
       reporter: ['text', 'json', 'lcov', 'html'],
       reportsDirectory: './coverage',
       thresholds: {
-        branches: 85,
-        functions: 90,
-        lines: 90,
-        statements: 90,
+        branches: 98,
+        functions: 98,
+        lines: 100,
+        statements: 98,
       },
     },
     pool: 'threads', // Use worker threads for better performance

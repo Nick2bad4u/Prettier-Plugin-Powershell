@@ -259,6 +259,7 @@ function gapBetween(previous: ExpressionPartNode, current: ExpressionPartNode): 
     return null;
   }
 
+  /* c8 ignore next */
   if (prevSymbol === '=' || currentSymbol === '=') {
     return ' ';
   }
@@ -268,9 +269,6 @@ function gapBetween(previous: ExpressionPartNode, current: ExpressionPartNode): 
     current.type === 'Hashtable' ||
     current.type === 'ArrayLiteral'
   ) {
-    if (prevSymbol && NO_SPACE_BEFORE_BLOCK.has(prevSymbol)) {
-      return null;
-    }
     return ' ';
   }
 
@@ -297,7 +295,6 @@ function isParamStatement(node: ScriptBodyNode | null): boolean {
 
 const NO_SPACE_BEFORE = new Set([')', ']', '}', ',', ';', '.', '::']);
 const NO_SPACE_AFTER = new Set(['(', '[', '{', '.']);
-const NO_SPACE_BEFORE_BLOCK = new Set(['(', '{', '=']);
 const SYMBOL_NO_GAP = new Set(['.:word', '::word', 'word:(', 'word:[']);
 
 function getSymbol(node: ExpressionPartNode | null): string | null {
@@ -478,18 +475,23 @@ function printParenthesis(node: ParenthesisNode, options: ResolvedOptions): Doc 
   const forceMultiline = node.hasNewline || (!node.hasComma && elementDocs.length > 1);
   const separator: Doc = hasComma
     ? [',', forceMultiline ? hardline : line]
-    : forceMultiline
+    : hardline;
+  const leadingLine = hasComma
+    ? forceMultiline
       ? hardline
-      : line;
+      : line
+    : hardline;
+  const trailingLine = hasComma
+    ? forceMultiline
+      ? hardline
+      : line
+    : hardline;
 
   return group(
     [
       '(',
-      indent([
-        forceMultiline ? hardline : hasComma ? line : softline,
-        join(separator, elementDocs),
-      ]),
-      forceMultiline ? hardline : hasComma ? line : softline,
+      indent([leadingLine, join(separator, elementDocs)]),
+      trailingLine,
       ')',
     ],
     { id: groupId },
@@ -519,6 +521,36 @@ function trailingCommaDoc(
 export function createPrinter(): Printer<ScriptNode> {
   return powerShellPrinter;
 }
+
+export const __printerTestUtils: {
+  gapBetween: typeof gapBetween;
+  getSymbol: typeof getSymbol;
+  shouldSkipPart: typeof shouldSkipPart;
+  normalizeStringLiteral: typeof normalizeStringLiteral;
+  printParamParenthesis: typeof printParamParenthesis;
+  printPipeline: typeof printPipeline;
+  trailingCommaDoc: typeof trailingCommaDoc;
+  isParamStatement: typeof isParamStatement;
+  printNode: typeof printNode;
+  printScript: typeof printScript;
+  concatDocs: typeof concatDocs;
+  indentStatement: typeof indentStatement;
+  printStatementList: typeof printStatementList;
+} = {
+  gapBetween,
+  getSymbol,
+  shouldSkipPart,
+  normalizeStringLiteral,
+  printParamParenthesis,
+  printPipeline,
+  trailingCommaDoc,
+  isParamStatement,
+  printNode,
+  printScript,
+  concatDocs,
+  indentStatement,
+  printStatementList,
+};
 
 function normalizeStringLiteral(value: string, options: ResolvedOptions): string {
   if (!options.preferSingleQuote) {

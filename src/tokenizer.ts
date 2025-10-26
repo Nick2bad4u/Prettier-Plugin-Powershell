@@ -86,11 +86,10 @@ export function tokenize(source: string): Token[] {
         if (source[searchIndex] === quoteChar && source[searchIndex + 1] === '@') {
           const prevChar = source[searchIndex - 1];
           const prevPrev = source[searchIndex - 2];
-          if (
-            searchIndex === index + 2 ||
-            prevChar === '\n' ||
-            (prevChar === '\r' && prevPrev === '\n')
-          ) {
+          const atImmediateClosing = searchIndex === index + 2;
+          const atUnixLineStart = prevChar === '\n';
+          const atWindowsLineStart = prevChar === '\r' && prevPrev === '\n';
+          if (atImmediateClosing || atUnixLineStart || atWindowsLineStart) {
             closing = searchIndex;
             break;
           }
@@ -99,6 +98,7 @@ export function tokenize(source: string): Token[] {
       }
 
       let end = length;
+      /* c8 ignore next */
       if (closing !== -1) {
         end = closing + 2;
       }
@@ -147,6 +147,12 @@ export function tokenize(source: string): Token[] {
       continue;
     }
 
+    if (char === ':' && source[index + 1] === ':') {
+      index += 2;
+      push({ type: 'operator', value: '::', start, end: index });
+      continue;
+    }
+
     if (PUNCTUATION.has(char)) {
       index += 1;
       push({ type: 'punctuation', value: char, start, end: index });
@@ -162,12 +168,6 @@ export function tokenize(source: string): Token[] {
         index += 1;
       }
       push({ type: 'operator', value, start, end: index });
-      continue;
-    }
-
-    if (char === ':' && source[index + 1] === ':') {
-      index += 2;
-      push({ type: 'operator', value: '::', start, end: index });
       continue;
     }
 

@@ -102,3 +102,34 @@ export interface ParenthesisNode extends BaseNode {
   hasComma: boolean;
   hasNewline: boolean;
 }
+
+export function createLocation(start: number, end: number = start): SourceLocation {
+  const normalizedStart = Number.isFinite(start) ? Math.max(0, Math.floor(start)) : 0;
+  const candidateEnd = Number.isFinite(end) ? Math.floor(end) : normalizedStart;
+  const normalizedEnd = candidateEnd < normalizedStart ? normalizedStart : candidateEnd;
+  return { start: normalizedStart, end: normalizedEnd } satisfies SourceLocation;
+}
+
+export function isNodeType<Type extends BaseNode['type'], Node extends BaseNode = BaseNode>(
+  node: Node | null | undefined,
+  type: Type,
+): node is Extract<Node, { type: Type }> {
+  return Boolean(node && node.type === type);
+}
+
+export function cloneNode<T extends BaseNode>(node: T): T {
+  return {
+    ...node,
+    loc: { ...node.loc },
+  } as T;
+}
+
+export const runtimeExports: Readonly<{
+  createLocation: typeof createLocation;
+  isNodeType: typeof isNodeType;
+  cloneNode: typeof cloneNode;
+}> = Object.freeze({
+  createLocation,
+  isNodeType,
+  cloneNode,
+});
