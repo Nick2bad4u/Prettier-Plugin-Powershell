@@ -5,10 +5,10 @@ function Get-Widget {
     )
 
     $items = Get-Item
-    | Where-Object {
-        $_.Name -eq $Name
-    }
-    | Select-Object Name, Length
+        | Where-Object {
+            $_.Name -eq $Name
+        }
+        | Select-Object Name, Length
     $hash = @{ b = 2; a = 1 }
     $lines = @"
 line1

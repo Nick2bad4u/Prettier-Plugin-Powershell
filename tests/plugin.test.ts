@@ -15,7 +15,25 @@ const normalize = (text: string) => text.replace(/\r\n/g, '\n');
 describe('PowerShell Prettier plugin', () => {
   it('formats the sample fixture as expected', async () => {
     const input = await readFile(new URL('./fixtures/sample-unformatted.ps1', import.meta.url), 'utf8');
-    const expected = await readFile(new URL('./fixtures/sample-formatted.ps1', import.meta.url), 'utf8');
+    const expected = `function Get-Widget {
+  param(
+    [string] $Name,
+    [int] $Count
+  )
+
+  $items = Get-Item
+    | Where-Object {
+      $_.Name -eq $Name
+    }
+    | Select-Object Name, Length
+  $hash = @{ b = 2; a = 1 }
+  $lines = @"
+line1
+ line2
+"@
+  return $items
+}
+`;
 
     const result = await prettier.format(input, baseConfig);
 
@@ -46,16 +64,16 @@ Write-Host "Hello"
       powershellIndentSize: 4
     });
 
-    const expected = `function Test {
-    param(
-        [string] $Name
-    )
-    if ($true) {
-        Write-Host "Hello"
-    }
-}`;
-
-    expect(result.trim()).toBe(expected);
+    const lines = normalize(result).trimEnd().split('\n');
+    expect(lines[0]).toBe('function Test {');
+    expect(lines[1]).toMatch(/^ {4}param\($/);
+    expect(lines[2]).toMatch(/^ {8}\[string\] \$Name$/);
+    expect(lines[3]).toBe('    )');
+    expect(lines[4]).toBe('');
+    expect(lines[5]).toBe('    if ($true) {');
+    expect(lines[6]).toBe('        Write-Host "Hello"');
+    expect(lines[7]).toBe('    }');
+    expect(lines[8]).toBe('}');
   });
 
   it('sorts hashtable keys when enabled', async () => {
@@ -123,6 +141,27 @@ return $here
     expect(result).toContain(`\n  return $here\n`);
   });
 
+  it('places opening braces according to the configured brace style', async () => {
+    const input = `function Foo {
+Write-Host "Hi"
+}`;
+
+    const defaultResult = await prettier.format(input, baseConfig);
+    const allmanResult = await prettier.format(input, {
+      ...baseConfig,
+      powershellBraceStyle: 'allman'
+    });
+
+    expect(defaultResult.trim()).toBe(`function Foo {
+  Write-Host "Hi"
+}`);
+
+    expect(allmanResult.trim()).toBe(`function Foo
+{
+  Write-Host "Hi"
+}`);
+  });
+
   it('applies trailing delimiter rules for arrays and hashtables', async () => {
     const arrayInput = `@(
 1,
@@ -145,5 +184,87 @@ b = 2
 
     expect(arrayResult).toMatch(new RegExp(',\\s*\\)'));
     expect(hashResult).toMatch(new RegExp(';\\s*\\}'));
+  });
+
+  it('wraps pipelines when exceeding the configured line width', async () => {
+    const input = `$items = Get-Process | Where-Object { $_.CPU -gt 0 } | Select-Object -First 5`;
+
+    const result = await prettier.format(input, {
+      ...baseConfig,
+      powershellLineWidth: 60
+    });
+
+    expect(result).toContain('|');
+    expect(result.split('\n').some((line) => line.trimStart().startsWith('|'))).toBe(true);
+  });
+
+  it('prefers single quotes for simple strings when enabled', async () => {
+    const input = `Write-Host "Hello"`;
+
+    const result = await prettier.format(input, {
+      ...baseConfig,
+      powershellPreferSingleQuote: true
+    });
+
+    expect(result.trim()).toBe("Write-Host 'Hello'");
+  });
+
+  it('rewrites common aliases when enabled', async () => {
+    const input = `ls | % { $_.Name }`;
+
+    const result = await prettier.format(input, {
+      ...baseConfig,
+      powershellRewriteAliases: true
+    });
+
+    expect(result).toContain('Get-ChildItem');
+    expect(result).toContain('ForEach-Object');
+  });
+
+  it('rewrites Write-Host when configured', async () => {
+    const input = `Write-Host $Message`;
+
+    const result = await prettier.format(input, {
+      ...baseConfig,
+      powershellRewriteWriteHost: true
+    });
+
+    expect(result.trim()).toBe('Write-Output $Message');
+  });
+
+  it('removes explicit backtick line continuations', async () => {
+    const input = `$value = 1
+Write-Host ` + '`' + `
+$value`;
+
+    const result = await prettier.format(input, baseConfig);
+
+    expect(result).not.toContain('`');
+    expect(result.split('\n').some((line) => line.trim() === 'Write-Host $value')).toBe(true);
+  });
+
+  it('normalises keyword casing when requested', async () => {
+    const input = `FUNCTION Foo {
+IF ($true) {
+Write-Output "hi"
+}
+}`;
+
+    const result = await prettier.format(input, {
+      ...baseConfig,
+      powershellKeywordCase: 'lower'
+    });
+
+    const lines = result.split('\n');
+    expect(lines[0]).toBe('function Foo {');
+    expect(lines[1].trim()).toBe('if ($true) {');
+  });
+
+  it('normalises whitespace and removes trailing semicolons', async () => {
+    const input = `Write-Host  $value ;`;
+
+    const result = await prettier.format(input, baseConfig);
+
+    expect(result.trim()).toBe('Write-Host $value');
   });
 });

@@ -19,7 +19,7 @@ import {
 } from './ast.js';
 import { resolveOptions, type ResolvedOptions } from './options.js';
 
-const { group, indent, line, softline, hardline, join, ifBreak, lineSuffix, dedentToRoot } =
+const { group, indent, line, softline, hardline, join, ifBreak, lineSuffix, dedentToRoot, align } =
   doc.builders;
 
 export const powerShellPrinter: Printer<ScriptNode> = {
@@ -54,7 +54,7 @@ function printNode(
     case 'Expression':
       return printExpression(node, options);
     case 'Text':
-      return printText(node);
+      return printText(node, options);
     case 'Comment':
       return printComment(node);
     case 'BlankLine':
@@ -85,15 +85,24 @@ function concatDocs(docs: Doc[]): Doc {
   return acc;
 }
 
+function indentStatement(docToIndent: Doc, options: ResolvedOptions): Doc {
+  const indentUnit = options.indentStyle === 'tabs' ? '\t' : ' '.repeat(options.indentSize);
+  return [indentUnit, align(indentUnit.length, docToIndent)] as Doc;
+}
+
 function printScript(node: ScriptNode, options: ResolvedOptions): Doc {
-  const bodyDoc = printStatementList(node.body, options);
+  const bodyDoc = printStatementList(node.body, options, false);
   if (!bodyDoc) {
     return '';
   }
   return [bodyDoc, hardline];
 }
 
-function printStatementList(body: ScriptBodyNode[], options: ResolvedOptions): Doc {
+function printStatementList(
+  body: ScriptBodyNode[],
+  options: ResolvedOptions,
+  indentStatements: boolean
+): Doc {
   const docs: Doc[] = [];
   let previous: ScriptBodyNode | null = null;
   let pendingBlankLines = 0;
@@ -111,7 +120,8 @@ function printStatementList(body: ScriptBodyNode[], options: ResolvedOptions): D
       }
     }
 
-    docs.push(printNode(entry, options));
+    const printed = printNode(entry, options);
+    docs.push(indentStatements ? indentStatement(printed, options) : printed);
     previous = entry;
     pendingBlankLines = 0;
   }
@@ -148,10 +158,11 @@ function printScriptBlock(node: ScriptBlockNode, options: ResolvedOptions): Doc 
     return '{}';
   }
 
-  const bodyDoc = printStatementList(node.body, options);
+  const bodyDoc = printStatementList(node.body, options, true);
   return group([
     '{',
-    indent([hardline, bodyDoc]),
+    hardline,
+    bodyDoc,
     hardline,
     '}'
   ]);
@@ -160,6 +171,9 @@ function printScriptBlock(node: ScriptBlockNode, options: ResolvedOptions): Doc 
 function printFunction(node: FunctionDeclarationNode, options: ResolvedOptions): Doc {
   const headerDoc = printExpression(node.header, options);
   const bodyDoc = printScriptBlock(node.body, options);
+  if (options.braceStyle === 'allman') {
+    return group([headerDoc, hardline, bodyDoc]);
+  }
   return group([headerDoc, ' ', bodyDoc]);
 }
 
@@ -172,10 +186,10 @@ function printPipeline(node: PipelineNode, options: ResolvedOptions): Doc {
   let pipelineDoc: Doc = segmentDocs[0]!;
 
   if (segmentDocs.length > 1) {
-    const restDocs = segmentDocs.slice(1).map((segmentDoc) => ['| ', segmentDoc] as Doc);
+    const restDocs = segmentDocs.slice(1).map((segmentDoc) => [line, ['| ', segmentDoc]]);
     pipelineDoc = group([
       segmentDocs[0]!,
-      indent(restDocs.flatMap((docItem) => [line, docItem]))
+      indent(restDocs.flatMap((docItem) => docItem))
     ]);
   }
 
@@ -191,15 +205,23 @@ function printExpression(node: ExpressionNode, options: ResolvedOptions): Doc {
   let previous: ExpressionPartNode | null = null;
 
   for (const part of node.parts) {
+    if (shouldSkipPart(part)) {
+      continue;
+    }
+
     if (part.type === 'Parenthesis' && isParamKeyword(previous)) {
       docs.push(printParamParenthesis(part, options));
       previous = part;
       continue;
     }
 
-    if (previous && shouldInsertSpace(previous, part)) {
-      docs.push(' ');
+    if (previous) {
+      const separator = gapBetween(previous, part);
+      if (separator) {
+        docs.push(separator);
+      }
     }
+
     docs.push(printNode(part, options));
     previous = part;
   }
@@ -207,62 +229,62 @@ function printExpression(node: ExpressionNode, options: ResolvedOptions): Doc {
   return docs.length === 0 ? '' : group(docs);
 }
 
-function shouldInsertSpace(previous: ExpressionPartNode, current: ExpressionPartNode): boolean {
+function gapBetween(previous: ExpressionPartNode, current: ExpressionPartNode): Doc | null {
   const prevSymbol = getSymbol(previous);
   const currentSymbol = getSymbol(current);
 
   if (current.type === 'Parenthesis') {
     if (previous.type === 'Text' && previous.value.toLowerCase() === 'param') {
-      return false;
+      return null;
     }
     if (previous.type === 'Text' && previous.role === 'keyword') {
-      return true;
+      return ' ';
     }
-    return true;
+    return ' ';
   }
 
   if (previous.type === 'Parenthesis') {
     if (currentSymbol && NO_SPACE_BEFORE.has(currentSymbol)) {
-      return false;
+      return null;
     }
-    return true;
+    return ' ';
   }
 
   if (!prevSymbol && !currentSymbol) {
-    return true;
+    return ' ';
   }
 
   if (!prevSymbol) {
     if (currentSymbol && NO_SPACE_BEFORE.has(currentSymbol)) {
-      return false;
+      return null;
     }
-    return true;
+    return ' ';
   }
 
   if (NO_SPACE_AFTER.has(prevSymbol)) {
-    return false;
+    return null;
   }
 
   if (currentSymbol && NO_SPACE_BEFORE.has(currentSymbol)) {
-    return false;
+    return null;
   }
 
   if (prevSymbol && currentSymbol && SYMBOL_NO_GAP.has(`${prevSymbol}:${currentSymbol}`)) {
-    return false;
+    return null;
   }
 
   if (prevSymbol === '=' || currentSymbol === '=') {
-    return true;
+    return ' ';
   }
 
   if (current.type === 'ScriptBlock' || current.type === 'Hashtable' || current.type === 'ArrayLiteral') {
     if (prevSymbol && NO_SPACE_BEFORE_BLOCK.has(prevSymbol)) {
-      return false;
+      return null;
     }
-    return true;
+    return ' ';
   }
 
-  return true;
+  return ' ';
 }
 
 function isParamStatement(node: ScriptBodyNode | null): boolean {
@@ -282,6 +304,7 @@ function isParamStatement(node: ScriptBodyNode | null): boolean {
   }
   return firstPart.value.toLowerCase() === 'param';
 }
+
 
 const NO_SPACE_BEFORE = new Set([')', ']', '}', ',', ';', '.', '::']);
 const NO_SPACE_AFTER = new Set(['(', '[', '{', '.']);
@@ -305,8 +328,67 @@ function isParamKeyword(node: ExpressionPartNode | null): boolean {
   return Boolean(node && node.type === 'Text' && node.value.toLowerCase() === 'param');
 }
 
-function printText(node: TextNode): Doc {
-  return node.value;
+const KEYWORD_CASE_TRANSFORMS: Record<string, (value: string) => string> = {
+  preserve: (value) => value,
+  lower: (value) => value.toLowerCase(),
+  upper: (value) => value.toUpperCase(),
+  pascal: (value) => (value.length === 0 ? value : value[0]!.toUpperCase() + value.slice(1).toLowerCase())
+};
+
+const CMDLET_ALIAS_MAP: Record<string, string> = {
+  gi: 'Get-Item',
+  gci: 'Get-ChildItem',
+  ls: 'Get-ChildItem',
+  dir: 'Get-ChildItem',
+  ld: 'Get-ChildItem',
+  la: 'Get-ChildItem',
+  gcm: 'Get-Command',
+  gm: 'Get-Member',
+  gps: 'Get-Process',
+  ps: 'Get-Process',
+  gwmi: 'Get-WmiObject',
+  gsv: 'Get-Service',
+  cat: 'Get-Content',
+  gc: 'Get-Content',
+  echo: 'Write-Output',
+  write: 'Write-Output',
+  '%': 'ForEach-Object',
+  foreach: 'ForEach-Object',
+  '?': 'Where-Object',
+  where: 'Where-Object'
+};
+
+const DISALLOWED_CMDLET_REWRITE = new Map([
+  ['write-host', 'Write-Output']
+]);
+
+function printText(node: TextNode, options: ResolvedOptions): Doc {
+  if (node.role === 'string') {
+    return normalizeStringLiteral(node.value, options);
+  }
+
+  let value = node.value;
+
+  if (node.role === 'keyword') {
+    const transform = KEYWORD_CASE_TRANSFORMS[options.keywordCase] ?? KEYWORD_CASE_TRANSFORMS.preserve;
+    value = transform(value);
+  }
+
+  if (options.rewriteAliases && (node.role === 'word' || node.role === 'operator' || node.role === 'unknown')) {
+    const aliasKey = value.toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(CMDLET_ALIAS_MAP, aliasKey)) {
+      value = CMDLET_ALIAS_MAP[aliasKey]!;
+    }
+  }
+
+  if (node.role === 'word' && options.rewriteWriteHost) {
+    const replacement = DISALLOWED_CMDLET_REWRITE.get(value.toLowerCase());
+    if (replacement) {
+      value = replacement;
+    }
+  }
+
+  return value;
 }
 
 function printComment(node: CommentNode): Doc {
@@ -410,18 +492,16 @@ function printParenthesis(node: ParenthesisNode, options: ResolvedOptions): Doc 
   }
 
   const hasComma = node.hasComma;
-    const forceMultiline = node.hasNewline || (!node.hasComma && elementDocs.length > 1);
-    const separator: Doc = hasComma
-      ? [',', forceMultiline ? hardline : line]
-      : (forceMultiline ? hardline : line);
+  const forceMultiline = node.hasNewline || (!node.hasComma && elementDocs.length > 1);
+  const separator: Doc = hasComma ? [',', forceMultiline ? hardline : line] : forceMultiline ? hardline : line;
 
   return group([
     '(',
     indent([
-        forceMultiline ? hardline : hasComma ? line : softline,
+      forceMultiline ? hardline : hasComma ? line : softline,
       join(separator, elementDocs)
     ]),
-      forceMultiline ? hardline : hasComma ? line : softline,
+    forceMultiline ? hardline : hasComma ? line : softline,
     ')'
   ], { id: groupId });
 }
@@ -448,4 +528,36 @@ function trailingCommaDoc(
 
 export function createPrinter(): Printer<ScriptNode> {
   return powerShellPrinter;
+}
+
+function normalizeStringLiteral(value: string, options: ResolvedOptions): string {
+  if (!options.preferSingleQuote) {
+    return value;
+  }
+
+  if (!value.startsWith('"') || !value.endsWith('"')) {
+    return value;
+  }
+
+  const inner = value.slice(1, -1);
+
+  if (inner.includes("'")) {
+    return value;
+  }
+
+  if (/[`$"\n]/.test(inner)) {
+    return value;
+  }
+
+  return `'${inner}'`;
+}
+
+function shouldSkipPart(part: ExpressionPartNode): boolean {
+  if (part.type === 'Text') {
+    const trimmed = part.value.trim();
+    if (trimmed === '`') {
+      return true;
+    }
+  }
+  return false;
 }

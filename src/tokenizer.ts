@@ -102,11 +102,6 @@ export function tokenize(source: string): Token[] {
       let end = length;
       if (closing !== -1) {
         end = closing + 2;
-        if (source[end] === '\r' && source[end + 1] === '\n') {
-          end += 2;
-        } else if (source[end] === '\n') {
-          end += 1;
-        }
       }
 
       push({

@@ -2,6 +2,8 @@ import type { ParserOptions, SupportOptions } from 'prettier';
 
 export type TrailingCommaOption = 'none' | 'multiline' | 'all';
 export type IndentStyleOption = 'spaces' | 'tabs';
+export type BraceStyleOption = '1tbs' | 'allman';
+export type KeywordCaseOption = 'preserve' | 'lower' | 'upper' | 'pascal';
 
 export interface PluginConfiguration {
   powershellIndentStyle: IndentStyleOption;
@@ -10,6 +12,12 @@ export interface PluginConfiguration {
   powershellSortHashtableKeys: boolean;
   powershellBlankLinesBetweenFunctions: number;
   powershellBlankLineAfterParam: boolean;
+  powershellBraceStyle: BraceStyleOption;
+  powershellLineWidth: number;
+  powershellPreferSingleQuote: boolean;
+  powershellKeywordCase: KeywordCaseOption;
+  powershellRewriteAliases: boolean;
+  powershellRewriteWriteHost: boolean;
 }
 
 export const pluginOptions: SupportOptions = {
@@ -59,6 +67,53 @@ export const pluginOptions: SupportOptions = {
     type: 'boolean',
     default: true,
     description: 'Insert a blank line after param(...) blocks inside script blocks.'
+  },
+  powershellBraceStyle: {
+    category: 'PowerShell',
+    type: 'choice',
+    default: '1tbs',
+    description: 'Control placement of opening braces for script blocks and functions.',
+    choices: [
+      { value: '1tbs', description: 'One True Brace Style – keep opening braces on the same line.' },
+      { value: 'allman', description: 'Allman style – place opening braces on the next line.' }
+    ]
+  },
+  powershellLineWidth: {
+    category: 'PowerShell',
+    type: 'int',
+    default: 120,
+    description: 'Maximum preferred line width for PowerShell documents.',
+    range: { start: 40, end: 200, step: 1 }
+  },
+  powershellPreferSingleQuote: {
+    category: 'PowerShell',
+    type: 'boolean',
+    default: false,
+    description: 'Prefer single-quoted strings when no interpolation is required.'
+  },
+  powershellKeywordCase: {
+    category: 'PowerShell',
+    type: 'choice',
+    default: 'preserve',
+    description: 'Normalise the casing of PowerShell keywords.',
+    choices: [
+      { value: 'preserve', description: 'Leave keyword casing unchanged.' },
+      { value: 'lower', description: 'Convert keywords to lower-case.' },
+      { value: 'upper', description: 'Convert keywords to upper-case.' },
+      { value: 'pascal', description: 'Capitalise keywords (PascalCase).' }
+    ]
+  },
+  powershellRewriteAliases: {
+    category: 'PowerShell',
+    type: 'boolean',
+    default: false,
+    description: 'Rewrite common cmdlet aliases to their canonical names.'
+  },
+  powershellRewriteWriteHost: {
+    category: 'PowerShell',
+    type: 'boolean',
+    default: false,
+    description: 'Rewrite Write-Host invocations to Write-Output to discourage host-only output.'
   }
 };
 
@@ -73,6 +128,12 @@ export interface ResolvedOptions {
   sortHashtableKeys: boolean;
   blankLinesBetweenFunctions: number;
   blankLineAfterParam: boolean;
+  braceStyle: BraceStyleOption;
+  lineWidth: number;
+  preferSingleQuote: boolean;
+  keywordCase: KeywordCaseOption;
+  rewriteAliases: boolean;
+  rewriteWriteHost: boolean;
 }
 
 export function resolveOptions(options: ParserOptions): ResolvedOptions {
@@ -93,6 +154,16 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
     Math.min(3, Number(options.powershellBlankLinesBetweenFunctions ?? 1))
   );
   const blankLineAfterParam = options.powershellBlankLineAfterParam === false ? false : true;
+  const braceStyle = (options.powershellBraceStyle as BraceStyleOption | undefined) ?? '1tbs';
+  const lineWidth = Math.max(40, Math.min(200, Number(options.powershellLineWidth ?? 120)));
+  const preferSingleQuote = options.powershellPreferSingleQuote === true;
+  const keywordCase = (options.powershellKeywordCase as KeywordCaseOption | undefined) ?? 'preserve';
+  const rewriteAliases = options.powershellRewriteAliases === true;
+  const rewriteWriteHost = options.powershellRewriteWriteHost === true;
+
+  if (!options.printWidth || options.printWidth > lineWidth) {
+    options.printWidth = lineWidth;
+  }
 
   return {
     indentStyle,
@@ -100,6 +171,12 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
     trailingComma,
     sortHashtableKeys,
     blankLinesBetweenFunctions,
-    blankLineAfterParam
+    blankLineAfterParam,
+    braceStyle,
+    lineWidth,
+    preferSingleQuote,
+    keywordCase,
+    rewriteAliases,
+    rewriteWriteHost
   } satisfies ResolvedOptions;
 }

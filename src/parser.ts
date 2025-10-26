@@ -115,6 +115,7 @@ class Parser {
     let trailingComment: CommentNode | undefined;
 
     const structureStack: string[] = [];
+    let lineContinuation = false;
 
     while (!this.isEOF()) {
       const token = this.peek();
@@ -123,6 +124,11 @@ class Parser {
       }
 
       if (token.type === 'newline') {
+        if (lineContinuation) {
+          this.advance();
+          lineContinuation = false;
+          continue;
+        }
         if (structureStack.length > 0) {
           const newlineToken = this.advance();
           segments[segments.length - 1]!.push(newlineToken);
@@ -152,11 +158,19 @@ class Parser {
       if (token.type === 'operator' && token.value === '|') {
         this.advance();
         segments.push([]);
+        lineContinuation = false;
+        continue;
+      }
+
+      if (token.type === 'unknown' && token.value === '`') {
+        this.advance();
+        lineContinuation = true;
         continue;
       }
 
       const currentSegment = segments[segments.length - 1]!;
       currentSegment.push(this.advance());
+      lineContinuation = false;
 
       if (isOpeningToken(token)) {
         structureStack.push(token.value);
