@@ -6,7 +6,7 @@ import { tokenize } from '../src/tokenizer.js';
 const baseConfig = {
   parser: 'powershell',
   plugins: [plugin],
-  filepath: 'test.ps1'
+  filepath: 'test.ps1',
 };
 
 describe('Coverage - Tokenizer edge cases', () => {
@@ -36,7 +36,7 @@ describe('Coverage - Tokenizer edge cases', () => {
       type: 'HereString' as const,
       quote: 'double' as const,
       value: '@"\n"@',
-      loc: { start: 0, end: 5 }
+      loc: { start: 0, end: 5 },
     };
     const result = normalizeHereString(node);
     expect(result).toBe('@"\n"@');
@@ -71,7 +71,7 @@ describe('Coverage - Tokenizer edge cases', () => {
       type: 'HereString' as const,
       quote: 'double' as const,
       value: '@"\nLine1\nLine2\nLine3\n"@',
-      loc: { start: 0, end: 20 }
+      loc: { start: 0, end: 20 },
     };
     const result = normalizeHereString(node);
     expect(result).toBe('Line1\nLine2\nLine3');
@@ -285,7 +285,7 @@ Write-Host "Hi"
 }`;
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellIndentStyle: 'tabs'
+      powershellIndentStyle: 'tabs',
     });
     expect(result).toContain('\t');
   });
@@ -330,7 +330,7 @@ Write-Host "Hi"
     const input = 'function Foo { if ($true) { } }';
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellKeywordCase: 'upper'
+      powershellKeywordCase: 'upper',
     });
     expect(result).toContain('FUNCTION');
     expect(result).toContain('IF');
@@ -340,7 +340,7 @@ Write-Host "Hi"
     const input = 'function Foo { if ($true) { } }';
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellKeywordCase: 'pascal'
+      powershellKeywordCase: 'pascal',
     });
     expect(result).toContain('Function');
     expect(result).toContain('If');
@@ -350,7 +350,7 @@ Write-Host "Hi"
     const input = `"It's working"`;
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellPreferSingleQuote: true
+      powershellPreferSingleQuote: true,
     });
     expect(result.trim()).toBe(`"It's working"`);
   });
@@ -359,7 +359,7 @@ Write-Host "Hi"
     const input = `"Hello\$world"`;
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellPreferSingleQuote: true
+      powershellPreferSingleQuote: true,
     });
     expect(result).toContain('"');
   });
@@ -368,7 +368,7 @@ Write-Host "Hi"
     const input = `$var`;
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellPreferSingleQuote: true
+      powershellPreferSingleQuote: true,
     });
     expect(result.trim()).toBe('$var');
   });
@@ -377,7 +377,7 @@ Write-Host "Hi"
     const input = 'gi | gci | dir | cat | echo | ps | where | ?';
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellRewriteAliases: true
+      powershellRewriteAliases: true,
     });
     expect(result).toContain('Get-Item');
     expect(result).toContain('Get-ChildItem');
@@ -391,7 +391,7 @@ Write-Host "Hi"
     const input = '@(1, 2)';
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellTrailingComma: 'all'
+      powershellTrailingComma: 'all',
     });
     expect(result).toMatch(/,\s*\)/);
   });
@@ -403,7 +403,7 @@ Write-Host "Hi"
 )`;
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellTrailingComma: 'none'
+      powershellTrailingComma: 'none',
     });
     expect(result).not.toMatch(/2,/);
   });
@@ -412,7 +412,7 @@ Write-Host "Hi"
     const input = '@{ a = 1; b = 2 }';
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellTrailingComma: 'all'
+      powershellTrailingComma: 'all',
     });
     expect(result).toMatch(/2;/);
   });
@@ -422,7 +422,7 @@ Write-Host "Hi"
 function B {}`;
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellBlankLinesBetweenFunctions: 0
+      powershellBlankLinesBetweenFunctions: 0,
     });
     expect(result.split('\n').filter((l) => l.trim() === '').length).toBeGreaterThanOrEqual(0);
   });
@@ -431,13 +431,13 @@ function B {}`;
     const input = 'Write-Host "test"';
     const result1 = await prettier.format(input, {
       ...baseConfig,
-      powershellLineWidth: 30
+      powershellLineWidth: 30,
     });
     expect(result1).toBeDefined();
 
     const result2 = await prettier.format(input, {
       ...baseConfig,
-      powershellLineWidth: 250
+      powershellLineWidth: 250,
     });
     expect(result2).toBeDefined();
   });
@@ -494,7 +494,7 @@ function B {}`;
     const input = '';
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellKeywordCase: 'pascal'
+      powershellKeywordCase: 'pascal',
     });
     expect(result.trim()).toBe('');
   });
@@ -504,7 +504,7 @@ function B {}`;
     const result = await prettier.format(input, {
       ...baseConfig,
       printWidth: 200,
-      powershellLineWidth: 100
+      powershellLineWidth: 100,
     });
     expect(result).toBeDefined();
   });
@@ -525,7 +525,7 @@ function B {}`;
     const input = 'function Test { Write-Host "Hi" }';
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellBraceStyle: 'allman'
+      powershellBraceStyle: 'allman',
     });
     expect(result).toContain('function Test\n{');
   });
@@ -534,7 +534,7 @@ function B {}`;
     const input = '~';
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellRewriteAliases: true
+      powershellRewriteAliases: true,
     });
     expect(result).toBeDefined();
   });
@@ -716,7 +716,7 @@ c = 3
 }`;
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellTrailingComma: 'multiline'
+      powershellTrailingComma: 'multiline',
     });
     expect(result).toContain('a');
   });
@@ -731,7 +731,7 @@ c = 3
     const input = '@{ a = 1; b = 2; c = 3 }';
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellTrailingComma: 'none'
+      powershellTrailingComma: 'none',
     });
     expect(result).toBeDefined();
   });
@@ -771,7 +771,7 @@ $b
     const input = '$variable';
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellPreferSingleQuote: true
+      powershellPreferSingleQuote: true,
     });
     expect(result.trim()).toBe('$variable');
   });
@@ -780,7 +780,7 @@ $b
     const input = '"Hello`nworld"';
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellPreferSingleQuote: true
+      powershellPreferSingleQuote: true,
     });
     expect(result).toContain('"');
   });
@@ -797,7 +797,7 @@ describe('Coverage - Options edge cases', () => {
     const input = 'function A {}\nfunction B {}';
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellBlankLinesBetweenFunctions: 10
+      powershellBlankLinesBetweenFunctions: 10,
     });
     expect(result).toBeDefined();
   });
@@ -806,7 +806,7 @@ describe('Coverage - Options edge cases', () => {
     const input = 'function A {}\nfunction B {}';
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellBlankLinesBetweenFunctions: -5
+      powershellBlankLinesBetweenFunctions: -5,
     });
     expect(result).toBeDefined();
   });
@@ -816,7 +816,7 @@ describe('Coverage - Options edge cases', () => {
     const result = await prettier.format(input, {
       parser: 'powershell',
       plugins: [plugin],
-      filepath: 'test.ps1'
+      filepath: 'test.ps1',
     });
     expect(result).toBeDefined();
   });
@@ -827,7 +827,7 @@ describe('Coverage - Options edge cases', () => {
     for (const caseOption of ['preserve', 'lower', 'upper', 'pascal']) {
       const result = await prettier.format(input, {
         ...baseConfig,
-        powershellKeywordCase: caseOption
+        powershellKeywordCase: caseOption,
       });
       expect(result).toBeDefined();
     }
@@ -839,7 +839,7 @@ describe('Coverage - Options edge cases', () => {
     for (const commaOption of ['none', 'multiline', 'all']) {
       const result = await prettier.format(input, {
         ...baseConfig,
-        powershellTrailingComma: commaOption
+        powershellTrailingComma: commaOption,
       });
       expect(result).toBeDefined();
     }
@@ -851,7 +851,7 @@ describe('Coverage - Options edge cases', () => {
       parser: 'powershell',
       plugins: [plugin],
       filepath: 'test.ps1',
-      powershellLineWidth: 80
+      powershellLineWidth: 80,
     });
     expect(result).toBeDefined();
   });
@@ -863,7 +863,7 @@ describe('Coverage - Options edge cases', () => {
       plugins: [plugin],
       filepath: 'test.ps1',
       printWidth: 60,
-      powershellLineWidth: 120
+      powershellLineWidth: 120,
     });
     expect(result).toBeDefined();
   });
@@ -878,7 +878,7 @@ describe('Coverage - Options edge cases', () => {
       powershellBlankLineAfterParam: true,
       powershellPreferSingleQuote: true,
       powershellRewriteAliases: true,
-      powershellRewriteWriteHost: true
+      powershellRewriteWriteHost: true,
     });
     expect(result1).toBeDefined();
 
@@ -888,7 +888,7 @@ describe('Coverage - Options edge cases', () => {
       powershellBlankLineAfterParam: false,
       powershellPreferSingleQuote: false,
       powershellRewriteAliases: false,
-      powershellRewriteWriteHost: false
+      powershellRewriteWriteHost: false,
     });
     expect(result2).toBeDefined();
   });
@@ -898,13 +898,13 @@ describe('Coverage - Options edge cases', () => {
 
     const spacesResult = await prettier.format(input, {
       ...baseConfig,
-      powershellIndentStyle: 'spaces'
+      powershellIndentStyle: 'spaces',
     });
     expect(spacesResult).not.toMatch(/\t/);
 
     const tabsResult = await prettier.format(input, {
       ...baseConfig,
-      powershellIndentStyle: 'tabs'
+      powershellIndentStyle: 'tabs',
     });
     expect(tabsResult).toMatch(/\t/);
   });
@@ -914,19 +914,19 @@ describe('Coverage - Options edge cases', () => {
 
     const noneResult = await prettier.format(input, {
       ...baseConfig,
-      powershellTrailingComma: 'none'
+      powershellTrailingComma: 'none',
     });
     expect(noneResult).toBeDefined();
 
     const multilineResult = await prettier.format(input, {
       ...baseConfig,
-      powershellTrailingComma: 'multiline'
+      powershellTrailingComma: 'multiline',
     });
     expect(multilineResult).toBeDefined();
 
     const allResult = await prettier.format(input, {
       ...baseConfig,
-      powershellTrailingComma: 'all'
+      powershellTrailingComma: 'all',
     });
     expect(allResult).toBeDefined();
   });
@@ -936,13 +936,13 @@ describe('Coverage - Options edge cases', () => {
 
     const oneTbsResult = await prettier.format(input, {
       ...baseConfig,
-      powershellBraceStyle: '1tbs'
+      powershellBraceStyle: '1tbs',
     });
     expect(oneTbsResult).toBeDefined();
 
     const allmanResult = await prettier.format(input, {
       ...baseConfig,
-      powershellBraceStyle: 'allman'
+      powershellBraceStyle: 'allman',
     });
     expect(allmanResult).toBeDefined();
   });
@@ -953,7 +953,7 @@ describe('Coverage - Options edge cases', () => {
     for (const caseValue of ['preserve', 'lower', 'upper', 'pascal'] as const) {
       const result = await prettier.format(input, {
         ...baseConfig,
-        powershellKeywordCase: caseValue
+        powershellKeywordCase: caseValue,
       });
       expect(result).toBeDefined();
     }

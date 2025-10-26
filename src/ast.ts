@@ -13,11 +13,7 @@ export interface ScriptNode extends BaseNode {
   body: ScriptBodyNode[];
 }
 
-export type ScriptBodyNode =
-  | PipelineNode
-  | FunctionDeclarationNode
-  | CommentNode
-  | BlankLineNode;
+export type ScriptBodyNode = PipelineNode | FunctionDeclarationNode | CommentNode | BlankLineNode;
 
 export interface BlankLineNode extends BaseNode {
   type: 'BlankLine';

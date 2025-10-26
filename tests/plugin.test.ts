@@ -7,14 +7,17 @@ import plugin from '../src/index.js';
 const baseConfig = {
   parser: 'powershell',
   plugins: [plugin],
-  filepath: 'test.ps1'
+  filepath: 'test.ps1',
 };
 
 const normalize = (text: string) => text.replace(/\r\n/g, '\n');
 
 describe('PowerShell Prettier plugin', () => {
   it('formats the sample fixture as expected', async () => {
-    const input = await readFile(new URL('./fixtures/sample-unformatted.ps1', import.meta.url), 'utf8');
+    const input = await readFile(
+      new URL('./fixtures/sample-unformatted.ps1', import.meta.url),
+      'utf8',
+    );
     const expected = `function Get-Widget {
   param(
     [string] $Name,
@@ -41,7 +44,10 @@ line1
   });
 
   it('is idempotent on formatted output', async () => {
-    const formatted = await readFile(new URL('./fixtures/sample-formatted.ps1', import.meta.url), 'utf8');
+    const formatted = await readFile(
+      new URL('./fixtures/sample-formatted.ps1', import.meta.url),
+      'utf8',
+    );
 
     const once = await prettier.format(formatted, baseConfig);
     const twice = await prettier.format(once, baseConfig);
@@ -61,7 +67,7 @@ Write-Host "Hello"
 
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellIndentSize: 4
+      powershellIndentSize: 4,
     });
 
     const lines = normalize(result).trimEnd().split('\n');
@@ -80,7 +86,7 @@ Write-Host "Hello"
     const input = `@{ z = 1; a = 2; m = 3 }`;
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellSortHashtableKeys: true
+      powershellSortHashtableKeys: true,
     });
 
     expect(result.trim()).toBe(`@{ a = 2; m = 3; z = 1 }`);
@@ -114,7 +120,7 @@ Write-Host $Name
 
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellBlankLineAfterParam: false
+      powershellBlankLineAfterParam: false,
     });
 
     const expected = `function Foo {
@@ -149,7 +155,7 @@ Write-Host "Hi"
     const defaultResult = await prettier.format(input, baseConfig);
     const allmanResult = await prettier.format(input, {
       ...baseConfig,
-      powershellBraceStyle: 'allman'
+      powershellBraceStyle: 'allman',
     });
 
     expect(defaultResult.trim()).toBe(`function Foo {
@@ -174,12 +180,12 @@ b = 2
 
     const arrayResult = await prettier.format(arrayInput, {
       ...baseConfig,
-      powershellTrailingComma: 'all'
+      powershellTrailingComma: 'all',
     });
 
     const hashResult = await prettier.format(hashInput, {
       ...baseConfig,
-      powershellTrailingComma: 'all'
+      powershellTrailingComma: 'all',
     });
 
     expect(arrayResult).toMatch(new RegExp(',\\s*\\)'));
@@ -191,7 +197,7 @@ b = 2
 
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellLineWidth: 60
+      powershellLineWidth: 60,
     });
 
     expect(result).toContain('|');
@@ -203,7 +209,7 @@ b = 2
 
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellPreferSingleQuote: true
+      powershellPreferSingleQuote: true,
     });
 
     expect(result.trim()).toBe("Write-Host 'Hello'");
@@ -214,7 +220,7 @@ b = 2
 
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellRewriteAliases: true
+      powershellRewriteAliases: true,
     });
 
     expect(result).toContain('Get-ChildItem');
@@ -226,15 +232,18 @@ b = 2
 
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellRewriteWriteHost: true
+      powershellRewriteWriteHost: true,
     });
 
     expect(result.trim()).toBe('Write-Output $Message');
   });
 
   it('removes explicit backtick line continuations', async () => {
-    const input = `$value = 1
-Write-Host ` + '`' + `
+    const input =
+      `$value = 1
+Write-Host ` +
+      '`' +
+      `
 $value`;
 
     const result = await prettier.format(input, baseConfig);
@@ -252,7 +261,7 @@ Write-Output "hi"
 
     const result = await prettier.format(input, {
       ...baseConfig,
-      powershellKeywordCase: 'lower'
+      powershellKeywordCase: 'lower',
     });
 
     const lines = result.split('\n');

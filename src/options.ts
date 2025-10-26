@@ -28,15 +28,15 @@ export const pluginOptions: SupportOptions = {
     description: 'Indent PowerShell code using spaces or tabs.',
     choices: [
       { value: 'spaces', description: 'Use spaces for indentation.' },
-      { value: 'tabs', description: 'Use tabs for indentation.' }
-    ]
+      { value: 'tabs', description: 'Use tabs for indentation.' },
+    ],
   },
   powershellIndentSize: {
     category: 'PowerShell',
     type: 'int',
     default: 2,
     description: 'Number of indentation characters for each level.',
-    range: { start: 1, end: 8, step: 1 }
+    range: { start: 1, end: 8, step: 1 },
   },
   powershellTrailingComma: {
     category: 'PowerShell',
@@ -45,28 +45,31 @@ export const pluginOptions: SupportOptions = {
     description: 'Control trailing commas for array and hashtable literals.',
     choices: [
       { value: 'none', description: 'Never add a trailing comma or semicolon.' },
-      { value: 'multiline', description: 'Add trailing comma/semicolon when the literal spans multiple lines.' },
-      { value: 'all', description: 'Always add trailing comma/semicolon when possible.' }
-    ]
+      {
+        value: 'multiline',
+        description: 'Add trailing comma/semicolon when the literal spans multiple lines.',
+      },
+      { value: 'all', description: 'Always add trailing comma/semicolon when possible.' },
+    ],
   },
   powershellSortHashtableKeys: {
     category: 'PowerShell',
     type: 'boolean',
     default: false,
-    description: 'Sort hashtable keys alphabetically when formatting.'
+    description: 'Sort hashtable keys alphabetically when formatting.',
   },
   powershellBlankLinesBetweenFunctions: {
     category: 'PowerShell',
     type: 'int',
     default: 1,
     description: 'Number of blank lines to ensure between function declarations.',
-    range: { start: 0, end: 3, step: 1 }
+    range: { start: 0, end: 3, step: 1 },
   },
   powershellBlankLineAfterParam: {
     category: 'PowerShell',
     type: 'boolean',
     default: true,
-    description: 'Insert a blank line after param(...) blocks inside script blocks.'
+    description: 'Insert a blank line after param(...) blocks inside script blocks.',
   },
   powershellBraceStyle: {
     category: 'PowerShell',
@@ -74,22 +77,25 @@ export const pluginOptions: SupportOptions = {
     default: '1tbs',
     description: 'Control placement of opening braces for script blocks and functions.',
     choices: [
-      { value: '1tbs', description: 'One True Brace Style – keep opening braces on the same line.' },
-      { value: 'allman', description: 'Allman style – place opening braces on the next line.' }
-    ]
+      {
+        value: '1tbs',
+        description: 'One True Brace Style – keep opening braces on the same line.',
+      },
+      { value: 'allman', description: 'Allman style – place opening braces on the next line.' },
+    ],
   },
   powershellLineWidth: {
     category: 'PowerShell',
     type: 'int',
     default: 120,
     description: 'Maximum preferred line width for PowerShell documents.',
-    range: { start: 40, end: 200, step: 1 }
+    range: { start: 40, end: 200, step: 1 },
   },
   powershellPreferSingleQuote: {
     category: 'PowerShell',
     type: 'boolean',
     default: false,
-    description: 'Prefer single-quoted strings when no interpolation is required.'
+    description: 'Prefer single-quoted strings when no interpolation is required.',
   },
   powershellKeywordCase: {
     category: 'PowerShell',
@@ -100,25 +106,25 @@ export const pluginOptions: SupportOptions = {
       { value: 'preserve', description: 'Leave keyword casing unchanged.' },
       { value: 'lower', description: 'Convert keywords to lower-case.' },
       { value: 'upper', description: 'Convert keywords to upper-case.' },
-      { value: 'pascal', description: 'Capitalise keywords (PascalCase).' }
-    ]
+      { value: 'pascal', description: 'Capitalise keywords (PascalCase).' },
+    ],
   },
   powershellRewriteAliases: {
     category: 'PowerShell',
     type: 'boolean',
     default: false,
-    description: 'Rewrite common cmdlet aliases to their canonical names.'
+    description: 'Rewrite common cmdlet aliases to their canonical names.',
   },
   powershellRewriteWriteHost: {
     category: 'PowerShell',
     type: 'boolean',
     default: false,
-    description: 'Rewrite Write-Host invocations to Write-Output to discourage host-only output.'
-  }
+    description: 'Rewrite Write-Host invocations to Write-Output to discourage host-only output.',
+  },
 };
 
 export const defaultOptions = {
-  tabWidth: 2
+  tabWidth: 2,
 };
 
 export interface ResolvedOptions {
@@ -147,17 +153,19 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
   }
   options.tabWidth = indentSize;
 
-  const trailingComma = (options.powershellTrailingComma as TrailingCommaOption | undefined) ?? 'multiline';
+  const trailingComma =
+    (options.powershellTrailingComma as TrailingCommaOption | undefined) ?? 'multiline';
   const sortHashtableKeys = Boolean(options.powershellSortHashtableKeys);
   const blankLinesBetweenFunctions = Math.max(
     0,
-    Math.min(3, Number(options.powershellBlankLinesBetweenFunctions ?? 1))
+    Math.min(3, Number(options.powershellBlankLinesBetweenFunctions ?? 1)),
   );
   const blankLineAfterParam = options.powershellBlankLineAfterParam === false ? false : true;
   const braceStyle = (options.powershellBraceStyle as BraceStyleOption | undefined) ?? '1tbs';
   const lineWidth = Math.max(40, Math.min(200, Number(options.powershellLineWidth ?? 120)));
   const preferSingleQuote = options.powershellPreferSingleQuote === true;
-  const keywordCase = (options.powershellKeywordCase as KeywordCaseOption | undefined) ?? 'preserve';
+  const keywordCase =
+    (options.powershellKeywordCase as KeywordCaseOption | undefined) ?? 'preserve';
   const rewriteAliases = options.powershellRewriteAliases === true;
   const rewriteWriteHost = options.powershellRewriteWriteHost === true;
 
@@ -177,6 +185,6 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
     preferSingleQuote,
     keywordCase,
     rewriteAliases,
-    rewriteWriteHost
+    rewriteWriteHost,
   } satisfies ResolvedOptions;
 }

@@ -15,7 +15,7 @@ import {
   type ScriptBlockNode,
   type ScriptBodyNode,
   type ScriptNode,
-  type TextNode
+  type TextNode,
 } from './ast.js';
 import { resolveOptions, type ResolvedOptions } from './options.js';
 
@@ -30,17 +30,12 @@ export const powerShellPrinter: Printer<ScriptNode> = {
     }
     const resolved = resolveOptions(options);
     return printNode(node, resolved);
-  }
+  },
 };
 
 function printNode(
-  node:
-    | ScriptNode
-    | ScriptBodyNode
-    | ExpressionNode
-    | ExpressionPartNode
-    | HashtableEntryNode,
-  options: ResolvedOptions
+  node: ScriptNode | ScriptBodyNode | ExpressionNode | ExpressionPartNode | HashtableEntryNode,
+  options: ResolvedOptions,
 ): Doc {
   switch (node.type) {
     case 'Script':
@@ -101,7 +96,7 @@ function printScript(node: ScriptNode, options: ResolvedOptions): Doc {
 function printStatementList(
   body: ScriptBodyNode[],
   options: ResolvedOptions,
-  indentStatements: boolean
+  indentStatements: boolean,
 ): Doc {
   const docs: Doc[] = [];
   let previous: ScriptBodyNode | null = null;
@@ -133,7 +128,7 @@ function determineBlankLines(
   previous: ScriptBodyNode,
   current: ScriptBodyNode,
   pendingBlankLines: number,
-  options: ResolvedOptions
+  options: ResolvedOptions,
 ): number {
   let base = pendingBlankLines > 0 ? pendingBlankLines : 1;
   const desiredFunctionSpacing = options.blankLinesBetweenFunctions + 1;
@@ -159,13 +154,7 @@ function printScriptBlock(node: ScriptBlockNode, options: ResolvedOptions): Doc 
   }
 
   const bodyDoc = printStatementList(node.body, options, true);
-  return group([
-    '{',
-    hardline,
-    bodyDoc,
-    hardline,
-    '}'
-  ]);
+  return group(['{', hardline, bodyDoc, hardline, '}']);
 }
 
 function printFunction(node: FunctionDeclarationNode, options: ResolvedOptions): Doc {
@@ -187,10 +176,7 @@ function printPipeline(node: PipelineNode, options: ResolvedOptions): Doc {
 
   if (segmentDocs.length > 1) {
     const restDocs = segmentDocs.slice(1).map((segmentDoc) => [line, ['| ', segmentDoc]]);
-    pipelineDoc = group([
-      segmentDocs[0]!,
-      indent(restDocs.flatMap((docItem) => docItem))
-    ]);
+    pipelineDoc = group([segmentDocs[0]!, indent(restDocs.flatMap((docItem) => docItem))]);
   }
 
   if (node.trailingComment) {
@@ -277,7 +263,11 @@ function gapBetween(previous: ExpressionPartNode, current: ExpressionPartNode): 
     return ' ';
   }
 
-  if (current.type === 'ScriptBlock' || current.type === 'Hashtable' || current.type === 'ArrayLiteral') {
+  if (
+    current.type === 'ScriptBlock' ||
+    current.type === 'Hashtable' ||
+    current.type === 'ArrayLiteral'
+  ) {
     if (prevSymbol && NO_SPACE_BEFORE_BLOCK.has(prevSymbol)) {
       return null;
     }
@@ -305,7 +295,6 @@ function isParamStatement(node: ScriptBodyNode | null): boolean {
   return firstPart.value.toLowerCase() === 'param';
 }
 
-
 const NO_SPACE_BEFORE = new Set([')', ']', '}', ',', ';', '.', '::']);
 const NO_SPACE_AFTER = new Set(['(', '[', '{', '.']);
 const NO_SPACE_BEFORE_BLOCK = new Set(['(', '{', '=']);
@@ -332,7 +321,8 @@ const KEYWORD_CASE_TRANSFORMS: Record<string, (value: string) => string> = {
   preserve: (value) => value,
   lower: (value) => value.toLowerCase(),
   upper: (value) => value.toUpperCase(),
-  pascal: (value) => (value.length === 0 ? value : value[0]!.toUpperCase() + value.slice(1).toLowerCase())
+  pascal: (value) =>
+    value.length === 0 ? value : value[0]!.toUpperCase() + value.slice(1).toLowerCase(),
 };
 
 const CMDLET_ALIAS_MAP: Record<string, string> = {
@@ -355,12 +345,10 @@ const CMDLET_ALIAS_MAP: Record<string, string> = {
   '%': 'ForEach-Object',
   foreach: 'ForEach-Object',
   '?': 'Where-Object',
-  where: 'Where-Object'
+  where: 'Where-Object',
 };
 
-const DISALLOWED_CMDLET_REWRITE = new Map([
-  ['write-host', 'Write-Output']
-]);
+const DISALLOWED_CMDLET_REWRITE = new Map([['write-host', 'Write-Output']]);
 
 function printText(node: TextNode, options: ResolvedOptions): Doc {
   if (node.role === 'string') {
@@ -370,11 +358,15 @@ function printText(node: TextNode, options: ResolvedOptions): Doc {
   let value = node.value;
 
   if (node.role === 'keyword') {
-    const transform = KEYWORD_CASE_TRANSFORMS[options.keywordCase] ?? KEYWORD_CASE_TRANSFORMS.preserve;
+    const transform =
+      KEYWORD_CASE_TRANSFORMS[options.keywordCase] ?? KEYWORD_CASE_TRANSFORMS.preserve;
     value = transform(value);
   }
 
-  if (options.rewriteAliases && (node.role === 'word' || node.role === 'operator' || node.role === 'unknown')) {
+  if (
+    options.rewriteAliases &&
+    (node.role === 'word' || node.role === 'operator' || node.role === 'unknown')
+  ) {
     const aliasKey = value.toLowerCase();
     if (Object.prototype.hasOwnProperty.call(CMDLET_ALIAS_MAP, aliasKey)) {
       value = CMDLET_ALIAS_MAP[aliasKey]!;
@@ -407,21 +399,23 @@ function printArray(node: ArrayLiteralNode, options: ResolvedOptions): Doc {
   const separator: Doc = [',', line];
   const trailing = trailingCommaDoc(options, groupId, elementDocs.length > 0, ',');
 
-  return group([
-    open,
-    indent([
+  return group(
+    [
+      open,
+      indent([shouldBreak ? line : softline, join(separator, elementDocs)]),
+      trailing,
       shouldBreak ? line : softline,
-      join(separator, elementDocs)
-    ]),
-    trailing,
-    shouldBreak ? line : softline,
-    close
-  ], { id: groupId });
+      close,
+    ],
+    { id: groupId },
+  );
 }
 
 function printHashtable(node: HashtableNode, options: ResolvedOptions): Doc {
   const entries = options.sortHashtableKeys
-    ? [...node.entries].sort((a, b) => a.key.localeCompare(b.key, undefined, { sensitivity: 'base' }))
+    ? [...node.entries].sort((a, b) =>
+        a.key.localeCompare(b.key, undefined, { sensitivity: 'base' }),
+      )
     : node.entries;
 
   if (entries.length === 0) {
@@ -433,16 +427,13 @@ function printHashtable(node: HashtableNode, options: ResolvedOptions): Doc {
   const entryDocs = entries.map((entry, index) => {
     const entryDoc = printHashtableEntry(entry, options);
     const isLast = index === entries.length - 1;
-    const separator = isLast ? trailingCommaDoc(options, groupId, true, ';') : ifBreak('', ';', { groupId });
+    const separator = isLast
+      ? trailingCommaDoc(options, groupId, true, ';')
+      : ifBreak('', ';', { groupId });
     return [entryDoc, separator];
   });
 
-  return group([
-    '@{',
-    indent([line, join(line, entryDocs)]),
-    line,
-    '}'
-  ], { id: groupId });
+  return group(['@{', indent([line, join(line, entryDocs)]), line, '}'], { id: groupId });
 }
 
 function printHashtableEntry(node: HashtableEntryNode, options: ResolvedOptions): Doc {
@@ -468,12 +459,9 @@ function printParamParenthesis(node: ParenthesisNode, options: ResolvedOptions):
   const elementDocs = node.elements.map((element) => printExpression(element, options));
   const separator: Doc = [',', hardline];
 
-  return group([
-    '(',
-    indent([hardline, join(separator, elementDocs)]),
-    hardline,
-    ')'
-  ], { id: groupId });
+  return group(['(', indent([hardline, join(separator, elementDocs)]), hardline, ')'], {
+    id: groupId,
+  });
 }
 
 function printParenthesis(node: ParenthesisNode, options: ResolvedOptions): Doc {
@@ -483,34 +471,36 @@ function printParenthesis(node: ParenthesisNode, options: ResolvedOptions): Doc 
   const groupId = Symbol('parenthesis');
   const elementDocs = node.elements.map((element) => printExpression(element, options));
   if (elementDocs.length === 1 && !node.hasNewline) {
-    return group([
-      '(',
-      indent([softline, elementDocs[0]!]),
-      softline,
-      ')'
-    ], { id: groupId });
+    return group(['(', indent([softline, elementDocs[0]!]), softline, ')'], { id: groupId });
   }
 
   const hasComma = node.hasComma;
   const forceMultiline = node.hasNewline || (!node.hasComma && elementDocs.length > 1);
-  const separator: Doc = hasComma ? [',', forceMultiline ? hardline : line] : forceMultiline ? hardline : line;
+  const separator: Doc = hasComma
+    ? [',', forceMultiline ? hardline : line]
+    : forceMultiline
+      ? hardline
+      : line;
 
-  return group([
-    '(',
-    indent([
+  return group(
+    [
+      '(',
+      indent([
+        forceMultiline ? hardline : hasComma ? line : softline,
+        join(separator, elementDocs),
+      ]),
       forceMultiline ? hardline : hasComma ? line : softline,
-      join(separator, elementDocs)
-    ]),
-    forceMultiline ? hardline : hasComma ? line : softline,
-    ')'
-  ], { id: groupId });
+      ')',
+    ],
+    { id: groupId },
+  );
 }
 
 function trailingCommaDoc(
   options: ResolvedOptions,
   groupId: symbol,
   hasElements: boolean,
-  delimiter: ',' | ';'
+  delimiter: ',' | ';',
 ): Doc {
   if (!hasElements) {
     return '';

@@ -11,8 +11,8 @@ const languages: SupportLanguage[] = [
     tmScope: 'source.powershell',
     aceMode: 'powershell',
     linguistLanguageId: 131,
-    vscodeLanguageIds: ['powershell']
-  }
+    vscodeLanguageIds: ['powershell'],
+  },
 ] as const;
 
 const parsers: Plugin['parsers'] = {
@@ -23,12 +23,12 @@ const parsers: Plugin['parsers'] = {
     locEnd,
     hasPragma() {
       return false;
-    }
-  }
+    },
+  },
 } as const;
 
 const printers: Plugin['printers'] = {
-  'powershell-ast': powerShellPrinter
+  'powershell-ast': powerShellPrinter,
 };
 
 const plugin: Plugin = {
@@ -36,7 +36,7 @@ const plugin: Plugin = {
   parsers,
   printers,
   options: pluginOptions,
-  defaultOptions
+  defaultOptions,
 };
 
 export default plugin;

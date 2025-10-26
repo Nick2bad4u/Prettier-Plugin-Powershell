@@ -1,9 +1,9 @@
 import { defineConfig } from 'vitest/config';
-import { coverageConfigDefaults, defaultExclude } from 'vitest/config';
+import { coverageConfigDefaults } from 'vitest/config';
 import {
   type UserConfigFnObject,
 } from "vite";
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ }) => {
   return {
   test: {
     globals: true,

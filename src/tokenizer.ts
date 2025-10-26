@@ -34,11 +34,24 @@ const KEYWORDS = new Set([
   'catch',
   'finally',
   'param',
-  'class'
+  'class',
 ]);
 
 const PUNCTUATION = new Set(['{', '}', '(', ')', '[', ']', ',', ';', '.', ':']);
-const OPERATORS = new Set(['|', '=', '==', '!=', '-eq', '-ne', '-gt', '-lt', '-ge', '-le', '=>', '::']);
+const OPERATORS = new Set([
+  '|',
+  '=',
+  '==',
+  '!=',
+  '-eq',
+  '-ne',
+  '-gt',
+  '-lt',
+  '-ge',
+  '-le',
+  '=>',
+  '::',
+]);
 
 export function tokenize(source: string): Token[] {
   const tokens: Token[] = [];
@@ -69,7 +82,7 @@ export function tokenize(source: string): Token[] {
       continue;
     }
 
-    if (char === '#' ) {
+    if (char === '#') {
       index += 1;
       while (index < length && source[index] !== '\r' && source[index] !== '\n') {
         index += 1;
@@ -78,7 +91,7 @@ export function tokenize(source: string): Token[] {
       continue;
     }
 
-    if (char === '@' && (source[index + 1] === '"' || source[index + 1] === '\'')) {
+    if (char === '@' && (source[index + 1] === '"' || source[index + 1] === "'")) {
       const quoteChar = source[index + 1];
       const quote = quoteChar === '"' ? 'double' : 'single';
       let searchIndex = index + 2;
@@ -109,13 +122,13 @@ export function tokenize(source: string): Token[] {
         value: source.slice(index, end),
         start,
         end,
-        quote
+        quote,
       });
       index = end;
       continue;
     }
 
-    if (char === '\'' || char === '"') {
+    if (char === "'" || char === '"') {
       const quote = char === '"' ? 'double' : 'single';
       index += 1;
       let escaped = false;
@@ -136,7 +149,7 @@ export function tokenize(source: string): Token[] {
         value: source.slice(start, index),
         start,
         end: index,
-        quote
+        quote,
       });
       continue;
     }
@@ -213,10 +226,7 @@ export function tokenize(source: string): Token[] {
 
     if (/[A-Za-z_]/.test(char) || (char === '-' && /[A-Za-z]/.test(source[index + 1]))) {
       index += 1;
-      while (
-        index < length &&
-        /[A-Za-z0-9_\-]/.test(source[index])
-      ) {
+      while (index < length && /[A-Za-z0-9_\-]/.test(source[index])) {
         index += 1;
       }
       const raw = source.slice(start, index);
@@ -242,7 +252,5 @@ export function normalizeHereString(node: HereStringNode): string {
   if (lines.length <= 2) {
     return node.value;
   }
-  return lines
-    .slice(1, -1)
-    .join('\n');
+  return lines.slice(1, -1).join('\n');
 }
