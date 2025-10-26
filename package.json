@@ -1,6 +1,6 @@
 {
     "name": "prettier-plugin-powershell",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "Prettier plugin for formatting PowerShell source files with idiomatic defaults.",
     "keywords": [
         "prettier",
