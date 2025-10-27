@@ -1,0 +1,16 @@
+remote_theme: pages-themes/hacker@v0.2.0
+title: Prettier-Plugin-Powershell
+author: Nick2bad4u
+description:  Prettier-Plugin-Powershell by Typpi / Nick2bad4u
+url: "https://nick2bad4u.github.io/Prettier-Plugin-Powershell/" # the base hostname & protocol for your site
+plugins:
+  - jekyll-sitemap
+  - jekyll-seo-tag
+  - jekyll-paginate
+  - jekyll-feed
+  - jekyll-archives
+  - jekyll-language-plugin
+  - jekyll-algolia
+  - jekyll-mentions
+  - jekyll-admin
+  - jekyll-loading-lazy
