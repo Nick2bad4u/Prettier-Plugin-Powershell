@@ -15,10 +15,3 @@ exclude_detectors:
   - name: MongoDB
     paths:
       - .github/workflows/ci.yml
-
-# Allow list for known false positives
-allow:
-  # Codecov slug parameter in CI workflow
-  - path: .github/workflows/ci.yml
-    regex: 'slug:\s+Nick2bad4u/prettier-plugin-powershell'
-    reason: 'Codecov slug parameter, not a MongoDB connection string'

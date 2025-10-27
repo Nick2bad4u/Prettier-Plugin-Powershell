@@ -10,7 +10,6 @@ DISABLE_LINTERS:
   - COPYPASTE_JSCPD
 
 # PowerShell specific settings
-POWERSHELL_POWERSHELL_CONFIG_FILE: PSScriptAnalyzerSettings.psd1
 POWERSHELL_POWERSHELL_FILTER_REGEX_EXCLUDE: '(Scripts/.*\.ps1)'
 
 # Markdown settings
@@ -23,12 +22,7 @@ MARKDOWN_MARKDOWN_TABLE_FORMATTER_FILTER_REGEX_EXCLUDE: '(CHANGELOG\.md|.*AUDIT.
 # Repository linters
 REPOSITORY_CHECKOV_ARGUMENTS: "--framework github_actions --skip-check CKV_GHA_7,CKV2_GHA_1"
 REPOSITORY_DEVSKIM_ARGUMENTS: "--ignore-globs **/node_modules/**,**/.git/**"
-REPOSITORY_GITLEAKS_CONFIG_FILE: .gitleaks.toml
-REPOSITORY_SECRETLINT_ARGUMENTS: "--secretlintrc .secretlintrc.json"
 REPOSITORY_TRIVY_ARGUMENTS: "--skip-dirs node_modules"
-
-# YAML settings
-YAML_YAMLLINT_CONFIG_FILE: .yamllint.yml
 
 # File exclusions
 FILTER_REGEX_EXCLUDE: '(node_modules/|\.git/|\.vscode/|Scripts/.*\.ps1|cache/)'
