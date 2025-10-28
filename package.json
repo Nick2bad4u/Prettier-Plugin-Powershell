@@ -8,15 +8,15 @@
         "powershell",
         "formatter"
     ],
-    "homepage": "https://github.com/your-org/prettier-plugin-powershell",
+    "homepage": "https://github.com/Nick2bad4u/prettier-plugin-powershell",
     "bugs": {
-        "url": "https://github.com/your-org/prettier-plugin-powershell/issues"
+        "url": "https://github.com/Nick2bad4u/prettier-plugin-powershell/issues"
     },
     "repository": {
         "type": "git",
         "url": "https://github.com/your-org/prettier-plugin-powershell.git"
     },
-    "license": "MIT",
+    "license": "UnLicense",
     "type": "module",
     "files": [
         "dist"
