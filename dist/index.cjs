@@ -110,7 +110,10 @@ var defaultOptions = {
 };
 function resolveOptions(options) {
   const indentStyle = options.powershellIndentStyle ?? "spaces";
-  const indentSize = options.powershellIndentSize ?? options.tabWidth ?? 2;
+  const rawIndentOverride = options.powershellIndentSize;
+  const normalizedIndentOverride = Number(rawIndentOverride);
+  const normalizedTabWidth = Number(options.tabWidth);
+  const indentSize = Number.isFinite(normalizedIndentOverride) && normalizedIndentOverride > 0 ? Math.floor(normalizedIndentOverride) : Number.isFinite(normalizedTabWidth) && normalizedTabWidth > 0 ? Math.floor(normalizedTabWidth) : 2;
   if (indentStyle === "tabs") {
     options.useTabs = true;
   } else {
@@ -119,11 +122,13 @@ function resolveOptions(options) {
   options.tabWidth = indentSize;
   const trailingComma = options.powershellTrailingComma ?? "multiline";
   const sortHashtableKeys = Boolean(options.powershellSortHashtableKeys);
-  const blankLinesBetweenFunctions = Math.max(
-    0,
-    Math.min(3, Number(options.powershellBlankLinesBetweenFunctions ?? 1))
-  );
-  const blankLineAfterParam = options.powershellBlankLineAfterParam === false ? false : true;
+  const rawBlankLines = Number(options.powershellBlankLinesBetweenFunctions ?? 1);
+  const normalizedBlankLines = Number.isFinite(rawBlankLines) ? rawBlankLines : 1;
+  const blankLinesBetweenFunctions = Math.max(0, Math.min(3, Math.floor(normalizedBlankLines)));
+  let blankLineAfterParam = true;
+  if (options.powershellBlankLineAfterParam === false) {
+    blankLineAfterParam = false;
+  }
   const braceStyle = options.powershellBraceStyle ?? "1tbs";
   const lineWidth = Math.max(40, Math.min(200, Number(options.powershellLineWidth ?? 120)));
   const preferSingleQuote = options.powershellPreferSingleQuote === true;
@@ -190,6 +195,20 @@ function tokenize(source) {
       index += 1;
       continue;
     }
+    if (char === "<" && index + 1 < length && source[index + 1] === "#") {
+      let searchIndex = index + 2;
+      while (searchIndex < length - 1) {
+        if (source[searchIndex] === "#" && source[searchIndex + 1] === ">") {
+          searchIndex += 2;
+          break;
+        }
+        searchIndex += 1;
+      }
+      const end = searchIndex >= length ? length : searchIndex;
+      push({ type: "block-comment", value: source.slice(start, end), start, end });
+      index = end;
+      continue;
+    }
     if (char === "#") {
       index += 1;
       while (index < length && source[index] !== "\r" && source[index] !== "\n") {
@@ -197,6 +216,54 @@ function tokenize(source) {
       }
       push({ type: "comment", value: source.slice(start + 1, index).trimEnd(), start, end: index });
       continue;
+    }
+    if (char === "[") {
+      let lookahead = index + 1;
+      while (lookahead < length && /\s/.test(source[lookahead])) {
+        lookahead += 1;
+      }
+      if (lookahead < length && /[A-Za-z_]/.test(source[lookahead])) {
+        let depth = 1;
+        let searchIndex = index + 1;
+        while (searchIndex < length && depth > 0) {
+          const current = source[searchIndex];
+          if (current === "'" || current === '"') {
+            const quote = current;
+            searchIndex += 1;
+            while (searchIndex < length) {
+              const ch = source[searchIndex];
+              if (ch === "`") {
+                searchIndex += 2;
+                continue;
+              }
+              if (ch === quote) {
+                searchIndex += 1;
+                break;
+              }
+              searchIndex += 1;
+            }
+            continue;
+          }
+          if (current === "[") {
+            depth += 1;
+            searchIndex += 1;
+            continue;
+          }
+          if (current === "]") {
+            depth -= 1;
+            searchIndex += 1;
+            if (depth === 0) {
+              break;
+            }
+            continue;
+          }
+          searchIndex += 1;
+        }
+        const attributeEnd = depth === 0 ? searchIndex : length;
+        push({ type: "attribute", value: source.slice(start, attributeEnd), start, end: attributeEnd });
+        index = attributeEnd;
+        continue;
+      }
     }
     if (char === "@" && (source[index + 1] === '"' || source[index + 1] === "'")) {
       const quoteChar = source[index + 1];
@@ -207,7 +274,10 @@ function tokenize(source) {
         if (source[searchIndex] === quoteChar && source[searchIndex + 1] === "@") {
           const prevChar = source[searchIndex - 1];
           const prevPrev = source[searchIndex - 2];
-          if (searchIndex === index + 2 || prevChar === "\n" || prevChar === "\r" && prevPrev === "\n") {
+          const atImmediateClosing = searchIndex === index + 2;
+          const atUnixLineStart = prevChar === "\n";
+          const atWindowsLineStart = prevChar === "\r" && prevPrev === "\n";
+          if (atImmediateClosing || atUnixLineStart || atWindowsLineStart) {
             closing = searchIndex;
             break;
           }
@@ -259,6 +329,11 @@ function tokenize(source) {
       push({ type: "operator", value, start, end: index });
       continue;
     }
+    if (char === ":" && source[index + 1] === ":") {
+      index += 2;
+      push({ type: "operator", value: "::", start, end: index });
+      continue;
+    }
     if (PUNCTUATION.has(char)) {
       index += 1;
       push({ type: "punctuation", value: char, start, end: index });
@@ -275,9 +350,15 @@ function tokenize(source) {
       push({ type: "operator", value, start, end: index });
       continue;
     }
-    if (char === ":" && source[index + 1] === ":") {
-      index += 2;
-      push({ type: "operator", value: "::", start, end: index });
+    if (char === ">" || char === "<") {
+      let value = char;
+      if (source[index + 1] === char) {
+        value += char;
+        index += 2;
+      } else {
+        index += 1;
+      }
+      push({ type: "operator", value, start, end: index });
       continue;
     }
     if (char === "$") {
@@ -317,7 +398,7 @@ function tokenize(source) {
       push({ type: "number", value: source.slice(start, index), start, end: index });
       continue;
     }
-    if (/[A-Za-z_]/.test(char) || char === "-" && /[A-Za-z]/.test(source[index + 1])) {
+    if (/[A-Za-z_]/.test(char) || char === "-" && index + 1 < length && /[-A-Za-z]/.test(source[index + 1])) {
       index += 1;
       while (index < length && /[A-Za-z0-9_-]/.test(source[index])) {
         index += 1;
@@ -349,22 +430,49 @@ var Parser = class _Parser {
     const start = this.tokens.length > 0 ? this.tokens[0].start : 0;
     while (!this.isEOF()) {
       const token = this.peek();
-      if (!token) {
-        break;
-      }
       if (terminators.has(token.value) && token.type === "punctuation") {
         break;
       }
       if (token.type === "newline") {
         const blank = this.consumeBlankLines();
-        if (blank) {
-          body.push(blank);
-        }
+        body.push(blank);
         continue;
       }
-      if (token.type === "comment") {
+      if (token.type === "comment" || token.type === "block-comment") {
         const commentToken = this.advance();
-        body.push(this.createCommentNode(commentToken, false));
+        const commentNode = this.createCommentNode(commentToken, false);
+        if (body.length > 0) {
+          const previousNode = body[body.length - 1];
+          let lookahead = 0;
+          let nextToken;
+          while (true) {
+            nextToken = this.peek(lookahead);
+            if (!nextToken) {
+              break;
+            }
+            if (nextToken.type === "newline") {
+              lookahead += 1;
+              continue;
+            }
+            break;
+          }
+          if (previousNode.type === "Pipeline") {
+            const lastSegment = previousNode.segments[previousNode.segments.length - 1];
+            const lastPart = lastSegment?.parts[lastSegment.parts.length - 1];
+            const belongsToBlock = Boolean(
+              lastPart && lastPart.type === "ScriptBlock" && (commentNode.loc.start < lastPart.loc.end || nextToken && nextToken.type === "punctuation" && nextToken.value === "}")
+            );
+            if (belongsToBlock && lastPart && lastPart.type === "ScriptBlock") {
+              lastPart.body = [...lastPart.body, commentNode];
+              continue;
+            }
+          }
+          if (previousNode.type === "ScriptBlock" && (commentNode.loc.start < previousNode.loc.end || nextToken && nextToken.type === "punctuation" && nextToken.value === "}")) {
+            previousNode.body = [...previousNode.body, commentNode];
+            continue;
+          }
+        }
+        body.push(commentNode);
         continue;
       }
       if (this.isFunctionDeclaration()) {
@@ -390,9 +498,6 @@ var Parser = class _Parser {
     const headerTokens = [startToken];
     while (!this.isEOF()) {
       const token = this.peek();
-      if (!token) {
-        break;
-      }
       if (token.type === "comment") {
         break;
       }
@@ -401,7 +506,7 @@ var Parser = class _Parser {
       }
       headerTokens.push(this.advance());
     }
-    const headerExpression = buildExpressionFromTokens(headerTokens);
+    const headerExpression = buildExpressionFromTokens(headerTokens, this.source);
     const body = this.parseScriptBlock();
     const end = body.loc.end;
     return {
@@ -412,19 +517,12 @@ var Parser = class _Parser {
     };
   }
   parseStatement() {
-    const startToken = this.peek();
-    if (!startToken) {
-      return null;
-    }
     const segments = [[]];
     let trailingComment;
     const structureStack = [];
     let lineContinuation = false;
     while (!this.isEOF()) {
       const token = this.peek();
-      if (!token) {
-        break;
-      }
       if (token.type === "newline") {
         if (lineContinuation) {
           this.advance();
@@ -450,7 +548,12 @@ var Parser = class _Parser {
         break;
       }
       if (token.type === "comment") {
-        trailingComment = this.createCommentNode(this.advance(), true);
+        if (this.isInlineComment(token)) {
+          trailingComment = this.createCommentNode(this.advance(), true);
+        }
+        break;
+      }
+      if (token.type === "block-comment") {
         break;
       }
       if (token.type === "operator" && token.value === "|") {
@@ -478,13 +581,14 @@ var Parser = class _Parser {
       return null;
     }
     const expressionSegments = filteredSegments.map(
-      (segmentTokens) => buildExpressionFromTokens(segmentTokens)
+      (segmentTokens) => buildExpressionFromTokens(segmentTokens, this.source)
     );
+    const start = expressionSegments[0].loc.start;
     const end = expressionSegments[expressionSegments.length - 1].loc.end;
     const pipelineNode = {
       type: "Pipeline",
       segments: expressionSegments,
-      loc: { start: startToken.start, end }
+      loc: { start, end }
     };
     if (trailingComment) {
       pipelineNode.trailingComment = trailingComment;
@@ -516,9 +620,6 @@ var Parser = class _Parser {
     const stack = [startToken.value];
     while (!this.isEOF()) {
       const token = this.advance();
-      if (!token) {
-        break;
-      }
       if (isOpeningToken(token)) {
         stack.push(token.value);
         contentTokens.push(token);
@@ -538,7 +639,7 @@ var Parser = class _Parser {
   }
   consumeBlankLines() {
     let count = 0;
-    const start = this.peek()?.start ?? 0;
+    const start = this.peek().start;
     let end = start;
     while (!this.isEOF()) {
       const token = this.peek();
@@ -549,9 +650,6 @@ var Parser = class _Parser {
       count += 1;
       end = current.end;
     }
-    if (count === 0) {
-      return null;
-    }
     return {
       type: "BlankLine",
       count,
@@ -559,12 +657,38 @@ var Parser = class _Parser {
     };
   }
   createCommentNode(token, inline) {
+    const style = token.type === "block-comment" ? "block" : "line";
+    const isInline = style === "line" && inline && this.isInlineComment(token);
     return {
       type: "Comment",
       value: token.value,
-      inline,
+      inline: isInline,
+      style,
       loc: { start: token.start, end: token.end }
     };
+  }
+  isInlineComment(token) {
+    if (token.type !== "comment") {
+      return false;
+    }
+    if (this.source.length === 0 || token.start === 0) {
+      return true;
+    }
+    let cursor = token.start - 1;
+    while (cursor >= 0) {
+      const char = this.source[cursor];
+      if (char === "\n") {
+        return false;
+      }
+      if (char === "\r") {
+        return false;
+      }
+      if (!/\s/.test(char)) {
+        return true;
+      }
+      cursor -= 1;
+    }
+    return false;
   }
   isPipelineContinuationAfterNewline() {
     let offset = 1;
@@ -611,7 +735,7 @@ function isOpeningToken(token) {
 function isClosingToken(token) {
   return token.type === "punctuation" && (token.value === "}" || token.value === ")" || token.value === "]");
 }
-function buildExpressionFromTokens(tokens) {
+function buildExpressionFromTokens(tokens, source = "") {
   const firstToken = tokens.find((token) => token.type !== "newline");
   const lastToken = [...tokens].reverse().find((token) => token.type !== "newline");
   if (!firstToken || !lastToken) {
@@ -630,31 +754,36 @@ function buildExpressionFromTokens(tokens) {
       continue;
     }
     if (token.type === "operator" && token.value === "@{") {
-      const { node, nextIndex } = parseHashtablePart(tokens, index);
+      const { node, nextIndex } = parseHashtablePart(tokens, index, source);
       parts.push(node);
       index = nextIndex;
       continue;
     }
     if (token.type === "operator" && token.value === "@(" || token.type === "punctuation" && token.value === "[") {
-      const { node, nextIndex } = parseArrayPart(tokens, index);
+      const { node, nextIndex } = parseArrayPart(tokens, index, source);
       parts.push(node);
       index = nextIndex;
       continue;
     }
     if (token.type === "punctuation" && token.value === "{") {
-      const { node, nextIndex } = parseScriptBlockPart(tokens, index);
+      const { node, nextIndex } = parseScriptBlockPart(tokens, index, source);
       parts.push(node);
       index = nextIndex;
       continue;
     }
     if (token.type === "punctuation" && token.value === "(") {
-      const { node, nextIndex } = parseParenthesisPart(tokens, index);
+      const { node, nextIndex } = parseParenthesisPart(tokens, index, source);
       parts.push(node);
       index = nextIndex;
       continue;
     }
     if (token.type === "heredoc") {
       parts.push(createHereStringNode(token));
+      index += 1;
+      continue;
+    }
+    if (token.type === "attribute") {
+      parts.push(createTextNode(token));
       index += 1;
       continue;
     }
@@ -670,11 +799,11 @@ function buildExpressionFromTokens(tokens) {
     }
   };
 }
-function parseHashtablePart(tokens, startIndex) {
+function parseHashtablePart(tokens, startIndex, source = "") {
   const startToken = tokens[startIndex];
   const { contentTokens, endIndex, closingToken } = collectStructureTokens(tokens, startIndex);
   const entries = splitHashtableEntries(contentTokens).map(
-    (entryTokens) => buildHashtableEntry(entryTokens)
+    (entryTokens) => buildHashtableEntry(entryTokens, source)
   );
   const end = closingToken?.end ?? contentTokens[contentTokens.length - 1]?.end ?? startToken.end;
   return {
@@ -686,14 +815,24 @@ function parseHashtablePart(tokens, startIndex) {
     nextIndex: endIndex
   };
 }
-function parseArrayPart(tokens, startIndex) {
+function resolveStructureEnd(startToken, closingToken, contentTokens) {
+  if (closingToken) {
+    return closingToken.end;
+  }
+  const lastContent = contentTokens[contentTokens.length - 1];
+  if (lastContent) {
+    return lastContent.end;
+  }
+  return startToken.end;
+}
+function parseArrayPart(tokens, startIndex, source = "") {
   const startToken = tokens[startIndex];
   const { contentTokens, endIndex, closingToken } = collectStructureTokens(tokens, startIndex);
   const elements = splitArrayElements(contentTokens).map(
-    (elementTokens) => buildExpressionFromTokens(elementTokens)
+    (elementTokens) => buildExpressionFromTokens(elementTokens, source)
   );
   const kind = startToken.value === "@(" ? "implicit" : "explicit";
-  const end = closingToken?.end ?? contentTokens[contentTokens.length - 1]?.end ?? startToken.end;
+  const end = resolveStructureEnd(startToken, closingToken, contentTokens);
   return {
     node: {
       type: "ArrayLiteral",
@@ -704,15 +843,15 @@ function parseArrayPart(tokens, startIndex) {
     nextIndex: endIndex
   };
 }
-function parseParenthesisPart(tokens, startIndex) {
+function parseParenthesisPart(tokens, startIndex, source = "") {
   const startToken = tokens[startIndex];
   const { contentTokens, endIndex, closingToken } = collectStructureTokens(tokens, startIndex);
   const elements = splitArrayElements(contentTokens).map(
-    (elementTokens) => buildExpressionFromTokens(elementTokens)
+    (elementTokens) => buildExpressionFromTokens(elementTokens, source)
   );
   const hasComma = hasTopLevelComma(contentTokens);
   const hasNewline = contentTokens.some((token) => token.type === "newline");
-  const end = closingToken?.end ?? contentTokens[contentTokens.length - 1]?.end ?? startToken.end;
+  const end = resolveStructureEnd(startToken, closingToken, contentTokens);
   return {
     node: {
       type: "Parenthesis",
@@ -724,12 +863,12 @@ function parseParenthesisPart(tokens, startIndex) {
     nextIndex: endIndex
   };
 }
-function parseScriptBlockPart(tokens, startIndex) {
+function parseScriptBlockPart(tokens, startIndex, source = "") {
   const startToken = tokens[startIndex];
   const { contentTokens, endIndex, closingToken } = collectStructureTokens(tokens, startIndex);
-  const nestedParser = new Parser(contentTokens, "");
+  const nestedParser = new Parser(contentTokens, source);
   const script = nestedParser.parseScript();
-  const end = closingToken?.end ?? contentTokens[contentTokens.length - 1]?.end ?? startToken.end;
+  const end = resolveStructureEnd(startToken, closingToken, contentTokens);
   return {
     node: {
       type: "ScriptBlock",
@@ -808,9 +947,7 @@ function splitHashtableEntries(tokens) {
       continue;
     }
     if (isClosingToken(token)) {
-      if (stack.length > 0) {
-        stack.pop();
-      }
+      stack.pop();
       current.push(token);
       continue;
     }
@@ -821,12 +958,12 @@ function splitHashtableEntries(tokens) {
   }
   return entries;
 }
-function buildHashtableEntry(tokens) {
+function buildHashtableEntry(tokens, source = "") {
   const equalsIndex = findTopLevelEquals(tokens);
   const keyTokens = equalsIndex === -1 ? tokens : tokens.slice(0, equalsIndex);
   const valueTokens = equalsIndex === -1 ? [] : tokens.slice(equalsIndex + 1);
-  const keyExpression = buildExpressionFromTokens(keyTokens);
-  const valueExpression = valueTokens.length > 0 ? buildExpressionFromTokens(valueTokens) : buildExpressionFromTokens([]);
+  const keyExpression = buildExpressionFromTokens(keyTokens, source);
+  const valueExpression = valueTokens.length > 0 ? buildExpressionFromTokens(valueTokens, source) : buildExpressionFromTokens([], source);
   const key = extractKeyText(keyTokens);
   const start = keyTokens[0]?.start ?? valueTokens[0]?.start ?? 0;
   const end = (valueTokens[valueTokens.length - 1] ?? keyTokens[keyTokens.length - 1])?.end ?? start;
@@ -889,9 +1026,7 @@ function splitArrayElements(tokens) {
       continue;
     }
     if (isClosingToken(token)) {
-      if (stack.length > 0) {
-        stack.pop();
-      }
+      stack.pop();
       current.push(token);
       continue;
     }
@@ -910,9 +1045,7 @@ function hasTopLevelComma(tokens) {
       continue;
     }
     if (isClosingToken(token)) {
-      if (stack.length > 0) {
-        stack.pop();
-      }
+      stack.pop();
       continue;
     }
     if (stack.length === 0 && token.type === "punctuation" && token.value === ",") {
@@ -929,6 +1062,8 @@ function parsePowerShell(source, options) {
 }
 var locStart = (node) => node.loc.start;
 var locEnd = (node) => node.loc.end;
+
+// src/printer.ts
 var { group, indent, line, softline, hardline, join, ifBreak, lineSuffix, dedentToRoot, align } = prettier.doc.builders;
 var powerShellPrinter = {
   print(path, options) {
@@ -1009,6 +1144,15 @@ function printStatementList(body, options, indentStatements) {
       }
     }
     const printed = printNode(entry, options);
+    if (entry.type === "Comment" && previous && entry.loc.start < previous.loc.end && docs.length > 0) {
+      const commentDoc = indentStatements ? indentStatement(printed, options) : printed;
+      const lastIndex = docs.length - 1;
+      const combined = concatDocs([docs[lastIndex], hardline, commentDoc]);
+      docs[lastIndex] = combined;
+      previous = entry;
+      pendingBlankLines = 0;
+      continue;
+    }
     docs.push(indentStatements ? indentStatement(printed, options) : printed);
     previous = entry;
     pendingBlankLines = 0;
@@ -1052,7 +1196,11 @@ function printPipeline(node, options) {
     pipelineDoc = group([segmentDocs[0], indent(restDocs.flatMap((docItem) => docItem))]);
   }
   if (node.trailingComment) {
-    pipelineDoc = [pipelineDoc, lineSuffix([" #", node.trailingComment.value])];
+    if (node.trailingComment.inline) {
+      pipelineDoc = [pipelineDoc, lineSuffix([" #", node.trailingComment.value])];
+    } else {
+      pipelineDoc = [pipelineDoc, hardline, printComment(node.trailingComment)];
+    }
   }
   return pipelineDoc;
 }
@@ -1083,11 +1231,14 @@ function gapBetween(previous, current) {
   const prevSymbol = getSymbol(previous);
   const currentSymbol = getSymbol(current);
   if (current.type === "Parenthesis") {
-    if (previous.type === "Text" && previous.value.toLowerCase() === "param") {
+    if (previous && previous.type === "Text") {
+      if (previous.value.toLowerCase() === "param") {
+        return null;
+      }
+      if (previous.role === "keyword") {
+        return " ";
+      }
       return null;
-    }
-    if (previous.type === "Text" && previous.role === "keyword") {
-      return " ";
     }
     return " ";
   }
@@ -1119,9 +1270,6 @@ function gapBetween(previous, current) {
     return " ";
   }
   if (current.type === "ScriptBlock" || current.type === "Hashtable" || current.type === "ArrayLiteral") {
-    if (prevSymbol && NO_SPACE_BEFORE_BLOCK.has(prevSymbol)) {
-      return null;
-    }
     return " ";
   }
   return " ";
@@ -1143,9 +1291,8 @@ function isParamStatement(node) {
   }
   return firstPart.value.toLowerCase() === "param";
 }
-var NO_SPACE_BEFORE = /* @__PURE__ */ new Set([")", "]", "}", ",", ";", ".", "::"]);
-var NO_SPACE_AFTER = /* @__PURE__ */ new Set(["(", "[", "{", "."]);
-var NO_SPACE_BEFORE_BLOCK = /* @__PURE__ */ new Set(["(", "{", "="]);
+var NO_SPACE_BEFORE = /* @__PURE__ */ new Set([")", "]", "}", ",", ";", ".", "::", ">", "<"]);
+var NO_SPACE_AFTER = /* @__PURE__ */ new Set(["(", "[", "{", ".", ">", "<"]);
 var SYMBOL_NO_GAP = /* @__PURE__ */ new Set([".:word", "::word", "word:(", "word:["]);
 function getSymbol(node) {
   if (!node) {
@@ -1215,6 +1362,9 @@ function printText(node, options) {
   return value;
 }
 function printComment(node) {
+  if (node.style === "block") {
+    return node.value;
+  }
   return ["#", node.value];
 }
 function printArray(node, options) {
@@ -1271,10 +1421,47 @@ function printParamParenthesis(node, options) {
     return printParenthesis(node, options);
   }
   const groupId = Symbol("param");
-  const elementDocs = node.elements.map((element) => printExpression(element, options));
+  const elementDocs = [];
+  let pendingAttributes = [];
+  const flushAttributes = (nextDoc) => {
+    if (pendingAttributes.length === 0) {
+      if (nextDoc) {
+        elementDocs.push(nextDoc);
+      }
+      return;
+    }
+    const attributeDoc = pendingAttributes.length === 1 ? pendingAttributes[0] : join(hardline, pendingAttributes);
+    if (nextDoc) {
+      elementDocs.push(group([attributeDoc, hardline, nextDoc]));
+    } else {
+      elementDocs.push(attributeDoc);
+    }
+    pendingAttributes = [];
+  };
+  for (const element of node.elements) {
+    if (isAttributeExpression(element)) {
+      pendingAttributes.push(printExpression(element, options));
+      continue;
+    }
+    const printed = printExpression(element, options);
+    flushAttributes(printed);
+  }
+  flushAttributes();
   const separator = [",", hardline];
   return group(["(", indent([hardline, join(separator, elementDocs)]), hardline, ")"], {
     id: groupId
+  });
+}
+function isAttributeExpression(node) {
+  if (node.parts.length === 0) {
+    return false;
+  }
+  return node.parts.every((part) => {
+    if (part.type !== "Text") {
+      return false;
+    }
+    const trimmed = part.value.trim();
+    return trimmed.startsWith("[") && trimmed.endsWith("]");
   });
 }
 function printParenthesis(node, options) {
@@ -1288,15 +1475,14 @@ function printParenthesis(node, options) {
   }
   const hasComma = node.hasComma;
   const forceMultiline = node.hasNewline || !node.hasComma && elementDocs.length > 1;
-  const separator = hasComma ? [",", forceMultiline ? hardline : line] : forceMultiline ? hardline : line;
+  const separator = hasComma ? [",", forceMultiline ? hardline : line] : hardline;
+  const leadingLine = hasComma ? forceMultiline ? hardline : line : hardline;
+  const trailingLine = hasComma ? forceMultiline ? hardline : line : hardline;
   return group(
     [
       "(",
-      indent([
-        forceMultiline ? hardline : hasComma ? line : softline,
-        join(separator, elementDocs)
-      ]),
-      forceMultiline ? hardline : hasComma ? line : softline,
+      indent([leadingLine, join(separator, elementDocs)]),
+      trailingLine,
       ")"
     ],
     { id: groupId }

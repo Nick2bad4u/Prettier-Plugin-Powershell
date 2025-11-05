@@ -9,6 +9,8 @@ export type TokenType =
   | 'string'
   | 'heredoc'
   | 'comment'
+  | 'block-comment'
+  | 'attribute'
   | 'punctuation'
   | 'operator'
   | 'unknown';
@@ -68,6 +70,21 @@ export function tokenize(source: string): Token[] {
       continue;
     }
 
+    if (char === '<' && index + 1 < length && source[index + 1] === '#') {
+      let searchIndex = index + 2;
+      while (searchIndex < length - 1) {
+        if (source[searchIndex] === '#' && source[searchIndex + 1] === '>') {
+          searchIndex += 2;
+          break;
+        }
+        searchIndex += 1;
+      }
+      const end = searchIndex >= length ? length : searchIndex;
+      push({ type: 'block-comment', value: source.slice(start, end), start, end });
+      index = end;
+      continue;
+    }
+
     if (char === '#') {
       index += 1;
       while (index < length && source[index] !== '\r' && source[index] !== '\n') {
@@ -75,6 +92,55 @@ export function tokenize(source: string): Token[] {
       }
       push({ type: 'comment', value: source.slice(start + 1, index).trimEnd(), start, end: index });
       continue;
+    }
+
+    if (char === '[') {
+      let lookahead = index + 1;
+      while (lookahead < length && /\s/.test(source[lookahead])) {
+        lookahead += 1;
+      }
+      if (lookahead < length && /[A-Za-z_]/.test(source[lookahead])) {
+        let depth = 1;
+        let searchIndex = index + 1;
+        while (searchIndex < length && depth > 0) {
+          const current = source[searchIndex];
+          if (current === '\'' || current === '"') {
+            const quote = current;
+            searchIndex += 1;
+            while (searchIndex < length) {
+              const ch = source[searchIndex];
+              if (ch === '`') {
+                searchIndex += 2;
+                continue;
+              }
+              if (ch === quote) {
+                searchIndex += 1;
+                break;
+              }
+              searchIndex += 1;
+            }
+            continue;
+          }
+          if (current === '[') {
+            depth += 1;
+            searchIndex += 1;
+            continue;
+          }
+          if (current === ']') {
+            depth -= 1;
+            searchIndex += 1;
+            if (depth === 0) {
+              break;
+            }
+            continue;
+          }
+          searchIndex += 1;
+        }
+        const attributeEnd = depth === 0 ? searchIndex : length;
+        push({ type: 'attribute', value: source.slice(start, attributeEnd), start, end: attributeEnd });
+        index = attributeEnd;
+        continue;
+      }
     }
 
     if (char === '@' && (source[index + 1] === '"' || source[index + 1] === "'")) {
@@ -171,6 +237,18 @@ export function tokenize(source: string): Token[] {
       continue;
     }
 
+    if (char === '>' || char === '<') {
+      let value = char;
+      if (source[index + 1] === char) {
+        value += char;
+        index += 2;
+      } else {
+        index += 1;
+      }
+      push({ type: 'operator', value, start, end: index });
+      continue;
+    }
+
     if (char === '$') {
       index += 1;
       while (index < length) {
@@ -210,7 +288,10 @@ export function tokenize(source: string): Token[] {
       continue;
     }
 
-    if (/[A-Za-z_]/.test(char) || (char === '-' && /[A-Za-z]/.test(source[index + 1]))) {
+    if (
+      /[A-Za-z_]/.test(char) ||
+      (char === '-' && index + 1 < length && /[-A-Za-z]/.test(source[index + 1]))
+    ) {
       index += 1;
       while (index < length && /[A-Za-z0-9_-]/.test(source[index])) {
         index += 1;

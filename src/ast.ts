@@ -24,6 +24,7 @@ export interface CommentNode extends BaseNode {
   type: 'Comment';
   value: string;
   inline: boolean;
+  style: 'line' | 'block';
 }
 
 export interface FunctionDeclarationNode extends BaseNode {

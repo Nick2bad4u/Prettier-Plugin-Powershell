@@ -116,6 +116,21 @@ function printStatementList(
     }
 
     const printed = printNode(entry, options);
+    if (
+      entry.type === 'Comment' &&
+      previous &&
+      entry.loc.start < previous.loc.end &&
+      docs.length > 0
+    ) {
+      const commentDoc = indentStatements ? indentStatement(printed, options) : printed;
+      const lastIndex = docs.length - 1;
+      const combined = concatDocs([docs[lastIndex]!, hardline, commentDoc]);
+      docs[lastIndex] = combined;
+      previous = entry;
+      pendingBlankLines = 0;
+      continue;
+    }
+
     docs.push(indentStatements ? indentStatement(printed, options) : printed);
     previous = entry;
     pendingBlankLines = 0;
@@ -180,7 +195,11 @@ function printPipeline(node: PipelineNode, options: ResolvedOptions): Doc {
   }
 
   if (node.trailingComment) {
-    pipelineDoc = [pipelineDoc, lineSuffix([' #', node.trailingComment.value])];
+    if (node.trailingComment.inline) {
+      pipelineDoc = [pipelineDoc, lineSuffix([' #', node.trailingComment.value])];
+    } else {
+      pipelineDoc = [pipelineDoc, hardline, printComment(node.trailingComment)];
+    }
   }
 
   return pipelineDoc;
@@ -220,11 +239,14 @@ function gapBetween(previous: ExpressionPartNode, current: ExpressionPartNode): 
   const currentSymbol = getSymbol(current);
 
   if (current.type === 'Parenthesis') {
-    if (previous.type === 'Text' && previous.value.toLowerCase() === 'param') {
+    if (previous && previous.type === 'Text') {
+      if (previous.value.toLowerCase() === 'param') {
+        return null;
+      }
+      if (previous.role === 'keyword') {
+        return ' ';
+      }
       return null;
-    }
-    if (previous.type === 'Text' && previous.role === 'keyword') {
-      return ' ';
     }
     return ' ';
   }
@@ -293,8 +315,8 @@ function isParamStatement(node: ScriptBodyNode | null): boolean {
   return firstPart.value.toLowerCase() === 'param';
 }
 
-const NO_SPACE_BEFORE = new Set([')', ']', '}', ',', ';', '.', '::']);
-const NO_SPACE_AFTER = new Set(['(', '[', '{', '.']);
+const NO_SPACE_BEFORE = new Set([')', ']', '}', ',', ';', '.', '::', '>', '<']);
+const NO_SPACE_AFTER = new Set(['(', '[', '{', '.', '>', '<']);
 const SYMBOL_NO_GAP = new Set(['.:word', '::word', 'word:(', 'word:[']);
 
 function getSymbol(node: ExpressionPartNode | null): string | null {
@@ -381,6 +403,9 @@ function printText(node: TextNode, options: ResolvedOptions): Doc {
 }
 
 function printComment(node: CommentNode): Doc {
+  if (node.style === 'block') {
+    return node.value;
+  }
   return ['#', node.value];
 }
 
@@ -453,11 +478,58 @@ function printParamParenthesis(node: ParenthesisNode, options: ResolvedOptions):
   }
 
   const groupId = Symbol('param');
-  const elementDocs = node.elements.map((element) => printExpression(element, options));
+  const elementDocs: Doc[] = [];
+  let pendingAttributes: Doc[] = [];
+
+  const flushAttributes = (nextDoc?: Doc) => {
+    if (pendingAttributes.length === 0) {
+      if (nextDoc) {
+        elementDocs.push(nextDoc);
+      }
+      return;
+    }
+
+    const attributeDoc = pendingAttributes.length === 1
+      ? pendingAttributes[0]
+      : join(hardline, pendingAttributes);
+
+    if (nextDoc) {
+      elementDocs.push(group([attributeDoc, hardline, nextDoc]));
+    } else {
+      elementDocs.push(attributeDoc);
+    }
+    pendingAttributes = [];
+  };
+
+  for (const element of node.elements) {
+    if (isAttributeExpression(element)) {
+      pendingAttributes.push(printExpression(element, options));
+      continue;
+    }
+
+    const printed = printExpression(element, options);
+    flushAttributes(printed);
+  }
+
+  flushAttributes();
   const separator: Doc = [',', hardline];
 
   return group(['(', indent([hardline, join(separator, elementDocs)]), hardline, ')'], {
     id: groupId,
+  });
+}
+
+function isAttributeExpression(node: ExpressionNode): boolean {
+  if (node.parts.length === 0) {
+    return false;
+  }
+
+  return node.parts.every((part) => {
+    if (part.type !== 'Text') {
+      return false;
+    }
+    const trimmed = part.value.trim();
+    return trimmed.startsWith('[') && trimmed.endsWith(']');
   });
 }
 

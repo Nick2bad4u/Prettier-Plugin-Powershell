@@ -46,9 +46,48 @@ class Parser {
         continue;
       }
 
-      if (token.type === 'comment') {
+      if (token.type === 'comment' || token.type === 'block-comment') {
         const commentToken = this.advance();
-        body.push(this.createCommentNode(commentToken, false));
+        const commentNode = this.createCommentNode(commentToken, false);
+        if (body.length > 0) {
+          const previousNode = body[body.length - 1]!;
+          let lookahead = 0;
+          let nextToken: Token | undefined;
+          while (true) {
+            nextToken = this.peek(lookahead);
+            if (!nextToken) {
+              break;
+            }
+            if (nextToken.type === 'newline') {
+              lookahead += 1;
+              continue;
+            }
+            break;
+          }
+          if (previousNode.type === 'Pipeline') {
+            const lastSegment = previousNode.segments[previousNode.segments.length - 1];
+            const lastPart = lastSegment?.parts[lastSegment.parts.length - 1];
+            const belongsToBlock = Boolean(
+              lastPart &&
+              lastPart.type === 'ScriptBlock' &&
+              (commentNode.loc.start < lastPart.loc.end ||
+                (nextToken && nextToken.type === 'punctuation' && nextToken.value === '}')),
+            );
+            if (belongsToBlock && lastPart && lastPart.type === 'ScriptBlock') {
+              lastPart.body = [...lastPart.body, commentNode];
+              continue;
+            }
+          }
+          if (
+            previousNode.type === 'ScriptBlock' &&
+            (commentNode.loc.start < previousNode.loc.end ||
+              (nextToken && nextToken.type === 'punctuation' && nextToken.value === '}'))
+          ) {
+            previousNode.body = [...previousNode.body, commentNode];
+            continue;
+          }
+        }
+        body.push(commentNode);
         continue;
       }
 
@@ -89,7 +128,7 @@ class Parser {
       headerTokens.push(this.advance());
     }
 
-    const headerExpression = buildExpressionFromTokens(headerTokens);
+    const headerExpression = buildExpressionFromTokens(headerTokens, this.source);
     const body = this.parseScriptBlock();
     const end = body.loc.end;
 
@@ -140,7 +179,13 @@ class Parser {
       }
 
       if (token.type === 'comment') {
-        trailingComment = this.createCommentNode(this.advance(), true);
+        if (this.isInlineComment(token)) {
+          trailingComment = this.createCommentNode(this.advance(), true);
+        }
+        break;
+      }
+
+      if (token.type === 'block-comment') {
         break;
       }
 
@@ -175,7 +220,7 @@ class Parser {
     }
 
     const expressionSegments = filteredSegments.map((segmentTokens) =>
-      buildExpressionFromTokens(segmentTokens),
+      buildExpressionFromTokens(segmentTokens, this.source),
     );
       const start = expressionSegments[0].loc.start;
     const end = expressionSegments[expressionSegments.length - 1].loc.end;
@@ -268,12 +313,42 @@ class Parser {
   }
 
   private createCommentNode(token: Token, inline: boolean): CommentNode {
+    const style = token.type === 'block-comment' ? 'block' : 'line';
+    const isInline = style === 'line' && inline && this.isInlineComment(token);
+
     return {
       type: 'Comment',
       value: token.value,
-      inline,
+      inline: isInline,
+      style,
       loc: { start: token.start, end: token.end },
     } satisfies CommentNode;
+  }
+
+  private isInlineComment(token: Token): boolean {
+    if (token.type !== 'comment') {
+      return false;
+    }
+    if (this.source.length === 0 || token.start === 0) {
+      return true;
+    }
+
+    let cursor = token.start - 1;
+    while (cursor >= 0) {
+      const char = this.source[cursor];
+      if (char === '\n') {
+        return false;
+      }
+      if (char === '\r') {
+        return false;
+      }
+      if (!/\s/.test(char)) {
+        return true;
+      }
+      cursor -= 1;
+    }
+
+    return false;
   }
 
   private isPipelineContinuationAfterNewline(): boolean {
@@ -334,7 +409,7 @@ function isClosingToken(token: Token): boolean {
   );
 }
 
-function buildExpressionFromTokens(tokens: Token[]): ExpressionNode {
+function buildExpressionFromTokens(tokens: Token[], source: string = ''): ExpressionNode {
   const firstToken = tokens.find((token) => token.type !== 'newline');
   const lastToken = [...tokens].reverse().find((token) => token.type !== 'newline');
   if (!firstToken || !lastToken) {
@@ -357,7 +432,7 @@ function buildExpressionFromTokens(tokens: Token[]): ExpressionNode {
     }
 
     if (token.type === 'operator' && token.value === '@{') {
-      const { node, nextIndex } = parseHashtablePart(tokens, index);
+      const { node, nextIndex } = parseHashtablePart(tokens, index, source);
       parts.push(node);
       index = nextIndex;
       continue;
@@ -367,21 +442,21 @@ function buildExpressionFromTokens(tokens: Token[]): ExpressionNode {
       (token.type === 'operator' && token.value === '@(') ||
       (token.type === 'punctuation' && token.value === '[')
     ) {
-      const { node, nextIndex } = parseArrayPart(tokens, index);
+      const { node, nextIndex } = parseArrayPart(tokens, index, source);
       parts.push(node);
       index = nextIndex;
       continue;
     }
 
     if (token.type === 'punctuation' && token.value === '{') {
-      const { node, nextIndex } = parseScriptBlockPart(tokens, index);
+      const { node, nextIndex } = parseScriptBlockPart(tokens, index, source);
       parts.push(node);
       index = nextIndex;
       continue;
     }
 
     if (token.type === 'punctuation' && token.value === '(') {
-      const { node, nextIndex } = parseParenthesisPart(tokens, index);
+      const { node, nextIndex } = parseParenthesisPart(tokens, index, source);
       parts.push(node);
       index = nextIndex;
       continue;
@@ -389,6 +464,12 @@ function buildExpressionFromTokens(tokens: Token[]): ExpressionNode {
 
     if (token.type === 'heredoc') {
       parts.push(createHereStringNode(token));
+      index += 1;
+      continue;
+    }
+
+    if (token.type === 'attribute') {
+      parts.push(createTextNode(token));
       index += 1;
       continue;
     }
@@ -410,11 +491,12 @@ function buildExpressionFromTokens(tokens: Token[]): ExpressionNode {
 function parseHashtablePart(
   tokens: Token[],
   startIndex: number,
+  source: string = '',
 ): { node: HashtableNode; nextIndex: number } {
   const startToken = tokens[startIndex];
   const { contentTokens, endIndex, closingToken } = collectStructureTokens(tokens, startIndex);
   const entries = splitHashtableEntries(contentTokens).map((entryTokens) =>
-    buildHashtableEntry(entryTokens),
+    buildHashtableEntry(entryTokens, source),
   );
   const end = closingToken?.end ?? contentTokens[contentTokens.length - 1]?.end ?? startToken.end;
   return {
@@ -445,11 +527,12 @@ function resolveStructureEnd(
 function parseArrayPart(
   tokens: Token[],
   startIndex: number,
+  source: string = '',
 ): { node: ArrayLiteralNode; nextIndex: number } {
   const startToken = tokens[startIndex];
   const { contentTokens, endIndex, closingToken } = collectStructureTokens(tokens, startIndex);
   const elements = splitArrayElements(contentTokens).map((elementTokens) =>
-    buildExpressionFromTokens(elementTokens),
+    buildExpressionFromTokens(elementTokens, source),
   );
   /* c8 ignore next */
   const kind = startToken.value === '@(' ? 'implicit' : 'explicit';
@@ -468,11 +551,12 @@ function parseArrayPart(
 function parseParenthesisPart(
   tokens: Token[],
   startIndex: number,
+  source: string = '',
 ): { node: ParenthesisNode; nextIndex: number } {
   const startToken = tokens[startIndex];
   const { contentTokens, endIndex, closingToken } = collectStructureTokens(tokens, startIndex);
   const elements = splitArrayElements(contentTokens).map((elementTokens) =>
-    buildExpressionFromTokens(elementTokens),
+    buildExpressionFromTokens(elementTokens, source),
   );
   const hasComma = hasTopLevelComma(contentTokens);
   const hasNewline = contentTokens.some((token) => token.type === 'newline');
@@ -492,10 +576,11 @@ function parseParenthesisPart(
 function parseScriptBlockPart(
   tokens: Token[],
   startIndex: number,
+  source: string = '',
 ): { node: ScriptBlockNode; nextIndex: number } {
   const startToken = tokens[startIndex];
   const { contentTokens, endIndex, closingToken } = collectStructureTokens(tokens, startIndex);
-  const nestedParser = new Parser(contentTokens, '');
+  const nestedParser = new Parser(contentTokens, source);
   const script = nestedParser.parseScript();
   const end = resolveStructureEnd(startToken, closingToken, contentTokens);
   return {
@@ -629,13 +714,15 @@ function splitHashtableEntries(tokens: Token[]): Token[][] {
   return entries;
 }
 
-function buildHashtableEntry(tokens: Token[]): HashtableEntryNode {
+function buildHashtableEntry(tokens: Token[], source: string = ''): HashtableEntryNode {
   const equalsIndex = findTopLevelEquals(tokens);
   const keyTokens = equalsIndex === -1 ? tokens : tokens.slice(0, equalsIndex);
   const valueTokens = equalsIndex === -1 ? [] : tokens.slice(equalsIndex + 1);
-  const keyExpression = buildExpressionFromTokens(keyTokens);
+  const keyExpression = buildExpressionFromTokens(keyTokens, source);
   const valueExpression =
-    valueTokens.length > 0 ? buildExpressionFromTokens(valueTokens) : buildExpressionFromTokens([]);
+    valueTokens.length > 0
+      ? buildExpressionFromTokens(valueTokens, source)
+      : buildExpressionFromTokens([], source);
   const key = extractKeyText(keyTokens);
   const start = keyTokens[0]?.start ?? valueTokens[0]?.start ?? 0;
   const end =

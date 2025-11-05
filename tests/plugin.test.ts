@@ -41,7 +41,6 @@ line1
 `;
 
     const result = await prettier.format(input, baseConfig);
-
     expect(normalize(result)).toBe(normalize(expected));
   });
 
@@ -277,5 +276,47 @@ Write-Output "hi"
     const result = await prettier.format(input, baseConfig);
 
     expect(result.trim()).toBe('Write-Host $value');
+  });
+
+  it('preserves block comments, attributes, and double-dash arguments', async () => {
+    const input = `<#
+.SYNOPSIS
+  Example script
+#>
+
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)]
+    [Alias('Name')]
+    [string]$Value
+)
+
+begin {
+    node --version 2>$null
+    # begin block
+}
+`;
+
+    const expected = `<#
+.SYNOPSIS
+  Example script
+#>
+
+[CmdletBinding()]
+param(
+  [Parameter(Mandatory = $true)]
+  [Alias('Name')]
+  [string] $Value
+)
+
+begin {
+  node --version 2>$null
+  # begin block
+}
+`;
+
+    const result = await prettier.format(input, baseConfig);
+
+    expect(normalize(result)).toBe(normalize(expected));
   });
 });

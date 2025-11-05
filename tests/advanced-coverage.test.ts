@@ -172,6 +172,7 @@ describe('ast runtime helpers', () => {
       type: 'Comment',
       value: 'note',
       inline: true,
+      style: 'line',
       loc: createLocation(1, 5),
     };
     const cloned = cloneNode(original);
@@ -190,6 +191,7 @@ describe('ast runtime helpers', () => {
       type: 'Comment',
       value: 'bundle',
       inline: false,
+      style: 'line',
       loc: { start: 0, end: 6 },
     });
     expect(cloned.value).toBe('bundle');
@@ -1062,7 +1064,13 @@ function Delta {}`,
     const blankDoc = __printerTestUtils.printNode(blankNode, resolvedOptions) as Doc[];
     expect(Array.isArray(blankDoc)).toBe(true);
 
-    const commentNode: CommentNode = { type: 'Comment', value: ' comment', inline: false, loc };
+    const commentNode: CommentNode = {
+      type: 'Comment',
+      value: ' comment',
+      inline: false,
+      style: 'line',
+      loc,
+    };
     expect(__printerTestUtils.printNode(commentNode, resolvedOptions)).toContain('#');
 
     const arrayNode: ArrayLiteralNode = {
