@@ -124,8 +124,10 @@ function printStatementList(
     ) {
       const commentDoc = indentStatements ? indentStatement(printed, options) : printed;
       const lastIndex = docs.length - 1;
-      const combined = concatDocs([docs[lastIndex]!, hardline, commentDoc]);
-      docs[lastIndex] = combined;
+      const priorDoc = docs[lastIndex];
+      docs[lastIndex] = priorDoc
+        ? concatDocs([priorDoc, hardline, commentDoc])
+        : commentDoc;
       previous = entry;
       pendingBlankLines = 0;
       continue;

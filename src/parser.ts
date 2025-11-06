@@ -50,7 +50,7 @@ class Parser {
         const commentToken = this.advance();
         const commentNode = this.createCommentNode(commentToken, false);
         if (body.length > 0) {
-          const previousNode = body[body.length - 1]!;
+          const previousNode = body[body.length - 1];
           let lookahead = 0;
           let nextToken: Token | undefined;
           while (true) {
@@ -77,14 +77,6 @@ class Parser {
               lastPart.body = [...lastPart.body, commentNode];
               continue;
             }
-          }
-          if (
-            previousNode.type === 'ScriptBlock' &&
-            (commentNode.loc.start < previousNode.loc.end ||
-              (nextToken && nextToken.type === 'punctuation' && nextToken.value === '}'))
-          ) {
-            previousNode.body = [...previousNode.body, commentNode];
-            continue;
           }
         }
         body.push(commentNode);
@@ -524,7 +516,8 @@ function resolveStructureEnd(
   if (closingToken) {
     return closingToken.end;
   }
-  const lastContent = contentTokens[contentTokens.length - 1];
+  const lastContent =
+    contentTokens.length > 0 ? contentTokens[contentTokens.length - 1] : undefined;
   if (lastContent) {
     return lastContent.end;
   }

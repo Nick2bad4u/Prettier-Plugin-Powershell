@@ -470,10 +470,6 @@ var Parser = class _Parser {
               continue;
             }
           }
-          if (previousNode.type === "ScriptBlock" && (commentNode.loc.start < previousNode.loc.end || nextToken && nextToken.type === "punctuation" && nextToken.value === "}")) {
-            previousNode.body = [...previousNode.body, commentNode];
-            continue;
-          }
         }
         body.push(commentNode);
         continue;
@@ -828,7 +824,7 @@ function resolveStructureEnd(startToken, closingToken, contentTokens) {
   if (closingToken) {
     return closingToken.end;
   }
-  const lastContent = contentTokens[contentTokens.length - 1];
+  const lastContent = contentTokens.length > 0 ? contentTokens[contentTokens.length - 1] : void 0;
   if (lastContent) {
     return lastContent.end;
   }
@@ -1156,8 +1152,8 @@ function printStatementList(body, options, indentStatements) {
     if (entry.type === "Comment" && previous && entry.loc.start < previous.loc.end && docs.length > 0) {
       const commentDoc = indentStatements ? indentStatement(printed, options) : printed;
       const lastIndex = docs.length - 1;
-      const combined = concatDocs([docs[lastIndex], hardline, commentDoc]);
-      docs[lastIndex] = combined;
+      const priorDoc = docs[lastIndex];
+      docs[lastIndex] = priorDoc ? concatDocs([priorDoc, hardline, commentDoc]) : commentDoc;
       previous = entry;
       pendingBlankLines = 0;
       continue;
