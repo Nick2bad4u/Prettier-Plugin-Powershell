@@ -69,9 +69,9 @@ class Parser {
             const lastPart = lastSegment?.parts[lastSegment.parts.length - 1];
             const belongsToBlock = Boolean(
               lastPart &&
-              lastPart.type === 'ScriptBlock' &&
-              (commentNode.loc.start < lastPart.loc.end ||
-                (nextToken && nextToken.type === 'punctuation' && nextToken.value === '}')),
+                lastPart.type === 'ScriptBlock' &&
+                (commentNode.loc.start < lastPart.loc.end ||
+                  (nextToken && nextToken.type === 'punctuation' && nextToken.value === '}')),
             );
             if (belongsToBlock && lastPart && lastPart.type === 'ScriptBlock') {
               lastPart.body = [...lastPart.body, commentNode];
@@ -190,6 +190,13 @@ class Parser {
       }
 
       if (token.type === 'operator' && token.value === '|') {
+        if (structureStack.length > 0) {
+          const currentSegment = segments[segments.length - 1];
+          currentSegment.push(this.advance());
+          lineContinuation = false;
+          continue;
+        }
+
         this.advance();
         segments.push([]);
         lineContinuation = false;
@@ -222,13 +229,13 @@ class Parser {
     const expressionSegments = filteredSegments.map((segmentTokens) =>
       buildExpressionFromTokens(segmentTokens, this.source),
     );
-      const start = expressionSegments[0].loc.start;
+    const start = expressionSegments[0].loc.start;
     const end = expressionSegments[expressionSegments.length - 1].loc.end;
 
     const pipelineNode: PipelineNode = {
       type: 'Pipeline',
       segments: expressionSegments,
-        loc: { start, end },
+      loc: { start, end },
     };
 
     if (trailingComment) {

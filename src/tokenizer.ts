@@ -104,7 +104,7 @@ export function tokenize(source: string): Token[] {
         let searchIndex = index + 1;
         while (searchIndex < length && depth > 0) {
           const current = source[searchIndex];
-          if (current === '\'' || current === '"') {
+          if (current === "'" || current === '"') {
             const quote = current;
             searchIndex += 1;
             while (searchIndex < length) {
@@ -137,7 +137,12 @@ export function tokenize(source: string): Token[] {
           searchIndex += 1;
         }
         const attributeEnd = depth === 0 ? searchIndex : length;
-        push({ type: 'attribute', value: source.slice(start, attributeEnd), start, end: attributeEnd });
+        push({
+          type: 'attribute',
+          value: source.slice(start, attributeEnd),
+          start,
+          end: attributeEnd,
+        });
         index = attributeEnd;
         continue;
       }

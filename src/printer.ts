@@ -489,9 +489,8 @@ function printParamParenthesis(node: ParenthesisNode, options: ResolvedOptions):
       return;
     }
 
-    const attributeDoc = pendingAttributes.length === 1
-      ? pendingAttributes[0]
-      : join(hardline, pendingAttributes);
+    const attributeDoc =
+      pendingAttributes.length === 1 ? pendingAttributes[0] : join(hardline, pendingAttributes);
 
     if (nextDoc) {
       elementDocs.push(group([attributeDoc, hardline, nextDoc]));
@@ -545,29 +544,13 @@ function printParenthesis(node: ParenthesisNode, options: ResolvedOptions): Doc 
 
   const hasComma = node.hasComma;
   const forceMultiline = node.hasNewline || (!node.hasComma && elementDocs.length > 1);
-  const separator: Doc = hasComma
-    ? [',', forceMultiline ? hardline : line]
-    : hardline;
-  const leadingLine = hasComma
-    ? forceMultiline
-      ? hardline
-      : line
-    : hardline;
-  const trailingLine = hasComma
-    ? forceMultiline
-      ? hardline
-      : line
-    : hardline;
+  const separator: Doc = hasComma ? [',', forceMultiline ? hardline : line] : hardline;
+  const leadingLine = hasComma ? (forceMultiline ? hardline : line) : hardline;
+  const trailingLine = hasComma ? (forceMultiline ? hardline : line) : hardline;
 
-  return group(
-    [
-      '(',
-      indent([leadingLine, join(separator, elementDocs)]),
-      trailingLine,
-      ')',
-    ],
-    { id: groupId },
-  );
+  return group(['(', indent([leadingLine, join(separator, elementDocs)]), trailingLine, ')'], {
+    id: groupId,
+  });
 }
 
 function trailingCommaDoc(

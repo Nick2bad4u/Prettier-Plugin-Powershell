@@ -45,7 +45,11 @@ interface ParserTestUtils {
   createHereStringNode: (token: Token) => HereStringNode;
   createTextNode: (token: Token) => TextNode;
   buildHashtableEntry: (tokens: Token[]) => HashtableEntryNode;
-  resolveStructureEnd: (startToken: Token, closingToken: Token | undefined, contentTokens: Token[]) => number;
+  resolveStructureEnd: (
+    startToken: Token,
+    closingToken: Token | undefined,
+    contentTokens: Token[],
+  ) => number;
   parseStatementForTest: (tokens: Token[]) => PipelineNode | null;
 }
 
@@ -70,12 +74,11 @@ const baseConfig = {
   filepath: 'advanced.ps1',
 };
 
-const createOptions = (
-  overrides: Partial<PowerShellParserOptions> = {},
-): PowerShellParserOptions => ({
-  tabWidth: 2,
-  ...overrides,
-} as PowerShellParserOptions);
+const createOptions = (overrides: Partial<PowerShellParserOptions> = {}): PowerShellParserOptions =>
+  ({
+    tabWidth: 2,
+    ...overrides,
+  }) as PowerShellParserOptions;
 
 const {
   gapBetween,
@@ -123,7 +126,10 @@ const makeExpressionNode = (parts: ExpressionPartNode[]): ExpressionNode => ({
   loc: { start: 0, end: parts[parts.length - 1]?.loc.end ?? 0 },
 });
 
-const makeParenthesisNode = (elements: ExpressionNode[], overrides: Partial<ParenthesisNode> = {}): ParenthesisNode => ({
+const makeParenthesisNode = (
+  elements: ExpressionNode[],
+  overrides: Partial<ParenthesisNode> = {},
+): ParenthesisNode => ({
   type: 'Parenthesis',
   elements,
   hasComma: false,
@@ -316,9 +322,15 @@ describe('tokenizer advanced coverage', () => {
 
   it('tokenizes repeated operators as combined tokens', () => {
     const tokens = tokenize('|| == |');
-    expect(tokens.filter((token) => token.type === 'operator' && token.value === '||')).toHaveLength(1);
-    expect(tokens.filter((token) => token.type === 'operator' && token.value === '==')).toHaveLength(1);
-    expect(tokens.filter((token) => token.type === 'operator' && token.value === '|')).toHaveLength(1);
+    expect(
+      tokens.filter((token) => token.type === 'operator' && token.value === '||'),
+    ).toHaveLength(1);
+    expect(
+      tokens.filter((token) => token.type === 'operator' && token.value === '=='),
+    ).toHaveLength(1);
+    expect(tokens.filter((token) => token.type === 'operator' && token.value === '|')).toHaveLength(
+      1,
+    );
   });
 
   it('tokenizes implicit and explicit array openings distinctly', () => {
@@ -353,8 +365,12 @@ describe('tokenizer advanced coverage', () => {
   it('normalizes here-strings while preserving quote metadata', () => {
     const script = `@"\nAlpha\n"@\n@'\nBeta\n'@`;
     const tokens = tokenize(script);
-    const doubleToken = tokens.find((token) => token.type === 'heredoc' && token.quote === 'double');
-    const singleToken = tokens.find((token) => token.type === 'heredoc' && token.quote === 'single');
+    const doubleToken = tokens.find(
+      (token) => token.type === 'heredoc' && token.quote === 'double',
+    );
+    const singleToken = tokens.find(
+      (token) => token.type === 'heredoc' && token.quote === 'single',
+    );
     if (!doubleToken || !singleToken) {
       throw new Error('Expected here-string tokens');
     }
@@ -523,7 +539,9 @@ describe('parser advanced coverage', () => {
     }
     const parts = pipeline.segments[0]?.parts ?? [];
     const table = parts.find((part) => part.type === 'Hashtable') as
-      | { entries: Array<{ key: string; value: { type: string; parts?: Array<{ type: string }> } }> }
+      | {
+          entries: Array<{ key: string; value: { type: string; parts?: Array<{ type: string }> } }>;
+        }
       | undefined;
     expect(table).toBeDefined();
     expect(table!.entries.length).toBe(3);
@@ -598,6 +616,53 @@ describe('parser advanced coverage', () => {
     expect(pipeline.segments.length).toBe(2);
   });
 
+  it('keeps nested pipeline segments inside script blocks intact', () => {
+    const script = `InModuleScope ColorScripts-Enhanced {
+  New-Item -ItemType Directory -Path $cacheRoot -Force | Out-Null
+  $script:CacheDir = $cacheRoot
+}`;
+
+    const ast = parse(script);
+    const pipeline = ast.body[0];
+    if (!pipeline || pipeline.type !== 'Pipeline') {
+      throw new Error('Expected top-level pipeline node');
+    }
+
+    const scriptBlock = pipeline.segments[0]?.parts.find(
+      (part): part is ScriptBlockNode => part.type === 'ScriptBlock',
+    );
+    if (!scriptBlock) {
+      throw new Error('Expected script block argument within InModuleScope call');
+    }
+
+    const innerPipelines = scriptBlock.body.filter(
+      (node): node is PipelineNode => node.type === 'Pipeline',
+    );
+    const nestedPipeline = innerPipelines.find((node) => node.segments.length > 1);
+    if (!nestedPipeline) {
+      throw new Error('Expected nested pipeline with multiple segments');
+    }
+
+    expect(nestedPipeline.segments.length).toBe(2);
+    const firstSegmentText = nestedPipeline.segments[0]?.parts.find(
+      (part): part is TextNode => part.type === 'Text',
+    );
+    const secondSegmentText = nestedPipeline.segments[1]?.parts.find(
+      (part): part is TextNode => part.type === 'Text',
+    );
+    expect(firstSegmentText?.value).toBe('New-Item');
+    expect(secondSegmentText?.value).toBe('Out-Null');
+
+    const subsequentPipeline = innerPipelines.find(
+      (node) => node !== nestedPipeline && node.segments.length === 1,
+    );
+    expect(subsequentPipeline).toBeDefined();
+    const assignmentSegment = subsequentPipeline?.segments[0]?.parts.find(
+      (part): part is TextNode => part.type === 'Text',
+    );
+    expect(assignmentSegment?.value).toBe('$script:CacheDir');
+  });
+
   it('terminates statements when encountering a closing brace at top level', () => {
     const script = 'if ($true) {\n  Write-Host "in"\n}\nWrite-Host "out"';
     const ast = parse(script);
@@ -637,7 +702,8 @@ describe('parser advanced coverage', () => {
 
 describe('printer advanced coverage', () => {
   it('formats multiple functions with custom spacing options', async () => {
-    const script = 'function A {\n  param([string]$Name)\n  Write-Host $Name\n}\nfunction B {\n  Write-Host "B"\n}\n';
+    const script =
+      'function A {\n  param([string]$Name)\n  Write-Host $Name\n}\nfunction B {\n  Write-Host "B"\n}\n';
     const result = await prettier.format(script, {
       ...baseConfig,
       powershellBlankLinesBetweenFunctions: 2,
@@ -668,6 +734,17 @@ describe('printer advanced coverage', () => {
     const result = await prettier.format(script, baseConfig);
     expect(result).toContain('| Where-Object');
     expect(result).toContain('# in pipeline');
+  });
+
+  it('preserves nested pipeline segments when formatting script blocks', async () => {
+    const script = `InModuleScope ColorScripts-Enhanced {
+  New-Item -ItemType Directory -Path $cacheRoot -Force | Out-Null
+  $script:CacheDir = $cacheRoot
+}`;
+    const result = await prettier.format(script, baseConfig);
+
+    expect(result).toContain('New-Item -ItemType Directory -Path $cacheRoot -Force | Out-Null');
+    expect(result).toContain('$script:CacheDir = $cacheRoot');
   });
 
   it('handles param keyword parenthesis spacing', async () => {
@@ -744,7 +821,7 @@ Sample
 describe('printer internal helpers', () => {
   const resolvedOptions = resolveOptions(createOptions());
 
-    it('gapBetween handles spacing combinations', () => {
+  it('gapBetween handles spacing combinations', () => {
     const paramKeyword = makeTextNode('param', 'keyword');
     const emptyParen = makeParenthesisNode([]);
     expect(gapBetween(paramKeyword, emptyParen)).toBeNull();
@@ -780,7 +857,11 @@ describe('printer internal helpers', () => {
     const currentOperatorSymbol = makeTextNode('(', 'operator');
     expect(gapBetween(prevNoGapSymbol, currentOperatorSymbol)).toBeNull();
 
-    const scriptBlockNode: ScriptBlockNode = { type: 'ScriptBlock', body: [], loc: { start: 0, end: 0 } };
+    const scriptBlockNode: ScriptBlockNode = {
+      type: 'ScriptBlock',
+      body: [],
+      loc: { start: 0, end: 0 },
+    };
     expect(gapBetween(prevNoGapSymbol, scriptBlockNode)).toBe(' ');
 
     const blockNode: ScriptBlockNode = {
@@ -789,7 +870,7 @@ describe('printer internal helpers', () => {
       loc: { start: 0, end: 0 },
     };
     expect(gapBetween(wordB, blockNode)).toBe(' ');
-    });
+  });
 
   it('getSymbol handles null input gracefully', () => {
     expect(getSymbol(null)).toBeNull();
@@ -875,7 +956,11 @@ describe('printer internal helpers', () => {
   });
 
   it('printPipeline handles empty and populated pipelines', () => {
-    const emptyPipeline: PipelineNode = { type: 'Pipeline', segments: [], loc: { start: 0, end: 0 } };
+    const emptyPipeline: PipelineNode = {
+      type: 'Pipeline',
+      segments: [],
+      loc: { start: 0, end: 0 },
+    };
     expect(printPipeline(emptyPipeline, resolvedOptions)).toBe('');
 
     const populatedPipeline: PipelineNode = {
@@ -891,7 +976,11 @@ describe('printer internal helpers', () => {
 
   it('isParamStatement checks pipelines safely', () => {
     expect(isParamStatement(null as unknown as ScriptBodyNode)).toBe(false);
-    const emptySegments: PipelineNode = { type: 'Pipeline', segments: [], loc: { start: 0, end: 0 } };
+    const emptySegments: PipelineNode = {
+      type: 'Pipeline',
+      segments: [],
+      loc: { start: 0, end: 0 },
+    };
     expect(isParamStatement(emptySegments)).toBe(false);
     const emptyPartsPipeline: PipelineNode = {
       type: 'Pipeline',
@@ -925,7 +1014,9 @@ describe('printer internal helpers', () => {
   });
 
   it('indentStatement honors tab indentation style', () => {
-    const tabOptions = resolveOptions(createOptions({ powershellIndentStyle: 'tabs', powershellIndentSize: 3 }));
+    const tabOptions = resolveOptions(
+      createOptions({ powershellIndentStyle: 'tabs', powershellIndentSize: 3 }),
+    );
     const indented = __printerTestUtils.indentStatement('body', tabOptions);
     expect(Array.isArray(indented)).toBe(true);
     expect((indented as Doc[])[0]).toBe('\t');
@@ -937,7 +1028,7 @@ describe('printer internal helpers', () => {
   });
 
   it('printText preserves keywords for unknown case transforms', () => {
-    const mutatedOptions = { ...resolvedOptions } as (typeof resolvedOptions) & {
+    const mutatedOptions = { ...resolvedOptions } as typeof resolvedOptions & {
       keywordCase: string;
     };
     Reflect.set(mutatedOptions, 'keywordCase', 'unexpected');
@@ -1103,7 +1194,8 @@ function Delta {}`,
 });
 
 describe('parser internal helpers', () => {
-  const tokensFrom = (code: string): Token[] => tokenize(code).filter((token) => token.type !== 'newline' || token.value !== '');
+  const tokensFrom = (code: string): Token[] =>
+    tokenize(code).filter((token) => token.type !== 'newline' || token.value !== '');
 
   it('identifies opening and closing tokens', () => {
     const tokens = tokenize('{} () []');
@@ -1157,7 +1249,10 @@ describe('parser internal helpers', () => {
   });
 
   it('respects configured terminators while parsing', () => {
-    const script = parserUtils.parseScriptWithTerminators('Write-Host "Hello" } Write-Host "Ignored"', new Set(['}']));
+    const script = parserUtils.parseScriptWithTerminators(
+      'Write-Host "Hello" } Write-Host "Ignored"',
+      new Set(['}']),
+    );
     expect(script.body).toHaveLength(1);
   });
 
@@ -1188,7 +1283,10 @@ describe('parser internal helpers', () => {
   it('detects top-level commas within parenthesis tokens', () => {
     const commaTokens = parserUtils.collectStructureTokens(tokensFrom('($a,$b)'), 0).contentTokens;
     expect(parserUtils.hasTopLevelComma(commaTokens)).toBe(true);
-    const nestedTokens = parserUtils.collectStructureTokens(tokensFrom('($a @(1, 2))'), 0).contentTokens;
+    const nestedTokens = parserUtils.collectStructureTokens(
+      tokensFrom('($a @(1, 2))'),
+      0,
+    ).contentTokens;
     expect(parserUtils.hasTopLevelComma(nestedTokens)).toBe(false);
   });
 
@@ -1293,7 +1391,9 @@ describe('parser internal helpers', () => {
     const withContentParenthesis = withContentExpression.parts.find(
       (part): part is ParenthesisNode => part.type === 'Parenthesis',
     );
-    expect(withContentParenthesis?.loc.end).toBe(withContentTokens[withContentTokens.length - 1]?.end);
+    expect(withContentParenthesis?.loc.end).toBe(
+      withContentTokens[withContentTokens.length - 1]?.end,
+    );
 
     const minimalTokens = tokensFrom('(');
     const minimalExpression = parserUtils.buildExpressionFromTokens(minimalTokens);

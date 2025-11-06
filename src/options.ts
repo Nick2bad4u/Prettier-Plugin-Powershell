@@ -147,11 +147,12 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
   const rawIndentOverride = options.powershellIndentSize;
   const normalizedIndentOverride = Number(rawIndentOverride);
   const normalizedTabWidth = Number(options.tabWidth);
-  const indentSize = Number.isFinite(normalizedIndentOverride) && normalizedIndentOverride > 0
-    ? Math.floor(normalizedIndentOverride)
-    : Number.isFinite(normalizedTabWidth) && normalizedTabWidth > 0
-      ? Math.floor(normalizedTabWidth)
-      : 2;
+  const indentSize =
+    Number.isFinite(normalizedIndentOverride) && normalizedIndentOverride > 0
+      ? Math.floor(normalizedIndentOverride)
+      : Number.isFinite(normalizedTabWidth) && normalizedTabWidth > 0
+        ? Math.floor(normalizedTabWidth)
+        : 2;
 
   if (indentStyle === 'tabs') {
     options.useTabs = true;

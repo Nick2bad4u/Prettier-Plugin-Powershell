@@ -260,7 +260,12 @@ function tokenize(source) {
           searchIndex += 1;
         }
         const attributeEnd = depth === 0 ? searchIndex : length;
-        push({ type: "attribute", value: source.slice(start, attributeEnd), start, end: attributeEnd });
+        push({
+          type: "attribute",
+          value: source.slice(start, attributeEnd),
+          start,
+          end: attributeEnd
+        });
         index = attributeEnd;
         continue;
       }
@@ -557,6 +562,12 @@ var Parser = class _Parser {
         break;
       }
       if (token.type === "operator" && token.value === "|") {
+        if (structureStack.length > 0) {
+          const currentSegment2 = segments[segments.length - 1];
+          currentSegment2.push(this.advance());
+          lineContinuation = false;
+          continue;
+        }
         this.advance();
         segments.push([]);
         lineContinuation = false;
@@ -1478,15 +1489,9 @@ function printParenthesis(node, options) {
   const separator = hasComma ? [",", forceMultiline ? hardline : line] : hardline;
   const leadingLine = hasComma ? forceMultiline ? hardline : line : hardline;
   const trailingLine = hasComma ? forceMultiline ? hardline : line : hardline;
-  return group(
-    [
-      "(",
-      indent([leadingLine, join(separator, elementDocs)]),
-      trailingLine,
-      ")"
-    ],
-    { id: groupId }
-  );
+  return group(["(", indent([leadingLine, join(separator, elementDocs)]), trailingLine, ")"], {
+    id: groupId
+  });
 }
 function trailingCommaDoc(options, groupId, hasElements, delimiter) {
   if (!hasElements) {
