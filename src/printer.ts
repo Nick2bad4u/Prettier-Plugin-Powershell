@@ -688,6 +688,12 @@ function normalizeStringLiteral(value: string, options: ResolvedOptions): string
 
   const inner = value.slice(1, -1);
 
+  // Skip normalization for regex-like pattern strings to avoid altering embedded quoting
+  // Heuristics: starts with (? or contains unescaped character classes or anchors typical of patterns.
+  if (/^\(\?[imxsU]/.test(inner) || /\[[^\]]+\]/.test(inner) || /\bWrite-(Warning|Error|Host|Output)\b/.test(inner)) {
+    return value;
+  }
+
   if (inner.includes("'")) {
     return value;
   }
