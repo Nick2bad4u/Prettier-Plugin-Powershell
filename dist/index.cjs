@@ -1586,6 +1586,9 @@ function normalizeStringLiteral(value, options) {
     return value;
   }
   const inner = value.slice(1, -1);
+  if (/^\(\?[imxsU]/.test(inner) || /\[[^\]]+\]/.test(inner) || /\bWrite-(Warning|Error|Host|Output)\b/.test(inner)) {
+    return value;
+  }
   if (inner.includes("'")) {
     return value;
   }
