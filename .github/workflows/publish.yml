@@ -1,0 +1,217 @@
+name: Publish
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Release type (patch, minor, major) or explicit x.y.z"
+        required: false
+        default: patch
+      ref:
+        description: "Branch to release from"
+        required: false
+        default: main
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Publish package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Harden the runner (audit outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - name: Resolve target ref
+        id: ref
+        run: |
+          if [ -n "${{ github.event.inputs.ref }}" ]; then
+            echo "branch=${{ github.event.inputs.ref }}" >> "$GITHUB_OUTPUT"
+          elif [ -n "$GITHUB_REF_NAME" ]; then
+            echo "branch=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          elif [ -n "$GITHUB_REF" ]; then
+            echo "branch=${GITHUB_REF#refs/heads/}" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch=main" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.ref.outputs.branch }}
+          token: ${{ secrets.GH_TOKEN || github.token }}
+
+      - name: Detect release commit
+        id: guard
+        run: |
+          if git show -s --pretty=%B HEAD | grep -qi '^chore: release'; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        if: steps.guard.outputs.skip != 'true'
+        with:
+          node-version: '20.x'
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Configure Git
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch --tags
+
+      - name: Install dependencies
+        if: steps.guard.outputs.skip != 'true'
+        run: npm ci
+
+      - name: Run type checking
+        if: steps.guard.outputs.skip != 'true'
+        run: npm run typecheck
+
+      - name: Run linting
+        if: steps.guard.outputs.skip != 'true'
+        run: npm run lint
+
+      - name: Run tests
+        if: steps.guard.outputs.skip != 'true'
+        run: npm test
+
+      - name: Determine new version
+        id: version
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          RELEASE_INPUT: ${{ github.event.inputs.release }}
+        run: |
+          set -euo pipefail
+
+          release="$RELEASE_INPUT"
+          if [ -z "$release" ]; then
+            commit_msg=$(git show -s --pretty=%B HEAD)
+            if echo "$commit_msg" | grep -qi 'breaking change\|!: '; then
+              release="major"
+            elif echo "$commit_msg" | grep -qi '^feat'; then
+              release="minor"
+            else
+              release="patch"
+            fi
+          fi
+
+          if [[ "$release" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            npm version "$release" --no-git-tag-version
+            NEW_VERSION="$release"
+          else
+            npm version "$release" --no-git-tag-version
+            NEW_VERSION=$(node -p "require('./package.json').version")
+          fi
+
+          echo "New version: $NEW_VERSION"
+          echo "new-version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build project
+        if: steps.guard.outputs.skip != 'true'
+        run: npm run build
+
+      - name: Verify build artifacts
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          ls -la dist/
+          test -f dist/index.js
+          test -f dist/index.d.ts
+
+      - name: Verify npm token
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "NPM_TOKEN secret is not configured." >&2
+            exit 1
+          fi
+
+      - name: Authenticate with npm
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm whoami
+
+      - name: Confirm package ownership
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          npm view prettier-plugin-powershell version >/dev/null 2>&1 || echo "Package not yet published; proceeding with first release."
+
+      - name: Ensure version not yet published
+        env:
+          VERSION: ${{ steps.version.outputs.new-version }}
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          if npm view prettier-plugin-powershell@${VERSION} version >/dev/null 2>&1; then
+            echo "Version ${VERSION} is already published." >&2
+            exit 1
+          fi
+          echo "Version ${VERSION} is available for publishing."
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        if: steps.guard.outputs.skip != 'true'
+        run: npm publish --access public
+
+      - name: Push release commit and tag
+        env:
+          VERSION: ${{ steps.version.outputs.new-version }}
+          BRANCH: ${{ steps.ref.outputs.branch }}
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          git status
+          git add package.json
+          if [ -f package-lock.json ]; then
+            git add package-lock.json
+          fi
+          git add dist
+          git commit -m "chore: release v${VERSION}"
+          git tag -a "v${VERSION}" -m "v${VERSION}"
+          git push origin HEAD:${BRANCH}
+          git push origin "v${VERSION}"
+
+      - name: Create GitHub release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        if: steps.guard.outputs.skip != 'true'
+        with:
+          tag_name: v${{ steps.version.outputs.new-version }}
+          release_name: v${{ steps.version.outputs.new-version }}
+          draft: false
+          prerelease: false
+          body: |
+            Automated release of version v${{ steps.version.outputs.new-version }}.
+
+      - name: Create summary
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          echo "## 🚀 Publish Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Version:** \`${{ steps.version.outputs.new-version }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Branch:** \`${{ steps.ref.outputs.branch }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Package is live on npm: https://www.npmjs.com/package/prettier-plugin-powershell" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Skipped release notification
+        if: steps.guard.outputs.skip == 'true'
+        run: |
+          echo "Release commit detected (chore: release …); skipping automated publish to avoid loops." >> "$GITHUB_STEP_SUMMARY"

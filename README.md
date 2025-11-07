@@ -144,7 +144,7 @@ function Get-Widget {
 
 - **CI** – GitHub Actions (see [`ci.yml`](.github/workflows/ci.yml)) installs dependencies, lint checks, type-checks, and runs the Vitest suite with coverage on every push and pull request.
 - **Codecov** – Coverage artefacts (`coverage/lcov.info`) are uploaded via the [Codecov action](https://github.com/codecov/codecov-action). The badge above reflects the latest metrics on `main`.
-- **npm publishing** – A gated manual workflow (`manual-publish.yml`) executes the full quality bar before publishing releases.
+- **npm publishing** – Every push to `main` triggers [`publish.yml`](.github/workflows/publish.yml), which bumps the version (patch by default, `feat` → minor, `BREAKING` → major), runs the quality bar, commits the build artifacts, tags the release, publishes to npm, and opens a GitHub release. The legacy manual workflow now just points back to this automated pipeline; you can still run it manually from the Actions tab when needed.
 
 ## Project scripts
 

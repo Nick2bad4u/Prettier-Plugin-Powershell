@@ -1,125 +1,13 @@
-name: Manual Publish
+name: Manual Publish (Deprecated)
 
 on:
-    workflow_dispatch:
-        inputs:
-            version:
-                description: "Version to publish (e.g., 1.0.0, patch, minor, major)"
-                required: true
-                default: "patch"
-            dry-run:
-                description: "Dry run (does not actually publish)"
-                type: boolean
-                default: false
-
-permissions:
-  contents: read
+  workflow_dispatch:
 
 jobs:
-    publish:
-        permissions:
-          contents: write  # for Git to git push
-        runs-on: ubuntu-latest
-
-        steps:
-            - name: Harden the runner (Audit all outbound calls)
-              uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
-              with:
-                egress-policy: audit
-
-            - name: Checkout repository
-              uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-              with:
-                  fetch-depth: 0
-                  # Use a PAT with repo access for version commits
-                  token: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
-
-            - name: Setup Node.js
-              uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
-              with:
-                  node-version: "20.x"
-                  cache: "npm"
-                  registry-url: "https://registry.npmjs.org"
-
-            - name: Configure Git
-              run: |
-                  git config --global user.name "github-actions[bot]"
-                  git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-            - name: Install dependencies
-              run: npm ci
-
-            - name: Run type checking
-              run: npm run typecheck
-
-            - name: Run linting
-              run: npm run lint
-
-            - name: Run tests
-              run: npm test
-
-            - name: Build project
-              run: npm run build
-
-            - name: Verify build artifacts
-              run: |
-                  # Verify all required files exist
-                  ls -la dist/
-                  test -f dist/index.js
-                  test -f dist/index.d.ts
-
-            - name: Update version
-              id: version
-              run: |
-                  if [[ "${{ github.event.inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-                    # Explicit version provided
-                    NEW_VERSION="${{ github.event.inputs.version }}"
-                    npm version $NEW_VERSION --no-git-tag-version
-                  else
-                    # Semantic version bump (patch, minor, major)
-                    NEW_VERSION=$(npm version ${{ github.event.inputs.version }} --no-git-tag-version)
-                    NEW_VERSION=${NEW_VERSION#v}  # Remove 'v' prefix
-                  fi
-
-                  echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
-                  echo "Publishing version: $NEW_VERSION"
-
-            - name: Commit version change
-              if: ${{ github.event.inputs.dry-run != 'true' }}
-              run: |
-                  git add package.json
-                  git commit -m "chore: bump version to ${{ steps.version.outputs.new-version }}"
-                  git tag "v${{ steps.version.outputs.new-version }}"
-                  git push origin main
-                  git push origin "v${{ steps.version.outputs.new-version }}"
-
-            - name: Publish to npm (dry run)
-              if: ${{ github.event.inputs.dry-run == 'true' }}
-              run: |
-                  echo "🔍 DRY RUN: Would publish version ${{ steps.version.outputs.new-version }}"
-                  npm publish --dry-run --access public
-
-            - name: Publish to npm
-              if: ${{ github.event.inputs.dry-run != 'true' }}
-              run: npm publish --access public
-              env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-            - name: Create summary
-              run: |
-                  echo "## 🚀 Publish Summary" >> $GITHUB_STEP_SUMMARY
-                  echo "" >> $GITHUB_STEP_SUMMARY
-                  echo "**Version:** \`${{ steps.version.outputs.new-version }}\`" >> $GITHUB_STEP_SUMMARY
-                  echo "**Dry Run:** \`${{ github.event.inputs.dry-run }}\`" >> $GITHUB_STEP_SUMMARY
-                  echo "" >> $GITHUB_STEP_SUMMARY
-                  echo "**NPX Commands:**" >> $GITHUB_STEP_SUMMARY
-                  echo "- \`npx eslint-chunker\`" >> $GITHUB_STEP_SUMMARY
-                  echo "- \`npx chunkylint\`" >> $GITHUB_STEP_SUMMARY
-                  echo "- \`npx chunky-lint\`" >> $GITHUB_STEP_SUMMARY
-                  echo "" >> $GITHUB_STEP_SUMMARY
-
-                  if [[ "${{ github.event.inputs.dry-run }}" == "false" ]]; then
-                    echo "**View on npm:** https://www.npmjs.com/package/eslint-plugin-chunkylint" >> $GITHUB_STEP_SUMMARY
-                  else
-                    echo "⚠️ This was a dry run - nothing was actually published" >> $GITHUB_STEP_SUMMARY
-                  fi
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Manual publish disabled
+        run: |
+          echo "Manual publishing has been retired."
+          echo "Pushes to main now trigger the automated publish workflow. Use the 'Publish' workflow_dispatch job only for ad-hoc releases."
