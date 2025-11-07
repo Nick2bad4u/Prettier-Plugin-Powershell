@@ -424,6 +424,29 @@ function tokenize(source) {
 }
 
 // src/parser.ts
+var FALLBACK_OPERATOR_TOKENS = /* @__PURE__ */ new Set([
+  "+",
+  "-",
+  "*",
+  "/",
+  "%",
+  "&",
+  "|",
+  "^",
+  "!",
+  "?",
+  "++",
+  "--",
+  "+=",
+  "-=",
+  "*=",
+  "/=",
+  "%=",
+  "&=",
+  "|=",
+  "^=",
+  "??"
+]);
 var Parser = class _Parser {
   constructor(tokens, source) {
     this.tokens = tokens;
@@ -895,7 +918,10 @@ function createHereStringNode(token) {
   };
 }
 function createTextNode(token) {
-  const role = token.type === "identifier" ? "word" : token.type === "keyword" ? "keyword" : token.type === "number" ? "number" : token.type === "variable" ? "variable" : token.type === "string" ? "string" : token.type === "operator" ? "operator" : token.type === "punctuation" ? "punctuation" : "unknown";
+  let role = token.type === "identifier" ? "word" : token.type === "keyword" ? "keyword" : token.type === "number" ? "number" : token.type === "variable" ? "variable" : token.type === "string" ? "string" : token.type === "operator" ? "operator" : token.type === "punctuation" ? "punctuation" : "unknown";
+  if ((role === "unknown" || role === "word") && FALLBACK_OPERATOR_TOKENS.has(token.value)) {
+    role = "operator";
+  }
   return {
     type: "Text",
     value: token.value,
@@ -1213,11 +1239,29 @@ function printPipeline(node, options) {
 }
 function printExpression(node, options) {
   const docs = [];
-  let previous = null;
-  for (const part of node.parts) {
-    if (shouldSkipPart(part)) {
-      continue;
+  const filteredParts = node.parts.filter((part) => !shouldSkipPart(part));
+  const normalizedParts = [];
+  for (let index = 0; index < filteredParts.length; index += 1) {
+    const current = filteredParts[index];
+    if (current.type === "Text" && current.role === "operator") {
+      const next = filteredParts[index + 1];
+      if (next && next.type === "Text" && next.role === "operator") {
+        const combinedValue = current.value + next.value;
+        if (CONCATENATED_OPERATOR_PAIRS.has(combinedValue)) {
+          normalizedParts.push({
+            ...current,
+            value: combinedValue,
+            loc: { start: current.loc.start, end: next.loc.end }
+          });
+          index += 1;
+          continue;
+        }
+      }
     }
+    normalizedParts.push(current);
+  }
+  let previous = null;
+  for (const part of normalizedParts) {
     if (part.type === "Parenthesis" && isParamKeyword(previous)) {
       docs.push(printParamParenthesis(part, options));
       previous = part;
@@ -1237,6 +1281,18 @@ function printExpression(node, options) {
 function gapBetween(previous, current) {
   const prevSymbol = getSymbol(previous);
   const currentSymbol = getSymbol(current);
+  if (current.type === "ArrayLiteral" && current.kind === "explicit" && Boolean(previous)) {
+    return null;
+  }
+  if (current.type === "Text" && current.role === "operator" && (current.value === "++" || current.value === "--")) {
+    return null;
+  }
+  if (previous.type === "Text" && previous.role === "operator" && current.type === "Text" && current.role === "operator") {
+    const combined = previous.value + current.value;
+    if (CONCATENATED_OPERATOR_PAIRS.has(combined)) {
+      return null;
+    }
+  }
   if (current.type === "Parenthesis") {
     if (previous && previous.type === "Text") {
       if (previous.value.toLowerCase() === "param") {
@@ -1273,6 +1329,12 @@ function gapBetween(previous, current) {
   if (prevSymbol && currentSymbol && SYMBOL_NO_GAP.has(`${prevSymbol}:${currentSymbol}`)) {
     return null;
   }
+  if (prevSymbol && currentSymbol) {
+    const pair = `${prevSymbol}${currentSymbol}`;
+    if (CONCATENATED_OPERATOR_PAIRS.has(pair)) {
+      return null;
+    }
+  }
   if (prevSymbol === "=" || currentSymbol === "=") {
     return " ";
   }
@@ -1301,6 +1363,19 @@ function isParamStatement(node) {
 var NO_SPACE_BEFORE = /* @__PURE__ */ new Set([")", "]", "}", ",", ";", ".", "::", ">", "<"]);
 var NO_SPACE_AFTER = /* @__PURE__ */ new Set(["(", "[", "{", ".", ">", "<"]);
 var SYMBOL_NO_GAP = /* @__PURE__ */ new Set([".:word", "::word", "word:(", "word:["]);
+var CONCATENATED_OPERATOR_PAIRS = /* @__PURE__ */ new Set([
+  "++",
+  "--",
+  "+=",
+  "-=",
+  "*=",
+  "/=",
+  "%=",
+  "&=",
+  "|=",
+  "^=",
+  "??"
+]);
 function getSymbol(node) {
   if (!node) {
     return null;

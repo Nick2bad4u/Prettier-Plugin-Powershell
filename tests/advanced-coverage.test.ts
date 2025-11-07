@@ -747,6 +747,21 @@ describe('printer advanced coverage', () => {
     expect(result).toContain('$script:CacheDir = $cacheRoot');
   });
 
+  it('keeps increment operators and indexers intact', async () => {
+    const script = `
+for ($i = 0; $i -lt $lines.Count; $i++) {
+  $values[$i] += 1
+  $values[$i]++
+  $values[$i]--
+}
+`;
+    const result = await prettier.format(script, baseConfig);
+    expect(result).toContain('$i++)');
+    expect(result).toContain('$values[$i] += 1');
+    expect(result).toContain('$values[$i]++');
+    expect(result).toContain('$values[$i]--');
+  });
+
   it('handles param keyword parenthesis spacing', async () => {
     const script = 'param([string]$Name, [int]$Age)';
     const result = await prettier.format(script, baseConfig);
@@ -870,6 +885,19 @@ describe('printer internal helpers', () => {
       loc: { start: 0, end: 0 },
     };
     expect(gapBetween(wordB, blockNode)).toBe(' ');
+
+    const plusOperator = makeTextNode('+', 'operator');
+    const equalsOperator = makeTextNode('=', 'operator');
+    expect(gapBetween(plusOperator, equalsOperator)).toBeNull();
+    expect(gapBetween(plusOperator, makeTextNode('+', 'operator'))).toBeNull();
+
+    const accessorTarget: ArrayLiteralNode = {
+      type: 'ArrayLiteral',
+      elements: [],
+      kind: 'explicit',
+      loc: { start: 0, end: 0 },
+    };
+    expect(gapBetween(wordA, accessorTarget)).toBeNull();
   });
 
   it('getSymbol handles null input gracefully', () => {

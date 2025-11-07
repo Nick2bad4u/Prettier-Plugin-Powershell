@@ -181,3 +181,4 @@ $RECYCLE.BIN/
 node_modules/
 !dist
 todo.txt
+todo.md

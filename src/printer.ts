@@ -209,13 +209,33 @@ function printPipeline(node: PipelineNode, options: ResolvedOptions): Doc {
 
 function printExpression(node: ExpressionNode, options: ResolvedOptions): Doc {
   const docs: Doc[] = [];
+
+  const filteredParts = node.parts.filter((part) => !shouldSkipPart(part));
+  const normalizedParts: ExpressionPartNode[] = [];
+
+  for (let index = 0; index < filteredParts.length; index += 1) {
+    const current = filteredParts[index];
+    if (current.type === 'Text' && current.role === 'operator') {
+      const next = filteredParts[index + 1];
+      if (next && next.type === 'Text' && next.role === 'operator') {
+        const combinedValue = current.value + next.value;
+        if (CONCATENATED_OPERATOR_PAIRS.has(combinedValue)) {
+          normalizedParts.push({
+            ...current,
+            value: combinedValue,
+            loc: { start: current.loc.start, end: next.loc.end },
+          });
+          index += 1;
+          continue;
+        }
+      }
+    }
+    normalizedParts.push(current);
+  }
+
   let previous: ExpressionPartNode | null = null;
 
-  for (const part of node.parts) {
-    if (shouldSkipPart(part)) {
-      continue;
-    }
-
+  for (const part of normalizedParts) {
     if (part.type === 'Parenthesis' && isParamKeyword(previous)) {
       docs.push(printParamParenthesis(part, options));
       previous = part;
@@ -239,6 +259,34 @@ function printExpression(node: ExpressionNode, options: ResolvedOptions): Doc {
 function gapBetween(previous: ExpressionPartNode, current: ExpressionPartNode): Doc | null {
   const prevSymbol = getSymbol(previous);
   const currentSymbol = getSymbol(current);
+
+  if (
+    current.type === 'ArrayLiteral' &&
+    current.kind === 'explicit' &&
+    Boolean(previous)
+  ) {
+    return null;
+  }
+
+  if (
+    current.type === 'Text' &&
+    current.role === 'operator' &&
+    (current.value === '++' || current.value === '--')
+  ) {
+    return null;
+  }
+
+  if (
+    previous.type === 'Text' &&
+    previous.role === 'operator' &&
+    current.type === 'Text' &&
+    current.role === 'operator'
+  ) {
+    const combined = previous.value + current.value;
+    if (CONCATENATED_OPERATOR_PAIRS.has(combined)) {
+      return null;
+    }
+  }
 
   if (current.type === 'Parenthesis') {
     if (previous && previous.type === 'Text') {
@@ -283,6 +331,13 @@ function gapBetween(previous: ExpressionPartNode, current: ExpressionPartNode): 
     return null;
   }
 
+  if (prevSymbol && currentSymbol) {
+    const pair = `${prevSymbol}${currentSymbol}`;
+    if (CONCATENATED_OPERATOR_PAIRS.has(pair)) {
+      return null;
+    }
+  }
+
   /* c8 ignore next */
   if (prevSymbol === '=' || currentSymbol === '=') {
     return ' ';
@@ -320,6 +375,19 @@ function isParamStatement(node: ScriptBodyNode | null): boolean {
 const NO_SPACE_BEFORE = new Set([')', ']', '}', ',', ';', '.', '::', '>', '<']);
 const NO_SPACE_AFTER = new Set(['(', '[', '{', '.', '>', '<']);
 const SYMBOL_NO_GAP = new Set(['.:word', '::word', 'word:(', 'word:[']);
+const CONCATENATED_OPERATOR_PAIRS = new Set([
+  '++',
+  '--',
+  '+=',
+  '-=',
+  '*=',
+  '/=',
+  '%=',
+  '&=',
+  '|=',
+  '^=',
+  '??',
+]);
 
 function getSymbol(node: ExpressionPartNode | null): string | null {
   if (!node) {

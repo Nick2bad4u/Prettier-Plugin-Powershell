@@ -16,10 +16,35 @@ import type {
   ScriptBodyNode,
   ScriptNode,
   TextNode,
+  TokenRole,
 } from './ast.js';
 import { resolveOptions } from './options.js';
 import type { Token } from './tokenizer.js';
 import { tokenize } from './tokenizer.js';
+
+const FALLBACK_OPERATOR_TOKENS = new Set([
+  '+',
+  '-',
+  '*',
+  '/',
+  '%',
+  '&',
+  '|',
+  '^',
+  '!',
+  '?',
+  '++',
+  '--',
+  '+=',
+  '-=',
+  '*=',
+  '/=',
+  '%=',
+  '&=',
+  '|=',
+  '^=',
+  '??',
+]);
 
 class Parser {
   private index = 0;
@@ -604,7 +629,7 @@ function createHereStringNode(token: Token): HereStringNode {
 }
 
 function createTextNode(token: Token): TextNode {
-  const role =
+  let role: TokenRole =
     token.type === 'identifier'
       ? 'word'
       : token.type === 'keyword'
@@ -620,6 +645,10 @@ function createTextNode(token: Token): TextNode {
                 : token.type === 'punctuation'
                   ? 'punctuation'
                   : 'unknown';
+
+  if ((role === 'unknown' || role === 'word') && FALLBACK_OPERATOR_TOKENS.has(token.value)) {
+    role = 'operator';
+  }
 
   return {
     type: 'Text',
