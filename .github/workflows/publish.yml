@@ -143,11 +143,26 @@ jobs:
             exit 1
           fi
 
-      - name: Authenticate with npm
+      - name: Configure npm authentication
         if: steps.guard.outputs.skip != 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm whoami
+          NPM_CONFIG_USERCONFIG: ${{ env.NPM_CONFIG_USERCONFIG }}
+        run: |
+          set -euo pipefail
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "NODE_AUTH_TOKEN was not provided." >&2
+            exit 1
+          fi
+          if [ -z "${NPM_CONFIG_USERCONFIG:-}" ]; then
+            NPM_CONFIG_USERCONFIG="$HOME/.npmrc"
+          fi
+          mkdir -p "$(dirname "$NPM_CONFIG_USERCONFIG")"
+          {
+            printf "//registry.npmjs.org/:_authToken=%s\n" "$NODE_AUTH_TOKEN"
+            printf "always-auth=true\n"
+          } > "$NPM_CONFIG_USERCONFIG"
+          npm whoami --registry=https://registry.npmjs.org
 
       - name: Confirm package ownership
         if: steps.guard.outputs.skip != 'true'
