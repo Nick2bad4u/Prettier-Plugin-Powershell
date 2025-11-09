@@ -125,9 +125,7 @@ function printStatementList(
       const commentDoc = indentStatements ? indentStatement(printed, options) : printed;
       const lastIndex = docs.length - 1;
       const priorDoc = docs[lastIndex];
-      docs[lastIndex] = priorDoc
-        ? concatDocs([priorDoc, hardline, commentDoc])
-        : commentDoc;
+      docs[lastIndex] = priorDoc ? concatDocs([priorDoc, hardline, commentDoc]) : commentDoc;
       previous = entry;
       pendingBlankLines = 0;
       continue;
@@ -260,11 +258,7 @@ function gapBetween(previous: ExpressionPartNode, current: ExpressionPartNode): 
   const prevSymbol = getSymbol(previous);
   const currentSymbol = getSymbol(current);
 
-  if (
-    current.type === 'ArrayLiteral' &&
-    current.kind === 'explicit' &&
-    Boolean(previous)
-  ) {
+  if (current.type === 'ArrayLiteral' && current.kind === 'explicit' && Boolean(previous)) {
     return null;
   }
 
@@ -690,7 +684,11 @@ function normalizeStringLiteral(value: string, options: ResolvedOptions): string
 
   // Skip normalization for regex-like pattern strings to avoid altering embedded quoting
   // Heuristics: starts with (? or contains unescaped character classes or anchors typical of patterns.
-  if (/^\(\?[imxsU]/.test(inner) || /\[[^\]]+\]/.test(inner) || /\bWrite-(Warning|Error|Host|Output)\b/.test(inner)) {
+  if (
+    /^\(\?[imxsU]/.test(inner) ||
+    /\[[^\]]+\]/.test(inner) ||
+    /\bWrite-(Warning|Error|Host|Output)\b/.test(inner)
+  ) {
     return value;
   }
 

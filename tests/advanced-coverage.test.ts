@@ -285,12 +285,12 @@ describe('resolveOptions advanced coverage', () => {
     expect(options.tabWidth).toBe(2);
     expect(defaulted.blankLinesBetweenFunctions).toBe(1);
   });
-    // Do not rewrite regex-like patterns containing nested quotes/brackets
-      it('does not rewrite regex-like pattern strings', () => {
-        const opts = resolveOptions(createOptions({ powershellPreferSingleQuote: true }));
-        const pattern = '"(?m)Write-Host\\s+["\'\']([^"\'\']+)"';
-        expect(normalizeStringLiteral(pattern, opts)).toBe(pattern);
-      });
+  // Do not rewrite regex-like patterns containing nested quotes/brackets
+  it('does not rewrite regex-like pattern strings', () => {
+    const opts = resolveOptions(createOptions({ powershellPreferSingleQuote: true }));
+    const pattern = '"(?m)Write-Host\\s+["\'\']([^"\'\']+)"';
+    expect(normalizeStringLiteral(pattern, opts)).toBe(pattern);
+  });
 });
 
 describe('tokenizer advanced coverage', () => {
