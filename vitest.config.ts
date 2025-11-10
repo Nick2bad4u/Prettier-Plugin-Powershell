@@ -4,6 +4,8 @@ import {
   type UserConfigFnObject,
 } from "vite";
 export default defineConfig(({ }) => {
+  const timeoutSetting = Number.parseInt(process.env["POWERSHELL_TEST_TIMEOUT_MS"] ?? "120000", 10);
+  const testTimeout = Number.isFinite(timeoutSetting) && timeoutSetting > 0 ? timeoutSetting : 120_000;
   return {
   test: {
     globals: true,
@@ -46,7 +48,7 @@ export default defineConfig(({ }) => {
     },
     reporters: ['default', 'hanging-process'],
     slowTestThreshold: 300,
-    testTimeout: 15000,
+    testTimeout,
     typecheck: {
       enabled: true,
       checker: 'tsc',

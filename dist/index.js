@@ -445,6 +445,11 @@ var FALLBACK_OPERATOR_TOKENS = /* @__PURE__ */ new Set([
   "^=",
   "??"
 ]);
+function extendNodeLocation(node, end) {
+  if (end > node.loc.end) {
+    node.loc = { ...node.loc, end };
+  }
+}
 var Parser = class _Parser {
   constructor(tokens, source) {
     this.tokens = tokens;
@@ -489,7 +494,12 @@ var Parser = class _Parser {
               lastPart && lastPart.type === "ScriptBlock" && (commentNode.loc.start < lastPart.loc.end || nextToken && nextToken.type === "punctuation" && nextToken.value === "}")
             );
             if (belongsToBlock && lastPart && lastPart.type === "ScriptBlock") {
-              lastPart.body = [...lastPart.body, commentNode];
+              lastPart.body.push(commentNode);
+              extendNodeLocation(lastPart, commentNode.loc.end);
+              if (lastSegment) {
+                extendNodeLocation(lastSegment, commentNode.loc.end);
+              }
+              extendNodeLocation(previousNode, commentNode.loc.end);
               continue;
             }
           }
@@ -636,7 +646,9 @@ var Parser = class _Parser {
     const { contentTokens, closingToken } = this.collectBalancedTokens(openToken);
     const nestedParser = new _Parser(contentTokens, this.source);
     const script = nestedParser.parseScript(/* @__PURE__ */ new Set());
-    const end = closingToken?.end ?? openToken.end;
+    const closingEnd = closingToken?.end ?? openToken.end;
+    const bodyEnd = script.body.length > 0 ? script.body[script.body.length - 1].loc.end : closingEnd;
+    const end = Math.max(closingEnd, bodyEnd);
     return {
       type: "ScriptBlock",
       body: script.body,
@@ -818,12 +830,13 @@ function buildExpressionFromTokens(tokens, source = "") {
     parts.push(createTextNode(token));
     index += 1;
   }
+  const expressionEnd = parts.length > 0 ? parts[parts.length - 1].loc.end : lastToken.end;
   return {
     type: "Expression",
     parts,
     loc: {
       start: firstToken.start,
-      end: lastToken.end
+      end: expressionEnd
     }
   };
 }
@@ -896,7 +909,9 @@ function parseScriptBlockPart(tokens, startIndex, source = "") {
   const { contentTokens, endIndex, closingToken } = collectStructureTokens(tokens, startIndex);
   const nestedParser = new Parser(contentTokens, source);
   const script = nestedParser.parseScript();
-  const end = resolveStructureEnd(startToken, closingToken, contentTokens);
+  const closingEnd = resolveStructureEnd(startToken, closingToken, contentTokens);
+  const bodyEnd = script.body.length > 0 ? script.body[script.body.length - 1].loc.end : closingEnd;
+  const end = Math.max(closingEnd, bodyEnd);
   return {
     node: {
       type: "ScriptBlock",
@@ -1165,7 +1180,7 @@ function printStatementList(body, options, indentStatements) {
   let pendingBlankLines = 0;
   for (const entry of body) {
     if (entry.type === "BlankLine") {
-      pendingBlankLines += entry.count;
+      pendingBlankLines = Math.max(pendingBlankLines, entry.count);
       continue;
     }
     if (previous) {
