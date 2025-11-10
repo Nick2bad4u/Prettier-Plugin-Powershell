@@ -133,14 +133,11 @@ describe("Printer property-based tests", () => {
                             "printer.property.idempotent.first"
                         );
 
-                        const formatted2 = await prettier.format(
-                            formatted1,
-                            {
-                                parser: "powershell",
-                                plugins: [plugin],
-                                filepath: "test.ps1",
-                            }
-                        );
+                        const formatted2 = await prettier.format(formatted1, {
+                            parser: "powershell",
+                            plugins: [plugin],
+                            filepath: "test.ps1",
+                        });
                         assertPowerShellParses(
                             formatted2,
                             "printer.property.idempotent.second"
@@ -166,7 +163,10 @@ describe("Printer property-based tests", () => {
                 await fc.assert(
                     fc.asyncProperty(simpleScriptArb, async (script) => {
                         tracker.advance();
-                        const originalAst = parsePowerShell(script, {} as never);
+                        const originalAst = parsePowerShell(
+                            script,
+                            {} as never
+                        );
                         const formatted = await prettier.format(script, {
                             parser: "powershell",
                             plugins: [plugin],
@@ -188,7 +188,10 @@ describe("Printer property-based tests", () => {
                             (node) => node.type !== "BlankLine"
                         );
 
-                        if (originalStatements.length !== formattedStatements.length) {
+                        if (
+                            originalStatements.length !==
+                            formattedStatements.length
+                        ) {
                             throw new Error(
                                 `Statement count changed: ${originalStatements.length} -> ${formattedStatements.length}`
                             );
@@ -210,7 +213,8 @@ describe("Printer property-based tests", () => {
                         fc.integer({ min: 1, max: 8 }),
                         async (indentSize) => {
                             tracker.advance();
-                            const script = 'if ($true) {\nWrite-Output "test"\n}';
+                            const script =
+                                'if ($true) {\nWrite-Output "test"\n}';
                             const formatted = await prettier.format(script, {
                                 parser: "powershell",
                                 plugins: [plugin],
@@ -257,7 +261,8 @@ describe("Printer property-based tests", () => {
                         fc.constantFrom("1tbs", "allman"),
                         async (braceStyle) => {
                             tracker.advance();
-                            const script = 'function Test-Func { Write-Output "test" }';
+                            const script =
+                                'function Test-Func { Write-Output "test" }';
                             const formatted = await prettier.format(script, {
                                 parser: "powershell",
                                 plugins: [plugin],
@@ -275,7 +280,9 @@ describe("Printer property-based tests", () => {
                                         `Expected 1tbs style (brace on same line)\nFormatted:\n${formatted}`
                                     );
                                 }
-                            } else if (!/function\s+\S+\s*\n\s*\{/.test(formatted)) {
+                            } else if (
+                                !/function\s+\S+\s*\n\s*\{/.test(formatted)
+                            ) {
                                 throw new Error(
                                     `Expected allman style (brace on next line)\nFormatted:\n${formatted}`
                                 );
@@ -339,33 +346,29 @@ describe("Printer property-based tests", () => {
     });
 
     it("handles empty scripts", async () => {
-        await withProgress(
-            "printer.empty",
-            PROPERTY_RUNS,
-            async (tracker) => {
-                await fc.assert(
-                    fc.asyncProperty(fc.constant(""), async (script) => {
-                        tracker.advance();
-                        const formatted = await prettier.format(script, {
-                            parser: "powershell",
-                            plugins: [plugin],
-                            filepath: "test.ps1",
-                        });
-                        assertPowerShellParses(
-                            formatted,
-                            "printer.property.emptyScript"
-                        );
+        await withProgress("printer.empty", PROPERTY_RUNS, async (tracker) => {
+            await fc.assert(
+                fc.asyncProperty(fc.constant(""), async (script) => {
+                    tracker.advance();
+                    const formatted = await prettier.format(script, {
+                        parser: "powershell",
+                        plugins: [plugin],
+                        filepath: "test.ps1",
+                    });
+                    assertPowerShellParses(
+                        formatted,
+                        "printer.property.emptyScript"
+                    );
 
-                        if (formatted.trim().length > 0) {
-                            throw new Error(
-                                `Empty script formatted to non-empty: ${JSON.stringify(formatted)}`
-                            );
-                        }
-                    }),
-                    { numRuns: PROPERTY_RUNS }
-                );
-            }
-        );
+                    if (formatted.trim().length > 0) {
+                        throw new Error(
+                            `Empty script formatted to non-empty: ${JSON.stringify(formatted)}`
+                        );
+                    }
+                }),
+                { numRuns: PROPERTY_RUNS }
+            );
+        });
     });
 
     it("preserves comments", async () => {
@@ -420,12 +423,16 @@ describe("Printer property-based tests", () => {
                                 "printer.property.commentOnly"
                             );
 
-                            const originalCommentCount =
-                                (script.match(/#/g) || []).length;
-                            const formattedCommentCount =
-                                (formatted.match(/#/g) || []).length;
+                            const originalCommentCount = (
+                                script.match(/#/g) || []
+                            ).length;
+                            const formattedCommentCount = (
+                                formatted.match(/#/g) || []
+                            ).length;
 
-                            if (originalCommentCount !== formattedCommentCount) {
+                            if (
+                                originalCommentCount !== formattedCommentCount
+                            ) {
                                 throw new Error(
                                     `Comment count changed: ${originalCommentCount} -> ${formattedCommentCount}`
                                 );
@@ -465,7 +472,9 @@ describe("Printer property-based tests", () => {
                                 .join("")
                                 .includes("\n");
                             if (lfOnly) {
-                                throw new Error("Output has mixed line endings");
+                                throw new Error(
+                                    "Output has mixed line endings"
+                                );
                             }
                         }
                     }),

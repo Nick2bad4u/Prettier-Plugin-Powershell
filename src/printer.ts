@@ -305,9 +305,27 @@ function printExpression(node: ExpressionNode, options: ResolvedOptions): Doc {
 
     let previous: ExpressionPartNode | null = null;
 
-    for (const part of normalizedParts) {
+    for (let i = 0; i < normalizedParts.length; i += 1) {
+        const part = normalizedParts[i];
+
         if (part.type === "Parenthesis" && isParamKeyword(previous)) {
             docs.push(printParamParenthesis(part, options));
+            previous = part;
+            continue;
+        }
+
+        // Check if this is comment text (not starting with #, but appears to be prose)
+        if (
+            part.type === "Text" &&
+            part.role === "unknown" &&
+            previous &&
+            !part.value.trim().startsWith("#") &&
+            !part.value.trim().startsWith("$") &&
+            !part.value.trim().startsWith("[") &&
+            part.value.trim().length > 10
+        ) {
+            // This looks like comment text - treat it as an inline comment
+            docs.push(lineSuffix([" # ", part.value.trim()]));
             previous = part;
             continue;
         }
@@ -717,13 +735,31 @@ function printParamParenthesis(
         pendingAttributes = [];
     };
 
-    for (const element of node.elements) {
+    for (let i = 0; i < node.elements.length; i += 1) {
+        const element = node.elements[i];
+
+        // Skip comment-only expressions - they'll be handled as trailing comments
+        if (isCommentExpression(element)) {
+            continue;
+        }
+
         if (isAttributeExpression(element)) {
             pendingAttributes.push(printExpression(element, options));
             continue;
         }
 
-        const printed = printExpression(element, options);
+        let printed = printExpression(element, options);
+
+        // Check if the next element is a comment - if so, attach it inline
+        const nextElement = node.elements[i + 1];
+        if (nextElement && isCommentExpression(nextElement)) {
+            const commentText = extractCommentText(nextElement);
+            if (commentText) {
+                printed = [printed, lineSuffix([" ", commentText])];
+                i += 1; // Skip the comment element since we've consumed it
+            }
+        }
+
         flushAttributes(printed);
     }
 
@@ -755,6 +791,59 @@ function isAttributeExpression(node: ExpressionNode): boolean {
         const trimmed = part.value.trim();
         return trimmed.startsWith("[") && trimmed.endsWith("]");
     });
+}
+
+function isCommentExpression(node: ExpressionNode): boolean {
+    if (node.parts.length !== 1) {
+        return false;
+    }
+
+    const part = node.parts[0];
+    if (part.type !== "Text") {
+        return false;
+    }
+
+    // Check if it's likely a comment based on context:
+    // 1. Starts with # or <# (original inline comment)
+    // 2. Appears to be comment text (no $ or [ at start, longer text)
+    const trimmed = part.value.trim();
+    if (trimmed.startsWith("#") || trimmed.startsWith("<#")) {
+        return true;
+    }
+
+    // If the text doesn't start with typical PowerShell syntax markers
+    // and appears to be prose, it's likely comment text
+    if (
+        !trimmed.startsWith("$") &&
+        !trimmed.startsWith("[") &&
+        !trimmed.startsWith("(") &&
+        !trimmed.startsWith("{") &&
+        !trimmed.includes("=") &&
+        trimmed.length > 10
+    ) {
+        return true;
+    }
+
+    return false;
+}
+
+function extractCommentText(node: ExpressionNode): string | null {
+    if (!isCommentExpression(node)) {
+        return null;
+    }
+
+    const part = node.parts[0];
+    if (part.type !== "Text") {
+        return null;
+    }
+
+    const trimmed = part.value.trim();
+    // If it already starts with #, return as is
+    if (trimmed.startsWith("#")) {
+        return trimmed;
+    }
+    // Otherwise, prepend # to make it a comment
+    return `# ${trimmed}`;
 }
 
 function printParenthesis(

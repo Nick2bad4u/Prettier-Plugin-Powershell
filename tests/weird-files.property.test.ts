@@ -36,20 +36,16 @@ describe("Weird PowerShell file property tests", () => {
         }
 
         const formatted = await prettier.format(script, prettierConfig);
-        assertPowerShellParses(
-            formatted,
-            "weirdFiles.formatted"
-        );
-        const formattedAst = parsePowerShell(formatted, { tabWidth: 2 } as never);
+        assertPowerShellParses(formatted, "weirdFiles.formatted");
+        const formattedAst = parsePowerShell(formatted, {
+            tabWidth: 2,
+        } as never);
         if (formattedAst.type !== "Script") {
             throw new Error("Formatted output did not parse to Script node");
         }
 
         const formattedAgain = await prettier.format(formatted, prettierConfig);
-        assertPowerShellParses(
-            formattedAgain,
-            "weirdFiles.formattedAgain"
-        );
+        assertPowerShellParses(formattedAgain, "weirdFiles.formattedAgain");
         if (formattedAgain !== formatted) {
             throw new Error("Formatting was not idempotent");
         }
@@ -119,7 +115,10 @@ describe("Weird PowerShell file property tests", () => {
         ] as const;
 
         const unicodeString = fc
-            .array(fc.constantFrom(...unicodeSamples), { minLength: 1, maxLength: 5 })
+            .array(fc.constantFrom(...unicodeSamples), {
+                minLength: 1,
+                maxLength: 5,
+            })
             .map((chars) => chars.join(""));
 
         it("handles unicode in strings and comments", async () => {
@@ -148,8 +147,12 @@ describe("Weird PowerShell file property tests", () => {
                     await fc.assert(
                         fc.asyncProperty(unicodeString, async (value) => {
                             tracker.advance();
-                            const sanitized = value.replace(/[^\p{L}\p{Nd}_]/gu, "");
-                            const identifier = sanitized.length > 0 ? sanitized : "Unicode";
+                            const sanitized = value.replace(
+                                /[^\p{L}\p{Nd}_]/gu,
+                                ""
+                            );
+                            const identifier =
+                                sanitized.length > 0 ? sanitized : "Unicode";
                             const script = `$${identifier} = '${value.replace(/'/g, "''")}'\nWrite-Output $${identifier}`;
                             await assertParseAndFormat(script);
                         }),
@@ -187,10 +190,20 @@ describe("Weird PowerShell file property tests", () => {
 
     describe("Whitespace oddities", () => {
         const weirdWhitespace = fc
-            .array(fc.constantFrom("\u00A0", "\u2003", "\u2009", "\u202F", "\t", " "), {
-                minLength: 1,
-                maxLength: 5,
-            })
+            .array(
+                fc.constantFrom(
+                    "\u00A0",
+                    "\u2003",
+                    "\u2009",
+                    "\u202F",
+                    "\t",
+                    " "
+                ),
+                {
+                    minLength: 1,
+                    maxLength: 5,
+                }
+            )
             .map((chars) => chars.join(""));
 
         it("handles pipelines with unusual whitespace", async () => {
@@ -226,10 +239,13 @@ describe("Weird PowerShell file property tests", () => {
                 PROPERTY_RUNS,
                 async (tracker) => {
                     await fc.assert(
-                        fc.asyncProperty(exoticWhitespaceScripts, async (script) => {
-                            tracker.advance();
-                            await assertParseAndFormat(script);
-                        }),
+                        fc.asyncProperty(
+                            exoticWhitespaceScripts,
+                            async (script) => {
+                                tracker.advance();
+                                await assertParseAndFormat(script);
+                            }
+                        ),
                         { numRuns: PROPERTY_RUNS }
                     );
                 }

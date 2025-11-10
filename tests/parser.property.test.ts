@@ -8,7 +8,10 @@ import { parsePowerShell } from "../src/parser.js";
 import { tokenize, type Token } from "../src/tokenizer.js";
 
 import { structuredScriptArbitrary } from "./property/arbitraries.js";
-import { assertPowerShellParses, isPowerShellParsable } from "./utils/powershell.js";
+import {
+    assertPowerShellParses,
+    isPowerShellParsable,
+} from "./utils/powershell.js";
 import { withProgress } from "./utils/progress.js";
 
 const PROPERTY_RUNS = Number.parseInt(
@@ -110,74 +113,62 @@ const assertParserOutput = (script: string): void => {
 
 describe("PowerShell parser property-based tests", () => {
     it("parses generated scripts without throwing and maintains location invariants", () => {
-        return withProgress(
-            "parser.location",
-            PROPERTY_RUNS,
-            (tracker) => {
-                fc.assert(
-                    fc.property(structuredScriptArbitrary, (script) => {
-                        tracker.advance();
-                        assertParserOutput(script);
-                    }),
-                    { numRuns: PROPERTY_RUNS }
-                );
-            }
-        );
+        return withProgress("parser.location", PROPERTY_RUNS, (tracker) => {
+            fc.assert(
+                fc.property(structuredScriptArbitrary, (script) => {
+                    tracker.advance();
+                    assertParserOutput(script);
+                }),
+                { numRuns: PROPERTY_RUNS }
+            );
+        });
     });
 
     it("formatting generated scripts remains idempotent and parseable", async () => {
         const numRuns = Math.max(25, Math.floor(PROPERTY_RUNS / 2));
-        await withProgress(
-            "parser.idempotence",
-            numRuns,
-            async (tracker) => {
-                await fc.assert(
-                    fc.asyncProperty(
-                        structuredScriptArbitrary,
-                        async (script) => {
-                            tracker.advance();
-                            const isValidPowerShell = isPowerShellParsable(
-                                script,
-                                "parser.property.original"
-                            );
-                            fc.pre(isValidPowerShell);
-                            const options = createParserOptions();
-                            const formatted = await prettier.format(
-                                script,
-                                prettierConfig
-                            );
-                            const formattedTwice = await prettier.format(
-                                formatted,
-                                prettierConfig
-                            );
-                            const hasTryCatch =
-                                /\btry\b/i.test(script) &&
-                                /\bcatch\b/i.test(script);
-                            if (!hasTryCatch) {
-                                assertPowerShellParses(
-                                    formatted,
-                                    "parser.property.formatted"
-                                );
-                                assertPowerShellParses(
-                                    formattedTwice,
-                                    "parser.property.formattedTwice"
-                                );
-                            }
-                            if (formatted !== formattedTwice) {
-                                throw new Error(
-                                    `Formatter is not idempotent under generated input.\n` +
-                                        `Original:\n${script}\n\nFormatted:\n${formatted}\n\nFormatted twice:\n${formattedTwice}`
-                                );
-                            }
+        await withProgress("parser.idempotence", numRuns, async (tracker) => {
+            await fc.assert(
+                fc.asyncProperty(structuredScriptArbitrary, async (script) => {
+                    tracker.advance();
+                    const isValidPowerShell = isPowerShellParsable(
+                        script,
+                        "parser.property.original"
+                    );
+                    fc.pre(isValidPowerShell);
+                    const options = createParserOptions();
+                    const formatted = await prettier.format(
+                        script,
+                        prettierConfig
+                    );
+                    const formattedTwice = await prettier.format(
+                        formatted,
+                        prettierConfig
+                    );
+                    const hasTryCatch =
+                        /\btry\b/i.test(script) && /\bcatch\b/i.test(script);
+                    if (!hasTryCatch) {
+                        assertPowerShellParses(
+                            formatted,
+                            "parser.property.formatted"
+                        );
+                        assertPowerShellParses(
+                            formattedTwice,
+                            "parser.property.formattedTwice"
+                        );
+                    }
+                    if (formatted !== formattedTwice) {
+                        throw new Error(
+                            `Formatter is not idempotent under generated input.\n` +
+                                `Original:\n${script}\n\nFormatted:\n${formatted}\n\nFormatted twice:\n${formattedTwice}`
+                        );
+                    }
 
-                            assertParserOutput(formatted);
-                            parsePowerShell(script, options);
-                            parsePowerShell(formattedTwice, options);
-                        }
-                    ),
-                    { numRuns }
-                );
-            }
-        );
+                    assertParserOutput(formatted);
+                    parsePowerShell(script, options);
+                    parsePowerShell(formattedTwice, options);
+                }),
+                { numRuns }
+            );
+        });
     });
 });

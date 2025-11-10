@@ -27,12 +27,18 @@ var pluginOptions = {
     default: "multiline",
     description: "Control trailing commas for array and hashtable literals.",
     choices: [
-      { value: "none", description: "Never add a trailing comma or semicolon." },
+      {
+        value: "none",
+        description: "Never add a trailing comma or semicolon."
+      },
       {
         value: "multiline",
         description: "Add trailing comma/semicolon when the literal spans multiple lines."
       },
-      { value: "all", description: "Always add trailing comma/semicolon when possible." }
+      {
+        value: "all",
+        description: "Always add trailing comma/semicolon when possible."
+      }
     ]
   },
   powershellSortHashtableKeys: {
@@ -64,7 +70,10 @@ var pluginOptions = {
         value: "1tbs",
         description: "One True Brace Style \u2013 keep opening braces on the same line."
       },
-      { value: "allman", description: "Allman style \u2013 place opening braces on the next line." }
+      {
+        value: "allman",
+        description: "Allman style \u2013 place opening braces on the next line."
+      }
     ]
   },
   powershellLineWidth: {
@@ -86,10 +95,16 @@ var pluginOptions = {
     default: "preserve",
     description: "Normalise the casing of PowerShell keywords.",
     choices: [
-      { value: "preserve", description: "Leave keyword casing unchanged." },
+      {
+        value: "preserve",
+        description: "Leave keyword casing unchanged."
+      },
       { value: "lower", description: "Convert keywords to lower-case." },
       { value: "upper", description: "Convert keywords to upper-case." },
-      { value: "pascal", description: "Capitalise keywords (PascalCase)." }
+      {
+        value: "pascal",
+        description: "Capitalise keywords (PascalCase)."
+      }
     ]
   },
   powershellRewriteAliases: {
@@ -122,15 +137,23 @@ function resolveOptions(options) {
   options.tabWidth = indentSize;
   const trailingComma = options.powershellTrailingComma ?? "multiline";
   const sortHashtableKeys = Boolean(options.powershellSortHashtableKeys);
-  const rawBlankLines = Number(options.powershellBlankLinesBetweenFunctions ?? 1);
+  const rawBlankLines = Number(
+    options.powershellBlankLinesBetweenFunctions ?? 1
+  );
   const normalizedBlankLines = Number.isFinite(rawBlankLines) ? rawBlankLines : 1;
-  const blankLinesBetweenFunctions = Math.max(0, Math.min(3, Math.floor(normalizedBlankLines)));
+  const blankLinesBetweenFunctions = Math.max(
+    0,
+    Math.min(3, Math.floor(normalizedBlankLines))
+  );
   let blankLineAfterParam = true;
   if (options.powershellBlankLineAfterParam === false) {
     blankLineAfterParam = false;
   }
   const braceStyle = options.powershellBraceStyle ?? "1tbs";
-  const lineWidth = Math.max(40, Math.min(200, Number(options.powershellLineWidth ?? 120)));
+  const lineWidth = Math.max(
+    40,
+    Math.min(200, Number(options.powershellLineWidth ?? 120))
+  );
   const preferSingleQuote = options.powershellPreferSingleQuote === true;
   const keywordCase = options.powershellKeywordCase ?? "preserve";
   const rewriteAliases = options.powershellRewriteAliases === true;
@@ -170,7 +193,18 @@ var KEYWORDS = /* @__PURE__ */ new Set([
   "param",
   "class"
 ]);
-var PUNCTUATION = /* @__PURE__ */ new Set(["{", "}", "(", ")", "[", "]", ",", ";", ".", ":"]);
+var PUNCTUATION = /* @__PURE__ */ new Set([
+  "{",
+  "}",
+  "(",
+  ")",
+  "[",
+  "]",
+  ",",
+  ";",
+  ".",
+  ":"
+]);
 function tokenize(source) {
   const tokens = [];
   const length = source.length;
@@ -205,7 +239,12 @@ function tokenize(source) {
         searchIndex += 1;
       }
       const end = searchIndex >= length ? length : searchIndex;
-      push({ type: "block-comment", value: source.slice(start, end), start, end });
+      push({
+        type: "block-comment",
+        value: source.slice(start, end),
+        start,
+        end
+      });
       index = end;
       continue;
     }
@@ -214,7 +253,12 @@ function tokenize(source) {
       while (index < length && source[index] !== "\r" && source[index] !== "\n") {
         index += 1;
       }
-      push({ type: "comment", value: source.slice(start + 1, index).trimEnd(), start, end: index });
+      push({
+        type: "comment",
+        value: source.slice(start + 1, index).trimEnd(),
+        start,
+        end: index
+      });
       continue;
     }
     if (char === "[") {
@@ -386,7 +430,12 @@ function tokenize(source) {
         }
         break;
       }
-      push({ type: "variable", value: source.slice(start, index), start, end: index });
+      push({
+        type: "variable",
+        value: source.slice(start, index),
+        start,
+        end: index
+      });
       continue;
     }
     if (/[0-9]/.test(char)) {
@@ -400,7 +449,12 @@ function tokenize(source) {
           index += 1;
         }
       }
-      push({ type: "number", value: source.slice(start, index), start, end: index });
+      push({
+        type: "number",
+        value: source.slice(start, index),
+        start,
+        end: index
+      });
       continue;
     }
     if (/[A-Za-z_]/.test(char) || char === "-" && index + 1 < length && /[-A-Za-z]/.test(source[index + 1])) {
@@ -495,13 +549,17 @@ var Parser = class _Parser {
             const belongsToBlock = Boolean(
               lastPart && lastPart.type === "ScriptBlock" && (commentNode.loc.start < lastPart.loc.end || nextToken && nextToken.type === "punctuation" && nextToken.value === "}")
             );
-            if (belongsToBlock && lastPart && lastPart.type === "ScriptBlock") {
+            if (belongsToBlock && lastPart && lastPart.type === "ScriptBlock" && lastSegment) {
               lastPart.body.push(commentNode);
               extendNodeLocation(lastPart, commentNode.loc.end);
-              if (lastSegment) {
-                extendNodeLocation(lastSegment, commentNode.loc.end);
-              }
-              extendNodeLocation(previousNode, commentNode.loc.end);
+              extendNodeLocation(
+                lastSegment,
+                commentNode.loc.end
+              );
+              extendNodeLocation(
+                previousNode,
+                commentNode.loc.end
+              );
               continue;
             }
           }
@@ -540,7 +598,10 @@ var Parser = class _Parser {
       }
       headerTokens.push(this.advance());
     }
-    const headerExpression = buildExpressionFromTokens(headerTokens, this.source);
+    const headerExpression = buildExpressionFromTokens(
+      headerTokens,
+      this.source
+    );
     const body = this.parseScriptBlock();
     const end = body.loc.end;
     return {
@@ -582,13 +643,26 @@ var Parser = class _Parser {
         break;
       }
       if (token.type === "comment") {
-        if (this.isInlineComment(token)) {
-          trailingComment = this.createCommentNode(this.advance(), true);
+        if (structureStack.length === 0 && this.isInlineComment(token)) {
+          trailingComment = this.createCommentNode(
+            this.advance(),
+            true
+          );
         }
-        break;
+        if (structureStack.length === 0) {
+          break;
+        }
+        const currentSegment2 = segments[segments.length - 1];
+        currentSegment2.push(this.advance());
+        continue;
       }
       if (token.type === "block-comment") {
-        break;
+        if (structureStack.length === 0) {
+          break;
+        }
+        const currentSegment2 = segments[segments.length - 1];
+        currentSegment2.push(this.advance());
+        continue;
       }
       if (token.type === "operator" && token.value === "|") {
         if (structureStack.length > 0) {
@@ -616,7 +690,9 @@ var Parser = class _Parser {
         structureStack.pop();
       }
     }
-    const filteredSegments = segments.filter((segment) => segment.length > 0);
+    const filteredSegments = segments.filter(
+      (segment) => segment.length > 0
+    );
     if (filteredSegments.length === 0) {
       return null;
     }
@@ -754,7 +830,9 @@ var Parser = class _Parser {
   }
   isFunctionDeclaration() {
     const token = this.peek();
-    return Boolean(token && token.type === "keyword" && token.value.toLowerCase() === "function");
+    return Boolean(
+      token && token.type === "keyword" && token.value.toLowerCase() === "function"
+    );
   }
   peek(offset = 0) {
     return this.tokens[this.index + offset];
@@ -784,7 +862,10 @@ function buildExpressionFromTokens(tokens, source = "") {
     return {
       type: "Expression",
       parts: [],
-      loc: { start: tokens[0]?.start ?? 0, end: tokens[tokens.length - 1]?.end ?? 0 }
+      loc: {
+        start: tokens[0]?.start ?? 0,
+        end: tokens[tokens.length - 1]?.end ?? 0
+      }
     };
   }
   const parts = [];
@@ -796,7 +877,11 @@ function buildExpressionFromTokens(tokens, source = "") {
       continue;
     }
     if (token.type === "operator" && token.value === "@{") {
-      const { node, nextIndex } = parseHashtablePart(tokens, index, source);
+      const { node, nextIndex } = parseHashtablePart(
+        tokens,
+        index,
+        source
+      );
       parts.push(node);
       index = nextIndex;
       continue;
@@ -808,13 +893,21 @@ function buildExpressionFromTokens(tokens, source = "") {
       continue;
     }
     if (token.type === "punctuation" && token.value === "{") {
-      const { node, nextIndex } = parseScriptBlockPart(tokens, index, source);
+      const { node, nextIndex } = parseScriptBlockPart(
+        tokens,
+        index,
+        source
+      );
       parts.push(node);
       index = nextIndex;
       continue;
     }
     if (token.type === "punctuation" && token.value === "(") {
-      const { node, nextIndex } = parseParenthesisPart(tokens, index, source);
+      const { node, nextIndex } = parseParenthesisPart(
+        tokens,
+        index,
+        source
+      );
       parts.push(node);
       index = nextIndex;
       continue;
@@ -844,7 +937,10 @@ function buildExpressionFromTokens(tokens, source = "") {
 }
 function parseHashtablePart(tokens, startIndex, source = "") {
   const startToken = tokens[startIndex];
-  const { contentTokens, endIndex, closingToken } = collectStructureTokens(tokens, startIndex);
+  const { contentTokens, endIndex, closingToken } = collectStructureTokens(
+    tokens,
+    startIndex
+  );
   const entries = splitHashtableEntries(contentTokens).map(
     (entryTokens) => buildHashtableEntry(entryTokens, source)
   );
@@ -870,7 +966,10 @@ function resolveStructureEnd(startToken, closingToken, contentTokens) {
 }
 function parseArrayPart(tokens, startIndex, source = "") {
   const startToken = tokens[startIndex];
-  const { contentTokens, endIndex, closingToken } = collectStructureTokens(tokens, startIndex);
+  const { contentTokens, endIndex, closingToken } = collectStructureTokens(
+    tokens,
+    startIndex
+  );
   const elements = splitArrayElements(contentTokens).map(
     (elementTokens) => buildExpressionFromTokens(elementTokens, source)
   );
@@ -888,7 +987,10 @@ function parseArrayPart(tokens, startIndex, source = "") {
 }
 function parseParenthesisPart(tokens, startIndex, source = "") {
   const startToken = tokens[startIndex];
-  const { contentTokens, endIndex, closingToken } = collectStructureTokens(tokens, startIndex);
+  const { contentTokens, endIndex, closingToken } = collectStructureTokens(
+    tokens,
+    startIndex
+  );
   const elements = splitArrayElements(contentTokens).map(
     (elementTokens) => buildExpressionFromTokens(elementTokens, source)
   );
@@ -908,10 +1010,17 @@ function parseParenthesisPart(tokens, startIndex, source = "") {
 }
 function parseScriptBlockPart(tokens, startIndex, source = "") {
   const startToken = tokens[startIndex];
-  const { contentTokens, endIndex, closingToken } = collectStructureTokens(tokens, startIndex);
+  const { contentTokens, endIndex, closingToken } = collectStructureTokens(
+    tokens,
+    startIndex
+  );
   const nestedParser = new Parser(contentTokens, source);
   const script = nestedParser.parseScript();
-  const closingEnd = resolveStructureEnd(startToken, closingToken, contentTokens);
+  const closingEnd = resolveStructureEnd(
+    startToken,
+    closingToken,
+    contentTokens
+  );
   const bodyEnd = script.body.length > 0 ? script.body[script.body.length - 1].loc.end : closingEnd;
   const end = Math.max(closingEnd, bodyEnd);
   return {
@@ -958,7 +1067,11 @@ function collectStructureTokens(tokens, startIndex) {
     }
     if (isClosingToken(token)) {
       if (stack.length === 1) {
-        return { contentTokens, endIndex: index + 1, closingToken: token };
+        return {
+          contentTokens,
+          endIndex: index + 1,
+          closingToken: token
+        };
       }
       stack.pop();
       contentTokens.push(token);
@@ -1112,7 +1225,18 @@ var locStart = (node) => node.loc.start;
 var locEnd = (node) => node.loc.end;
 
 // src/printer.ts
-var { group, indent, line, softline, hardline, join, ifBreak, lineSuffix, dedentToRoot, align } = prettier.doc.builders;
+var {
+  group,
+  indent,
+  line,
+  softline,
+  hardline,
+  join,
+  ifBreak,
+  lineSuffix,
+  dedentToRoot,
+  align
+} = prettier.doc.builders;
 var powerShellPrinter = {
   print(path, options) {
     const node = path.getValue();
@@ -1186,7 +1310,12 @@ function printStatementList(body, options, indentStatements) {
       continue;
     }
     if (previous) {
-      const blankLines = determineBlankLines(previous, entry, pendingBlankLines, options);
+      const blankLines = determineBlankLines(
+        previous,
+        entry,
+        pendingBlankLines,
+        options
+      );
       for (let index = 0; index < blankLines; index += 1) {
         docs.push(hardline);
       }
@@ -1196,12 +1325,18 @@ function printStatementList(body, options, indentStatements) {
       const commentDoc = indentStatements ? indentStatement(printed, options) : printed;
       const lastIndex = docs.length - 1;
       const priorDoc = docs[lastIndex];
-      docs[lastIndex] = priorDoc ? concatDocs([priorDoc, hardline, commentDoc]) : commentDoc;
+      docs[lastIndex] = priorDoc ? concatDocs([
+        priorDoc,
+        hardline,
+        commentDoc
+      ]) : commentDoc;
       previous = entry;
       pendingBlankLines = 0;
       continue;
     }
-    docs.push(indentStatements ? indentStatement(printed, options) : printed);
+    docs.push(
+      indentStatements ? indentStatement(printed, options) : printed
+    );
     previous = entry;
     pendingBlankLines = 0;
   }
@@ -1223,31 +1358,57 @@ function printScriptBlock(node, options) {
     return "{}";
   }
   const bodyDoc = printStatementList(node.body, options, true);
-  return group(["{", hardline, bodyDoc, hardline, "}"]);
+  return group([
+    "{",
+    hardline,
+    bodyDoc,
+    hardline,
+    "}"
+  ]);
 }
 function printFunction(node, options) {
   const headerDoc = printExpression(node.header, options);
   const bodyDoc = printScriptBlock(node.body, options);
   if (options.braceStyle === "allman") {
-    return group([headerDoc, hardline, bodyDoc]);
+    return group([
+      headerDoc,
+      hardline,
+      bodyDoc
+    ]);
   }
-  return group([headerDoc, " ", bodyDoc]);
+  return group([
+    headerDoc,
+    " ",
+    bodyDoc
+  ]);
 }
 function printPipeline(node, options) {
-  const segmentDocs = node.segments.map((segment) => printExpression(segment, options));
+  const segmentDocs = node.segments.map(
+    (segment) => printExpression(segment, options)
+  );
   if (segmentDocs.length === 0) {
     return "";
   }
   let pipelineDoc = segmentDocs[0];
   if (segmentDocs.length > 1) {
     const restDocs = segmentDocs.slice(1).map((segmentDoc) => [line, ["| ", segmentDoc]]);
-    pipelineDoc = group([segmentDocs[0], indent(restDocs.flatMap((docItem) => docItem))]);
+    pipelineDoc = group([
+      segmentDocs[0],
+      indent(restDocs.flatMap((docItem) => docItem))
+    ]);
   }
   if (node.trailingComment) {
     if (node.trailingComment.inline) {
-      pipelineDoc = [pipelineDoc, lineSuffix([" #", node.trailingComment.value])];
+      pipelineDoc = [
+        pipelineDoc,
+        lineSuffix([" #", node.trailingComment.value])
+      ];
     } else {
-      pipelineDoc = [pipelineDoc, hardline, printComment(node.trailingComment)];
+      pipelineDoc = [
+        pipelineDoc,
+        hardline,
+        printComment(node.trailingComment)
+      ];
     }
   }
   return pipelineDoc;
@@ -1276,9 +1437,15 @@ function printExpression(node, options) {
     normalizedParts.push(current);
   }
   let previous = null;
-  for (const part of normalizedParts) {
+  for (let i = 0; i < normalizedParts.length; i += 1) {
+    const part = normalizedParts[i];
     if (part.type === "Parenthesis" && isParamKeyword(previous)) {
       docs.push(printParamParenthesis(part, options));
+      previous = part;
+      continue;
+    }
+    if (part.type === "Text" && part.role === "unknown" && previous && !part.value.trim().startsWith("#") && !part.value.trim().startsWith("$") && !part.value.trim().startsWith("[") && part.value.trim().length > 10) {
+      docs.push(lineSuffix([" # ", part.value.trim()]));
       previous = part;
       continue;
     }
@@ -1375,9 +1542,31 @@ function isParamStatement(node) {
   }
   return firstPart.value.toLowerCase() === "param";
 }
-var NO_SPACE_BEFORE = /* @__PURE__ */ new Set([")", "]", "}", ",", ";", ".", "::", ">", "<"]);
-var NO_SPACE_AFTER = /* @__PURE__ */ new Set(["(", "[", "{", ".", ">", "<"]);
-var SYMBOL_NO_GAP = /* @__PURE__ */ new Set([".:word", "::word", "word:(", "word:["]);
+var NO_SPACE_BEFORE = /* @__PURE__ */ new Set([
+  ")",
+  "]",
+  "}",
+  ",",
+  ";",
+  ".",
+  "::",
+  ">",
+  "<"
+]);
+var NO_SPACE_AFTER = /* @__PURE__ */ new Set([
+  "(",
+  "[",
+  "{",
+  ".",
+  ">",
+  "<"
+]);
+var SYMBOL_NO_GAP = /* @__PURE__ */ new Set([
+  ".:word",
+  "::word",
+  "word:(",
+  "word:["
+]);
 var CONCATENATED_OPERATOR_PAIRS = /* @__PURE__ */ new Set([
   "++",
   "--",
@@ -1404,7 +1593,9 @@ function getSymbol(node) {
   return null;
 }
 function isParamKeyword(node) {
-  return Boolean(node && node.type === "Text" && node.value.toLowerCase() === "param");
+  return Boolean(
+    node && node.type === "Text" && node.value.toLowerCase() === "param"
+  );
 }
 var KEYWORD_CASE_TRANSFORMS = {
   preserve: (value) => value,
@@ -1471,14 +1662,24 @@ function printArray(node, options) {
     return [open, close];
   }
   const groupId = Symbol("array");
-  const elementDocs = node.elements.map((element) => printExpression(element, options));
+  const elementDocs = node.elements.map(
+    (element) => printExpression(element, options)
+  );
   const shouldBreak = elementDocs.length > 1;
   const separator = [",", line];
-  const trailing = trailingCommaDoc(options, groupId, elementDocs.length > 0, ",");
+  const trailing = trailingCommaDoc(
+    options,
+    groupId,
+    elementDocs.length > 0,
+    ","
+  );
   return group(
     [
       open,
-      indent([shouldBreak ? line : softline, join(separator, elementDocs)]),
+      indent([
+        shouldBreak ? line : softline,
+        join(separator, elementDocs)
+      ]),
       trailing,
       shouldBreak ? line : softline,
       close
@@ -1500,12 +1701,26 @@ function printHashtable(node, options) {
     const separator = isLast ? trailingCommaDoc(options, groupId, true, ";") : ifBreak("", ";", { groupId });
     return [entryDoc, separator];
   });
-  return group(["@{", indent([line, join(line, entryDocs)]), line, "}"], { id: groupId });
+  return group(
+    [
+      "@{",
+      indent([line, join(line, entryDocs)]),
+      line,
+      "}"
+    ],
+    {
+      id: groupId
+    }
+  );
 }
 function printHashtableEntry(node, options) {
   const keyDoc = printExpression(node.rawKey, options);
   const valueDoc = printExpression(node.value, options);
-  return group([keyDoc, " =", indent([line, valueDoc])]);
+  return group([
+    keyDoc,
+    " =",
+    indent([line, valueDoc])
+  ]);
 }
 function printHereString(node) {
   return dedentToRoot(node.value);
@@ -1529,25 +1744,51 @@ function printParamParenthesis(node, options) {
     }
     const attributeDoc = pendingAttributes.length === 1 ? pendingAttributes[0] : join(hardline, pendingAttributes);
     if (nextDoc) {
-      elementDocs.push(group([attributeDoc, hardline, nextDoc]));
+      elementDocs.push(
+        group([
+          attributeDoc,
+          hardline,
+          nextDoc
+        ])
+      );
     } else {
       elementDocs.push(attributeDoc);
     }
     pendingAttributes = [];
   };
-  for (const element of node.elements) {
+  for (let i = 0; i < node.elements.length; i += 1) {
+    const element = node.elements[i];
+    if (isCommentExpression(element)) {
+      continue;
+    }
     if (isAttributeExpression(element)) {
       pendingAttributes.push(printExpression(element, options));
       continue;
     }
-    const printed = printExpression(element, options);
+    let printed = printExpression(element, options);
+    const nextElement = node.elements[i + 1];
+    if (nextElement && isCommentExpression(nextElement)) {
+      const commentText = extractCommentText(nextElement);
+      if (commentText) {
+        printed = [printed, lineSuffix([" ", commentText])];
+        i += 1;
+      }
+    }
     flushAttributes(printed);
   }
   flushAttributes();
   const separator = [",", hardline];
-  return group(["(", indent([hardline, join(separator, elementDocs)]), hardline, ")"], {
-    id: groupId
-  });
+  return group(
+    [
+      "(",
+      indent([hardline, join(separator, elementDocs)]),
+      hardline,
+      ")"
+    ],
+    {
+      id: groupId
+    }
+  );
 }
 function isAttributeExpression(node) {
   if (node.parts.length === 0) {
@@ -1561,23 +1802,74 @@ function isAttributeExpression(node) {
     return trimmed.startsWith("[") && trimmed.endsWith("]");
   });
 }
+function isCommentExpression(node) {
+  if (node.parts.length !== 1) {
+    return false;
+  }
+  const part = node.parts[0];
+  if (part.type !== "Text") {
+    return false;
+  }
+  const trimmed = part.value.trim();
+  if (trimmed.startsWith("#") || trimmed.startsWith("<#")) {
+    return true;
+  }
+  if (!trimmed.startsWith("$") && !trimmed.startsWith("[") && !trimmed.startsWith("(") && !trimmed.startsWith("{") && !trimmed.includes("=") && trimmed.length > 10) {
+    return true;
+  }
+  return false;
+}
+function extractCommentText(node) {
+  if (!isCommentExpression(node)) {
+    return null;
+  }
+  const part = node.parts[0];
+  if (part.type !== "Text") {
+    return null;
+  }
+  const trimmed = part.value.trim();
+  if (trimmed.startsWith("#")) {
+    return trimmed;
+  }
+  return `# ${trimmed}`;
+}
 function printParenthesis(node, options) {
   if (node.elements.length === 0) {
     return "()";
   }
   const groupId = Symbol("parenthesis");
-  const elementDocs = node.elements.map((element) => printExpression(element, options));
+  const elementDocs = node.elements.map(
+    (element) => printExpression(element, options)
+  );
   if (elementDocs.length === 1 && !node.hasNewline) {
-    return group(["(", indent([softline, elementDocs[0]]), softline, ")"], { id: groupId });
+    return group(
+      [
+        "(",
+        indent([softline, elementDocs[0]]),
+        softline,
+        ")"
+      ],
+      {
+        id: groupId
+      }
+    );
   }
   const hasComma = node.hasComma;
   const forceMultiline = node.hasNewline || !node.hasComma && elementDocs.length > 1;
   const separator = hasComma ? [",", forceMultiline ? hardline : line] : hardline;
   const leadingLine = hasComma ? forceMultiline ? hardline : line : hardline;
   const trailingLine = hasComma ? forceMultiline ? hardline : line : hardline;
-  return group(["(", indent([leadingLine, join(separator, elementDocs)]), trailingLine, ")"], {
-    id: groupId
-  });
+  return group(
+    [
+      "(",
+      indent([leadingLine, join(separator, elementDocs)]),
+      trailingLine,
+      ")"
+    ],
+    {
+      id: groupId
+    }
+  );
 }
 function trailingCommaDoc(options, groupId, hasElements, delimiter) {
   if (!hasElements) {
@@ -1627,7 +1919,11 @@ var languages = [
   {
     name: "PowerShell",
     parsers: ["powershell"],
-    extensions: [".ps1", ".psm1", ".psd1"],
+    extensions: [
+      ".ps1",
+      ".psm1",
+      ".psd1"
+    ],
     tmScope: "source.powershell",
     aceMode: "powershell",
     linguistLanguageId: 131,

@@ -14,8 +14,8 @@ const defaultMaxChecks = shouldVerify
 let checksRemaining = Number.isNaN(defaultMaxChecks)
     ? Number.POSITIVE_INFINITY
     : defaultMaxChecks < 0
-    ? Number.POSITIVE_INFINITY
-    : defaultMaxChecks;
+      ? Number.POSITIVE_INFINITY
+      : defaultMaxChecks;
 
 let totalInvocations = 0;
 
@@ -67,7 +67,13 @@ const runPowerShellParser = (
 
     const result = spawnSync(
         "pwsh",
-        ["-NoLogo", "-NoProfile", "-File", validateScriptPath, identifier],
+        [
+            "-NoLogo",
+            "-NoProfile",
+            "-File",
+            validateScriptPath,
+            identifier,
+        ],
         {
             input: script,
             encoding: "utf8",

@@ -30,13 +30,9 @@ describe("Printer option-specific property tests", () => {
     describe("blank line controls", () => {
         const functionNameArb = fc
             .tuple(
-                fc.constantFrom(
-                    ..."abcdefghijklmnopqrstuvwxyz"
-                ),
+                fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz"),
                 fc.array(
-                    fc.constantFrom(
-                        ..."abcdefghijklmnopqrstuvwxyz0123456789"
-                    ),
+                    fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz0123456789"),
                     { maxLength: 6 }
                 )
             )
@@ -65,10 +61,14 @@ function ${second} {
                             async (script, spacing) => {
                                 tracker.advance();
                                 const formatted = await runFormat(script, {
-                                    powershellBlankLinesBetweenFunctions: spacing,
+                                    powershellBlankLinesBetweenFunctions:
+                                        spacing,
                                 });
 
-                                const normalized = formatted.replace(/\r\n/g, "\n");
+                                const normalized = formatted.replace(
+                                    /\r\n/g,
+                                    "\n"
+                                );
                                 const match = normalized.match(
                                     /}\n((?:\n)*)function\s+\w+/
                                 );
@@ -343,7 +343,10 @@ ${formatted}`
                 async (tracker) => {
                     await fc.assert(
                         fc.asyncProperty(
-                            fc.array(commandArb, { minLength: 1, maxLength: 3 }),
+                            fc.array(commandArb, {
+                                minLength: 1,
+                                maxLength: 3,
+                            }),
                             async (commands) => {
                                 tracker.advance();
                                 const body = commands
@@ -383,7 +386,14 @@ ${formatted}`
 
     describe("trailing comma handling", () => {
         const elementArb = fc.array(
-            fc.constantFrom("alpha", "beta", "gamma", "delta", "epsilon", "zeta"),
+            fc.constantFrom(
+                "alpha",
+                "beta",
+                "gamma",
+                "delta",
+                "epsilon",
+                "zeta"
+            ),
             { minLength: 3, maxLength: 6 }
         );
 
@@ -516,7 +526,10 @@ ${formatted}`
                         fc.asyncProperty(keySetArb, async (keys) => {
                             tracker.advance();
                             const entries = keys
-                                .map((key: string, index: number) => `${key} = ${index}`)
+                                .map(
+                                    (key: string, index: number) =>
+                                        `${key} = ${index}`
+                                )
                                 .join("; ");
                             const script = `$map = @{ ${entries} }`;
                             const formatted = await runFormat(script, {
@@ -528,7 +541,11 @@ ${formatted}`
                                     `Mismatch in key counts. expected=${keys.length} actual=${formattedKeys.length}`
                                 );
                             }
-                            for (let index = 0; index < keys.length; index += 1) {
+                            for (
+                                let index = 0;
+                                index < keys.length;
+                                index += 1
+                            ) {
                                 if (formattedKeys[index] !== keys[index]) {
                                     throw new Error(
                                         `Key order changed when sorting disabled. expected=${keys.join(", ")} actual=${formattedKeys.join(", ")}`
@@ -551,14 +568,17 @@ ${formatted}`
                         fc.asyncProperty(keySetArb, async (keys) => {
                             tracker.advance();
                             const entries = keys
-                                .map((key: string, index: number) => `${key} = ${index}`)
+                                .map(
+                                    (key: string, index: number) =>
+                                        `${key} = ${index}`
+                                )
                                 .join("; ");
                             const script = `$map = @{ ${entries} }`;
                             const formatted = await runFormat(script, {
                                 powershellSortHashtableKeys: true,
                             });
-                            const formattedKeys = extractKeys(formatted).map((key) =>
-                                key.toLowerCase()
+                            const formattedKeys = extractKeys(formatted).map(
+                                (key) => key.toLowerCase()
                             );
                             const expected = [...keys]
                                 .map((key: string) => key.toLowerCase())
@@ -568,7 +588,11 @@ ${formatted}`
                                     `Mismatch in key counts for sorted case. expected=${expected.length} actual=${formattedKeys.length}`
                                 );
                             }
-                            for (let index = 0; index < expected.length; index += 1) {
+                            for (
+                                let index = 0;
+                                index < expected.length;
+                                index += 1
+                            ) {
                                 if (formattedKeys[index] !== expected[index]) {
                                     throw new Error(
                                         `Expected alphabetical order but received ${formattedKeys.join(", ")} != ${expected.join(", ")}`

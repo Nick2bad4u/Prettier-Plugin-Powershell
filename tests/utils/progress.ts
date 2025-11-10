@@ -5,9 +5,10 @@ const defaultInterval = Number.parseInt(
     10
 );
 
-const interval = Number.isFinite(defaultInterval) && defaultInterval > 0
-    ? defaultInterval
-    : 50;
+const interval =
+    Number.isFinite(defaultInterval) && defaultInterval > 0
+        ? defaultInterval
+        : 50;
 
 type ProgressTracker = {
     advance: () => number;

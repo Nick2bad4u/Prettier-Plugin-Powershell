@@ -237,17 +237,32 @@ class Parser {
             }
 
             if (token.type === "comment") {
-                if (this.isInlineComment(token)) {
+                if (
+                    structureStack.length === 0 &&
+                    this.isInlineComment(token)
+                ) {
                     trailingComment = this.createCommentNode(
                         this.advance(),
                         true
                     );
                 }
-                break;
+                if (structureStack.length === 0) {
+                    break;
+                }
+                // Inside a structure - include the comment as part of the statement
+                const currentSegment = segments[segments.length - 1];
+                currentSegment.push(this.advance());
+                continue;
             }
 
             if (token.type === "block-comment") {
-                break;
+                if (structureStack.length === 0) {
+                    break;
+                }
+                // Inside a structure - include the block comment
+                const currentSegment = segments[segments.length - 1];
+                currentSegment.push(this.advance());
+                continue;
             }
 
             if (token.type === "operator" && token.value === "|") {

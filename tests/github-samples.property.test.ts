@@ -1,5 +1,11 @@
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+    existsSync,
+    mkdirSync,
+    readdirSync,
+    readFileSync,
+    writeFileSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -81,8 +87,13 @@ describe("Real-world GitHub PowerShell samples", () => {
     }
 
     const getCacheFileName = (identifier: string): string => {
-        const hash = createHash("sha256").update(identifier).digest("hex").slice(0, 16);
-        const safeName = identifier.replace(/[^a-zA-Z0-9.-]/g, "_").slice(0, 50);
+        const hash = createHash("sha256")
+            .update(identifier)
+            .digest("hex")
+            .slice(0, 16);
+        const safeName = identifier
+            .replace(/[^a-zA-Z0-9.-]/g, "_")
+            .slice(0, 50);
         return `${safeName}-${hash}.ps1`;
     };
 
@@ -183,7 +194,10 @@ describe("Real-world GitHub PowerShell samples", () => {
                         if (!file.endsWith(".ps1")) {
                             continue;
                         }
-                        const content = readFileSync(join(cacheDir, file), "utf8");
+                        const content = readFileSync(
+                            join(cacheDir, file),
+                            "utf8"
+                        );
                         if (content.trim().length === 0) {
                             continue;
                         }
@@ -237,7 +251,11 @@ describe("Real-world GitHub PowerShell samples", () => {
                     }
 
                     // Try with refs/heads/main first, then master, then the SHA as fallback
-                    const possibleRefs = ['refs/heads/main', 'refs/heads/master', candidate.sha];
+                    const possibleRefs = [
+                        "refs/heads/main",
+                        "refs/heads/master",
+                        candidate.sha,
+                    ];
                     let content: string | null = null;
 
                     for (const ref of possibleRefs) {
@@ -252,7 +270,9 @@ describe("Real-world GitHub PowerShell samples", () => {
                     }
 
                     if (!content) {
-                        console.warn(`Skipping ${identifier}: file not found in main, master, or SHA ${candidate.sha}`);
+                        console.warn(
+                            `Skipping ${identifier}: file not found in main, master, or SHA ${candidate.sha}`
+                        );
                         continue;
                     }
 
@@ -285,62 +305,64 @@ describe("Real-world GitHub PowerShell samples", () => {
 
     it("formats GitHub PowerShell scripts without regressions", async () => {
         const runCount = Math.min(PROPERTY_RUNS, samples.length);
-        await withProgress(
-            "githubSamples",
-            runCount,
-            async (tracker) => {
-                await fc.assert(
-                    fc.asyncProperty(
-                        fc.constantFrom(...samples),
-                        async (sample) => {
-                            tracker.advance();
-                            const originalAst = parsePowerShell(sample.content, {
-                                tabWidth: 2,
-                            } as never);
-                            if (originalAst.type !== "Script") {
-                                throw new Error(
-                                    `Original script did not produce a Script AST: ${sample.identifier}`
-                                );
-                            }
-
-                            const formatted = await prettier.format(sample.content, {
-                                parser: "powershell",
-                                plugins: [plugin],
-                                filepath: sample.identifier,
-                            });
-                            assertPowerShellParses(
-                                formatted,
-                                `githubSamples.formatted:${sample.identifier}`
+        await withProgress("githubSamples", runCount, async (tracker) => {
+            await fc.assert(
+                fc.asyncProperty(
+                    fc.constantFrom(...samples),
+                    async (sample) => {
+                        tracker.advance();
+                        const originalAst = parsePowerShell(sample.content, {
+                            tabWidth: 2,
+                        } as never);
+                        if (originalAst.type !== "Script") {
+                            throw new Error(
+                                `Original script did not produce a Script AST: ${sample.identifier}`
                             );
-
-                            const formattedAst = parsePowerShell(formatted, {
-                                tabWidth: 2,
-                            } as never);
-                            if (formattedAst.type !== "Script") {
-                                throw new Error(
-                                    `Formatted script did not produce a Script AST: ${sample.identifier}`
-                                );
-                            }
-
-                            const formattedTwice = await prettier.format(formatted, {
-                                parser: "powershell",
-                                plugins: [plugin],
-                                filepath: sample.identifier,
-                            });
-                            assertPowerShellParses(
-                                formattedTwice,
-                                `githubSamples.formattedTwice:${sample.identifier}`
-                            );
-                            if (formatted !== formattedTwice) {
-                                throw new Error(
-                                    `Formatting was not idempotent for ${sample.identifier}`
-                                );
-                            }
                         }
-                    ),
-                    { numRuns: runCount }
-                );
-            }
-        );
+
+                        const formatted = await prettier.format(
+                            sample.content,
+                            {
+                                parser: "powershell",
+                                plugins: [plugin],
+                                filepath: sample.identifier,
+                            }
+                        );
+                        assertPowerShellParses(
+                            formatted,
+                            `githubSamples.formatted:${sample.identifier}`
+                        );
+
+                        const formattedAst = parsePowerShell(formatted, {
+                            tabWidth: 2,
+                        } as never);
+                        if (formattedAst.type !== "Script") {
+                            throw new Error(
+                                `Formatted script did not produce a Script AST: ${sample.identifier}`
+                            );
+                        }
+
+                        const formattedTwice = await prettier.format(
+                            formatted,
+                            {
+                                parser: "powershell",
+                                plugins: [plugin],
+                                filepath: sample.identifier,
+                            }
+                        );
+                        assertPowerShellParses(
+                            formattedTwice,
+                            `githubSamples.formattedTwice:${sample.identifier}`
+                        );
+                        if (formatted !== formattedTwice) {
+                            throw new Error(
+                                `Formatting was not idempotent for ${sample.identifier}`
+                            );
+                        }
+                    }
+                ),
+                { numRuns: runCount }
+            );
+        });
     });
 });
