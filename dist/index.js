@@ -438,6 +438,19 @@ function tokenize(source) {
     }
     if (/[0-9]/.test(char)) {
       index += 1;
+      if (char === "0" && index < length && (source[index] === "x" || source[index] === "X")) {
+        index += 1;
+        while (index < length && /[0-9A-Fa-f]/.test(source[index])) {
+          index += 1;
+        }
+        push({
+          type: "number",
+          value: source.slice(start, index),
+          start,
+          end: index
+        });
+        continue;
+      }
       while (index < length && /[0-9]/.test(source[index])) {
         index += 1;
       }
@@ -1448,6 +1461,14 @@ function printExpression(node, options) {
       continue;
     }
     if (previous) {
+      if (part.type === "Parenthesis" && previous.type === "Text" && previous.role === "word" && i >= 2) {
+        const beforeWord = normalizedParts[i - 2];
+        if (beforeWord && beforeWord.type === "Text" && (beforeWord.value === "." || beforeWord.value === "::")) {
+          docs.push(printNode(part, options));
+          previous = part;
+          continue;
+        }
+      }
       const separator = gapBetween(previous, part);
       if (separator) {
         docs.push(separator);
@@ -1479,6 +1500,16 @@ function gapBetween(previous, current) {
         return null;
       }
       if (previous.role === "keyword") {
+        return " ";
+      }
+      if (previous.role === "operator") {
+        return " ";
+      }
+      if (previous.role === "word") {
+        return " ";
+      }
+      const prevLower = previous.value.toLowerCase();
+      if (prevLower.startsWith("-") && (prevLower === "-not" || prevLower === "-and" || prevLower === "-or" || prevLower === "-xor")) {
         return " ";
       }
       return null;
@@ -1548,6 +1579,7 @@ var NO_SPACE_BEFORE = /* @__PURE__ */ new Set([
   ";",
   ".",
   "::",
+  ":",
   ">",
   "<"
 ]);
@@ -1556,6 +1588,9 @@ var NO_SPACE_AFTER = /* @__PURE__ */ new Set([
   "[",
   "{",
   ".",
+  "::",
+  ":",
+  "@",
   ">",
   "<"
 ]);
@@ -1584,6 +1619,12 @@ function getSymbol(node) {
   }
   if (node.type === "Text" && (node.role === "punctuation" || node.role === "operator")) {
     return node.value;
+  }
+  if (node.type === "Text" && node.role === "unknown") {
+    const val = node.value.trim();
+    if (val === "@" || val === "::" || val === ":") {
+      return val;
+    }
   }
   if (node.type === "Parenthesis") {
     return "(";
@@ -1665,12 +1706,6 @@ function printArray(node, options) {
   );
   const shouldBreak = elementDocs.length > 1;
   const separator = [",", line];
-  const trailing = trailingCommaDoc(
-    options,
-    groupId,
-    elementDocs.length > 0,
-    ","
-  );
   return group(
     [
       open,
@@ -1678,7 +1713,6 @@ function printArray(node, options) {
         shouldBreak ? line : softline,
         join(separator, elementDocs)
       ]),
-      trailing,
       shouldBreak ? line : softline,
       close
     ],
@@ -1870,9 +1904,6 @@ function printParenthesis(node, options) {
   );
 }
 function trailingCommaDoc(options, groupId, hasElements, delimiter) {
-  if (!hasElements) {
-    return "";
-  }
   switch (options.trailingComma) {
     case "all":
       return delimiter;

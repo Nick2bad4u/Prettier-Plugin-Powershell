@@ -397,7 +397,7 @@ ${formatted}`
             { minLength: 3, maxLength: 6 }
         );
 
-        it("obeys trailingComma option variants", async () => {
+        it("obeys trailingComma option variants for hashtables", async () => {
             await withProgress(
                 "printerOptions.trailingComma",
                 PROPERTY_RUNS,
@@ -405,18 +405,18 @@ ${formatted}`
                     await fc.assert(
                         fc.asyncProperty(elementArb, async (elements) => {
                             tracker.advance();
-                            const literal = elements
-                                .map((value) => `"${value}"`)
-                                .join(", ");
-                            const script = `$items = @(${literal})`;
+                            const entries = elements
+                                .map((value, i) => `key${i} = "${value}"`)
+                                .join("; ");
+                            const script = `$items = @{${entries}}`;
 
                             const none = await runFormat(script, {
                                 powershellTrailingComma: "none",
                                 powershellLineWidth: 200,
                             });
-                            if (/,[\s\r\n]*\)/.test(none)) {
+                            if (/;[\s\r\n]*\}/.test(none)) {
                                 throw new Error(
-                                    `Trailing comma found despite option "none".\n${none}`
+                                    `Trailing semicolon found despite option "none".\n${none}`
                                 );
                             }
 
@@ -424,9 +424,9 @@ ${formatted}`
                                 powershellTrailingComma: "all",
                                 powershellLineWidth: 200,
                             });
-                            if (!/,[\s\r\n]*\)/.test(all)) {
+                            if (!/;[\s\r\n]*\}/.test(all)) {
                                 throw new Error(
-                                    `Expected trailing comma before closing paren for option "all".\n${all}`
+                                    `Expected trailing semicolon before closing brace for option "all".\n${all}`
                                 );
                             }
 
@@ -440,13 +440,49 @@ ${formatted}`
                             const penultimate =
                                 lines[lines.length - 2]?.trim() ?? "";
                             if (
-                                closing === ")" &&
-                                !penultimate.endsWith(",") &&
+                                closing === "}" &&
+                                !penultimate.endsWith(";") &&
                                 lines.length > 2
                             ) {
                                 throw new Error(
-                                    `Expected trailing comma on last element for multiline output.\n${multiline}`
+                                    `Expected trailing semicolon on last element for multiline output.\n${multiline}`
                                 );
+                            }
+                        }),
+                        { numRuns: PROPERTY_RUNS }
+                    );
+                }
+            );
+        });
+
+        it("never adds trailing commas to arrays (PowerShell doesn't support them)", async () => {
+            await withProgress(
+                "printerOptions.noArrayTrailingCommas",
+                PROPERTY_RUNS,
+                async (tracker) => {
+                    await fc.assert(
+                        fc.asyncProperty(elementArb, async (elements) => {
+                            tracker.advance();
+                            const literal = elements
+                                .map((value) => `"${value}"`)
+                                .join(", ");
+                            const script = `$items = @(${literal})`;
+
+                            // Test with all options - arrays should NEVER get trailing commas
+                            for (const option of [
+                                "none",
+                                "multiline",
+                                "all",
+                            ] as const) {
+                                const result = await runFormat(script, {
+                                    powershellTrailingComma: option,
+                                    powershellLineWidth: 30,
+                                });
+                                if (/,[\s\r\n]*\)/.test(result)) {
+                                    throw new Error(
+                                        `Trailing comma found in array with option "${option}" (PowerShell doesn't support this).\n${result}`
+                                    );
+                                }
                             }
                         }),
                         { numRuns: PROPERTY_RUNS }

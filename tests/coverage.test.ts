@@ -390,13 +390,14 @@ Write-Host "Hi"
         expect(result).toContain("Where-Object");
     });
 
-    it("handles trailing comma for arrays set to all", async () => {
+    it("never adds trailing comma to arrays (PowerShell doesn't support this)", async () => {
         const input = "@(1, 2)";
         const result = await prettier.format(input, {
             ...baseConfig,
             powershellTrailingComma: "all",
         });
-        expect(result).toMatch(/,\s*\)/);
+        // PowerShell arrays don't support trailing commas
+        expect(result).not.toMatch(/,\s*\)/);
     });
 
     it("handles trailing comma set to none", async () => {

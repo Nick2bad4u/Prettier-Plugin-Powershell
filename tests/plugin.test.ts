@@ -169,7 +169,7 @@ Write-Host "Hi"
 }`);
     });
 
-    it("applies trailing delimiter rules for arrays and hashtables", async () => {
+    it("applies trailing delimiter rules for hashtables only (arrays don't support trailing commas)", async () => {
         const arrayInput = `@(
 1,
 2
@@ -189,7 +189,9 @@ b = 2
             powershellTrailingComma: "all",
         });
 
-        expect(arrayResult).toMatch(new RegExp(",\\s*\\)"));
+        // Arrays should NEVER have trailing commas (PowerShell doesn't support this)
+        expect(arrayResult).not.toMatch(new RegExp(",\\s*\\)"));
+        // Hashtables CAN have trailing semicolons
         expect(hashResult).toMatch(new RegExp(";\\s*\\}"));
     });
 

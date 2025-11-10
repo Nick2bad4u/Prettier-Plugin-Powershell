@@ -331,6 +331,27 @@ function printExpression(node: ExpressionNode, options: ResolvedOptions): Doc {
         }
 
         if (previous) {
+            // Special case: word followed by parenthesis could be method call or cmdlet
+            // Check if the word comes after . or :: (method call - no space)
+            if (
+                part.type === "Parenthesis" &&
+                previous.type === "Text" &&
+                previous.role === "word" &&
+                i >= 2
+            ) {
+                const beforeWord = normalizedParts[i - 2];
+                if (
+                    beforeWord &&
+                    beforeWord.type === "Text" &&
+                    (beforeWord.value === "." || beforeWord.value === "::")
+                ) {
+                    // This is a method call - no space before (
+                    docs.push(printNode(part, options));
+                    previous = part;
+                    continue;
+                }
+            }
+
             const separator = gapBetween(previous, part);
             if (separator) {
                 docs.push(separator);
@@ -385,6 +406,26 @@ function gapBetween(
                 return null;
             }
             if (previous.role === "keyword") {
+                return " ";
+            }
+            // Operators need space before parenthesis
+            if (previous.role === "operator") {
+                return " ";
+            }
+            // Cmdlets and functions (words) need space before parenthesis
+            // Method calls are handled in printExpression
+            if (previous.role === "word") {
+                return " ";
+            }
+            // PowerShell logical operators need space before parenthesis
+            const prevLower = previous.value.toLowerCase();
+            if (
+                prevLower.startsWith("-") &&
+                (prevLower === "-not" ||
+                    prevLower === "-and" ||
+                    prevLower === "-or" ||
+                    prevLower === "-xor")
+            ) {
                 return " ";
             }
             return null;
@@ -475,6 +516,7 @@ const NO_SPACE_BEFORE = new Set([
     ";",
     ".",
     "::",
+    ":",
     ">",
     "<",
 ]);
@@ -483,6 +525,9 @@ const NO_SPACE_AFTER = new Set([
     "[",
     "{",
     ".",
+    "::",
+    ":",
+    "@",
     ">",
     "<",
 ]);
@@ -515,6 +560,13 @@ function getSymbol(node: ExpressionPartNode | null): string | null {
         (node.role === "punctuation" || node.role === "operator")
     ) {
         return node.value;
+    }
+    // Handle special characters that may be role="unknown"
+    if (node.type === "Text" && node.role === "unknown") {
+        const val = node.value.trim();
+        if (val === "@" || val === "::" || val === ":") {
+            return val;
+        }
     }
     if (node.type === "Parenthesis") {
         return "(";
@@ -618,12 +670,7 @@ function printArray(node: ArrayLiteralNode, options: ResolvedOptions): Doc {
     );
     const shouldBreak = elementDocs.length > 1;
     const separator: Doc = [",", line];
-    const trailing = trailingCommaDoc(
-        options,
-        groupId,
-        elementDocs.length > 0,
-        ","
-    );
+    // PowerShell does NOT support trailing commas in arrays, so never add them
 
     return group(
         [
@@ -632,7 +679,6 @@ function printArray(node: ArrayLiteralNode, options: ResolvedOptions): Doc {
                 shouldBreak ? line : softline,
                 join(separator, elementDocs),
             ]),
-            trailing,
             shouldBreak ? line : softline,
             close,
         ],

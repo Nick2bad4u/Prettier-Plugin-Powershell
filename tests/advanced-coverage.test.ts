@@ -855,7 +855,7 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
     it("preserves spacing around hashtables and property access", async () => {
         const script = "$obj.Property::Method(@{ a = 1 })";
         const result = await prettier.format(script, baseConfig);
-        expect(result).toContain("Property:: Method");
+        expect(result).toContain("Property::Method");
         expect(result).toContain("@{ a = 1 }");
     });
 
@@ -891,7 +891,7 @@ Sample
 
         expect(result).toContain("FUNCTION Sample");
         expect(result).toContain("'quoted'");
-        expect(result).toContain("Property:: Method");
+        expect(result).toContain("Property::Method");
     });
 
     it("sorts hashtable keys when option enabled", async () => {

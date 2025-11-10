@@ -327,6 +327,25 @@ export function tokenize(source: string): Token[] {
 
         if (/[0-9]/.test(char)) {
             index += 1;
+            // Check for hex number (0x...)
+            if (
+                char === "0" &&
+                index < length &&
+                (source[index] === "x" || source[index] === "X")
+            ) {
+                index += 1; // consume 'x' or 'X'
+                while (index < length && /[0-9A-Fa-f]/.test(source[index])) {
+                    index += 1;
+                }
+                push({
+                    type: "number",
+                    value: source.slice(start, index),
+                    start,
+                    end: index,
+                });
+                continue;
+            }
+            // Regular decimal number
             while (index < length && /[0-9]/.test(source[index])) {
                 index += 1;
             }
