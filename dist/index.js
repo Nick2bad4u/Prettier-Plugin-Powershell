@@ -412,6 +412,11 @@ function tokenize(source) {
       push({ type: "operator", value, start, end: index });
       continue;
     }
+    if (char === "&" && source[index + 1] === "&") {
+      index += 2;
+      push({ type: "operator", value: "&&", start, end: index });
+      continue;
+    }
     if (char === ">" || char === "<") {
       let value = char;
       if (source[index + 1] === char) {
@@ -423,8 +428,41 @@ function tokenize(source) {
       push({ type: "operator", value, start, end: index });
       continue;
     }
+    if (/[2-6*]/.test(char) && source[index + 1] === ">") {
+      let value = char + ">";
+      index += 2;
+      if (source[index] === ">") {
+        value += ">";
+        index += 1;
+      }
+      if (source[index] === "&" && /[1-6]/.test(source[index + 1])) {
+        value += "&" + source[index + 1];
+        index += 2;
+      }
+      push({ type: "operator", value, start, end: index });
+      continue;
+    }
+    if (char === "1" && source[index + 1] === ">" && source[index + 2] === "&" && /[2-6]/.test(source[index + 3])) {
+      const value = "1>&" + source[index + 3];
+      index += 4;
+      push({ type: "operator", value, start, end: index });
+      continue;
+    }
     if (char === "$") {
       index += 1;
+      if (index < length) {
+        const nextChar = source[index];
+        if (nextChar === "$" || nextChar === "^" || nextChar === "?" || nextChar === "_") {
+          index += 1;
+          push({
+            type: "variable",
+            value: source.slice(start, index),
+            start,
+            end: index
+          });
+          continue;
+        }
+      }
       while (index < length) {
         const currentChar = source[index];
         if (UNICODE_VAR_CHAR_PATTERN.test(currentChar)) {
@@ -1683,7 +1721,33 @@ var NO_SPACE_AFTER = /* @__PURE__ */ new Set([
   ":",
   "@",
   ">",
-  "<"
+  "<",
+  ">>",
+  "2>",
+  "2>>",
+  "3>",
+  "3>>",
+  "4>",
+  "4>>",
+  "5>",
+  "5>>",
+  "6>",
+  "6>>",
+  "*>",
+  "*>>",
+  "2>&1",
+  "3>&1",
+  "4>&1",
+  "5>&1",
+  "6>&1",
+  "*>&1",
+  "1>&2",
+  "2>&2",
+  "3>&2",
+  "4>&2",
+  "5>&2",
+  "6>&2",
+  "*>&2"
 ]);
 var MINIMUM_COMMENT_LENGTH = 10;
 var SYMBOL_NO_GAP = /* @__PURE__ */ new Set([

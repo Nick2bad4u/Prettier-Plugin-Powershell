@@ -305,6 +305,14 @@ export function tokenize(source: string): Token[] {
             continue;
         }
 
+        // Pipeline chain operators: && and ||
+        if (char === "&" && source[index + 1] === "&") {
+            index += 2;
+            push({ type: "operator", value: "&&", start, end: index });
+            continue;
+        }
+
+        // Redirection operators: >, >>, <, 2>, 2>>, 3>, etc.
         if (char === ">" || char === "<") {
             let value = char;
             if (source[index + 1] === char) {
@@ -317,8 +325,50 @@ export function tokenize(source: string): Token[] {
             continue;
         }
 
+        // Stream redirection operators: 2>, 3>, 4>, 5>, 6>, *>
+        if (/[2-6*]/.test(char) && source[index + 1] === ">") {
+            let value = char + ">";
+            index += 2;
+            // Check for >> (append)
+            if (source[index] === ">") {
+                value += ">";
+                index += 1;
+            }
+            // Check for merging redirection: 2>&1, *>&2, etc.
+            if (source[index] === "&" && /[1-6]/.test(source[index + 1])) {
+                value += "&" + source[index + 1];
+                index += 2;
+            }
+            push({ type: "operator", value, start, end: index });
+            continue;
+        }
+
+        // Merging redirection for stream 1: 1>&2
+        if (char === "1" && source[index + 1] === ">" && source[index + 2] === "&" && /[2-6]/.test(source[index + 3])) {
+            const value = "1>&" + source[index + 3];
+            index += 4;
+            push({ type: "operator", value, start, end: index });
+            continue;
+        }
+
         if (char === "$") {
             index += 1;
+
+            // Special variables: $$, $^, $?, $_
+            if (index < length) {
+                const nextChar = source[index];
+                if (nextChar === "$" || nextChar === "^" || nextChar === "?" || nextChar === "_") {
+                    index += 1;
+                    push({
+                        type: "variable",
+                        value: source.slice(start, index),
+                        start,
+                        end: index,
+                    });
+                    continue;
+                }
+            }
+
             while (index < length) {
                 const currentChar = source[index];
                 // PowerShell supports Unicode variable names
