@@ -37,6 +37,27 @@ const KEYWORDS = new Set([
     "finally",
     "param",
     "class",
+    "enum",
+    "begin",
+    "process",
+    "end",
+    "dynamicparam",
+    "filter",
+    "workflow",
+    "configuration",
+    "inlinescript",
+    "parallel",
+    "sequence",
+    "break",
+    "continue",
+    "return",
+    "throw",
+    "exit",
+    "trap",
+    "data",
+    "do",
+    "until",
+    "default",
 ]);
 
 // PowerShell operators (case-insensitive)
@@ -80,6 +101,7 @@ const PUNCTUATION = new Set([
 ]);
 
 // Cached regex patterns for performance
+// These are defined at module level to avoid recreation in the tokenize loop
 const WHITESPACE_PATTERN = /\s/;
 const IDENTIFIER_START_PATTERN = /[A-Za-z_]/;
 const UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}_:-]$/u;
@@ -91,6 +113,24 @@ const UNICODE_IDENTIFIER_START_PATTERN = /[\p{L}_]/u;
 const UNICODE_IDENTIFIER_CHAR_PATTERN = /[\p{L}\p{N}_-]/u;
 const UNICODE_IDENTIFIER_AFTER_DASH_PATTERN = /[-\p{L}]/u;
 
+/**
+ * Tokenizes PowerShell source code into an array of tokens.
+ *
+ * This is the first stage of parsing. It breaks the source into meaningful chunks:
+ * - Keywords (if, function, class, etc.)
+ * - Operators (-eq, -and, &&, ||, etc.)
+ * - Variables ($var, $$, $global:name, etc.)
+ * - Numbers (42, 0xFF, 1.5e10, 100MB, etc.)
+ * - Strings (single, double, here-strings)
+ * - Comments (# line, <# block #>)
+ * - Punctuation ({, }, [, ], etc.)
+ *
+ * The tokenizer is designed to be resilient - it will tokenize even
+ * malformed PowerShell to allow the formatter to work on incomplete code.
+ *
+ * @param source - The PowerShell source code to tokenize
+ * @returns An array of tokens with type, value, and position information
+ */
 export function tokenize(source: string): Token[] {
     const tokens: Token[] = [];
     const length = source.length;
@@ -572,6 +612,26 @@ export function tokenize(source: string): Token[] {
     return tokens;
 }
 
+/**
+ * Normalizes a here-string by removing the opening and closing delimiters.
+ *
+ * PowerShell here-strings have the format:
+ * @"
+ * content
+ * "@
+ *
+ * or
+ *
+ * @'
+ * content
+ * '@
+ *
+ * This function extracts just the content between the delimiters.
+ * If the here-string is too short (malformed), returns it as-is.
+ *
+ * @param node - The here-string AST node
+ * @returns The normalized content without delimiters
+ */
 export function normalizeHereString(node: HereStringNode): string {
     const lines = node.value.split(/\r?\n/);
     if (lines.length <= 2) {

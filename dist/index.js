@@ -189,7 +189,28 @@ var KEYWORDS = /* @__PURE__ */ new Set([
   "catch",
   "finally",
   "param",
-  "class"
+  "class",
+  "enum",
+  "begin",
+  "process",
+  "end",
+  "dynamicparam",
+  "filter",
+  "workflow",
+  "configuration",
+  "inlinescript",
+  "parallel",
+  "sequence",
+  "break",
+  "continue",
+  "return",
+  "throw",
+  "exit",
+  "trap",
+  "data",
+  "do",
+  "until",
+  "default"
 ]);
 var POWERSHELL_OPERATORS = /* @__PURE__ */ new Set([
   // Comparison operators
