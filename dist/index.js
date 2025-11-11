@@ -1626,11 +1626,19 @@ function printPipeline(node, options) {
   }
   let pipelineDoc = segmentDocs[0];
   if (segmentDocs.length > 1) {
+    const shouldAlwaysBreak = segmentDocs.length > 3;
     const restDocs = segmentDocs.slice(1).map((segmentDoc) => [line, ["| ", segmentDoc]]);
-    pipelineDoc = group([
-      segmentDocs[0],
-      indent(restDocs.flatMap((docItem) => docItem))
-    ]);
+    if (shouldAlwaysBreak) {
+      pipelineDoc = [
+        segmentDocs[0],
+        indent(restDocs.flatMap((docItem) => docItem))
+      ];
+    } else {
+      pipelineDoc = group([
+        segmentDocs[0],
+        indent(restDocs.flatMap((docItem) => docItem))
+      ]);
+    }
   }
   if (node.trailingComment) {
     if (node.trailingComment.inline) {

@@ -272,13 +272,25 @@ function printPipeline(node: PipelineNode, options: ResolvedOptions): Doc {
     let pipelineDoc: Doc = segmentDocs[0];
 
     if (segmentDocs.length > 1) {
+        // For long pipelines, always break to improve readability
+        const shouldAlwaysBreak = segmentDocs.length > 3;
+
         const restDocs = segmentDocs
             .slice(1)
             .map((segmentDoc) => [line, ["| ", segmentDoc]]);
-        pipelineDoc = group([
-            segmentDocs[0],
-            indent(restDocs.flatMap((docItem) => docItem)),
-        ]);
+
+        if (shouldAlwaysBreak) {
+            // Force line breaks for long pipelines
+            pipelineDoc = [
+                segmentDocs[0],
+                indent(restDocs.flatMap((docItem) => docItem)),
+            ];
+        } else {
+            pipelineDoc = group([
+                segmentDocs[0],
+                indent(restDocs.flatMap((docItem) => docItem)),
+            ]);
+        }
     }
 
     if (node.trailingComment) {
