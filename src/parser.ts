@@ -65,6 +65,19 @@ class Parser {
         const body: ScriptBodyNode[] = [];
         const start = this.tokens.length > 0 ? this.tokens[0].start : 0;
 
+        const appendNode = (node: ScriptBodyNode | null | undefined) => {
+            if (!node) {
+                return;
+            }
+
+            const last = body[body.length - 1];
+            if (last && shouldMergeNodes(last, node)) {
+                mergeNodes(last, node);
+            } else {
+                body.push(node);
+            }
+        };
+
         while (!this.isEOF()) {
             const token = this.peek()!;
 
@@ -78,27 +91,20 @@ class Parser {
                 if (
                     nextToken &&
                     nextToken.type === "comment" &&
-                    body.length > 0 &&
                     this.isInlineComment(nextToken)
                 ) {
                     const commentNode = this.createCommentNode(
                         this.advance(),
                         true
                     );
-                    const previousNode = body[body.length - 1];
-                    if (previousNode.type === "Pipeline") {
-                        previousNode.trailingComment = commentNode;
-                        extendNodeLocation(previousNode, commentNode.loc.end);
-                    } else {
-                        body.push(commentNode);
-                    }
+                    appendNode(commentNode);
                 }
                 continue;
             }
 
             if (token.type === "newline") {
                 const blank = this.consumeBlankLines();
-                body.push(blank);
+                appendNode(blank);
                 continue;
             }
 
@@ -151,18 +157,18 @@ class Parser {
                         }
                     }
                 }
-                body.push(commentNode);
+                appendNode(commentNode);
                 continue;
             }
 
             if (this.isFunctionDeclaration()) {
-                body.push(this.parseFunction());
+                appendNode(this.parseFunction());
                 continue;
             }
 
             const statement = this.parseStatement();
             if (statement) {
-                body.push(statement);
+                appendNode(statement);
             } else {
                 // avoid infinite loops
                 this.advance();
@@ -560,6 +566,35 @@ function isClosingToken(token: Token): boolean {
         token.type === "punctuation" &&
         (token.value === "}" || token.value === ")" || token.value === "]")
     );
+}
+
+function shouldMergeNodes(
+    previous: ScriptBodyNode,
+    next: ScriptBodyNode
+): boolean {
+    if (previous.type === "Pipeline" && next.type === "Comment") {
+        return Boolean(next.inline);
+    }
+
+    if (previous.type === "BlankLine" && next.type === "BlankLine") {
+        return true;
+    }
+
+    return false;
+}
+
+function mergeNodes(previous: ScriptBodyNode, next: ScriptBodyNode): void {
+    if (previous.type === "Pipeline" && next.type === "Comment") {
+        previous.trailingComment = next;
+        extendNodeLocation(previous, next.loc.end);
+        return;
+    }
+
+    if (previous.type === "BlankLine" && next.type === "BlankLine") {
+        previous.count += next.count;
+        extendNodeLocation(previous, next.loc.end);
+        return;
+    }
 }
 
 function buildExpressionFromTokens(
