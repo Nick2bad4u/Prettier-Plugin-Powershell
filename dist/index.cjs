@@ -1315,12 +1315,21 @@ function splitHashtableEntries(tokens) {
   let current = [];
   const stack = [];
   let hasEquals = false;
+  let pendingComments = [];
   for (const token of tokens) {
+    if (token.type === "comment" || token.type === "block-comment") {
+      pendingComments.push(token);
+      continue;
+    }
     if (token.type === "operator" && token.value === "=" && stack.length === 0) {
       hasEquals = true;
     }
     if (token.type === "newline" && stack.length === 0) {
-      const lastNonNewline = current.filter((t) => t.type !== "newline").slice(-1)[0];
+      if (pendingComments.length > 0 && current.length > 0) {
+        current.push(...pendingComments);
+        pendingComments = [];
+      }
+      const lastNonNewline = current.filter((t) => t.type !== "newline" && t.type !== "comment" && t.type !== "block-comment").slice(-1)[0];
       const isRightAfterEquals = lastNonNewline && lastNonNewline.type === "operator" && lastNonNewline.value === "=";
       if (hasEquals && !isRightAfterEquals && current.length > 0) {
         entries.push(current);
@@ -1330,6 +1339,10 @@ function splitHashtableEntries(tokens) {
       continue;
     }
     if (token.type === "punctuation" && token.value === ";" && stack.length === 0) {
+      if (pendingComments.length > 0 && current.length > 0) {
+        current.push(...pendingComments);
+        pendingComments = [];
+      }
       if (current.length > 0) {
         entries.push(current);
         current = [];
@@ -1347,7 +1360,18 @@ function splitHashtableEntries(tokens) {
       current.push(token);
       continue;
     }
+    if (pendingComments.length > 0) {
+      current.push(...pendingComments);
+      pendingComments = [];
+    }
     current.push(token);
+  }
+  if (pendingComments.length > 0) {
+    if (current.length > 0) {
+      current.push(...pendingComments);
+    } else if (entries.length > 0) {
+      entries[entries.length - 1].push(...pendingComments);
+    }
   }
   if (current.length > 0) {
     entries.push(current);
@@ -1355,39 +1379,89 @@ function splitHashtableEntries(tokens) {
   return entries;
 }
 function buildHashtableEntry(tokens, source = "") {
-  const equalsIndex = findTopLevelEquals(tokens);
-  const keyTokens = equalsIndex === -1 ? tokens : tokens.slice(0, equalsIndex);
-  const valueTokens = equalsIndex === -1 ? [] : tokens.slice(equalsIndex + 1);
+  const leadingComments = [];
+  const trailingComments = [];
+  const otherTokens = [];
+  let equalsIndex = -1;
+  let foundEquals = false;
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    if (token.type === "comment" || token.type === "block-comment") {
+      if (!foundEquals) {
+        leadingComments.push(token);
+      } else {
+        trailingComments.push(token);
+      }
+    } else {
+      if (token.type === "operator" && token.value === "=" && !foundEquals) {
+        equalsIndex = otherTokens.length;
+        foundEquals = true;
+      }
+      otherTokens.push(token);
+    }
+  }
+  const keyTokens = equalsIndex === -1 ? otherTokens : otherTokens.slice(0, equalsIndex);
+  const valueTokens = equalsIndex === -1 ? [] : otherTokens.slice(equalsIndex + 1);
   const keyExpression = buildExpressionFromTokens(keyTokens, source);
   const valueExpression = valueTokens.length > 0 ? buildExpressionFromTokens(valueTokens, source) : buildExpressionFromTokens([], source);
   const key = extractKeyText(keyTokens);
   const start = keyTokens[0]?.start ?? valueTokens[0]?.start ?? 0;
   const end = (valueTokens[valueTokens.length - 1] ?? keyTokens[keyTokens.length - 1])?.end ?? start;
-  return {
+  const entry = {
     type: "HashtableEntry",
     key,
     rawKey: keyExpression,
     value: valueExpression,
     loc: { start, end }
   };
-}
-function findTopLevelEquals(tokens) {
-  const stack = [];
-  for (let index = 0; index < tokens.length; index += 1) {
-    const token = tokens[index];
-    if (isOpeningToken(token)) {
-      stack.push(token.value);
-      continue;
+  if (leadingComments.length > 0) {
+    entry.leadingComments = leadingComments.map((token) => ({
+      type: "Comment",
+      value: token.value,
+      inline: false,
+      style: token.type === "block-comment" ? "block" : "line",
+      loc: { start: token.start, end: token.end }
+    }));
+  }
+  if (trailingComments.length > 0) {
+    const trailingNodes = [];
+    let referenceEnd = valueTokens[valueTokens.length - 1]?.end ?? keyTokens[keyTokens.length - 1]?.end ?? tokens[0]?.start ?? 0;
+    for (const token of trailingComments) {
+      const inline = token.type === "comment" && isInlineSpacing(source, referenceEnd, token.start);
+      trailingNodes.push({
+        type: "Comment",
+        value: token.value,
+        inline,
+        style: token.type === "block-comment" ? "block" : "line",
+        loc: { start: token.start, end: token.end }
+      });
+      referenceEnd = token.end;
     }
-    if (isClosingToken(token)) {
-      stack.pop();
-      continue;
+    if (trailingNodes.length > 1) {
+      for (const comment of trailingNodes) {
+        comment.inline = false;
+      }
     }
-    if (stack.length === 0 && token.type === "operator" && token.value === "=") {
-      return index;
+    if (trailingNodes.length > 0) {
+      entry.trailingComments = trailingNodes;
     }
   }
-  return -1;
+  return entry;
+}
+function isInlineSpacing(source, start, end) {
+  if (start === void 0 || end === void 0) {
+    return false;
+  }
+  for (let index = start; index < end; index += 1) {
+    const char = source[index];
+    if (char === "\n" || char === "\r") {
+      return false;
+    }
+    if (char !== " " && char !== "	") {
+      return false;
+    }
+  }
+  return true;
 }
 function extractKeyText(tokens) {
   const text = tokens.filter((token) => token.type !== "newline").map((token) => token.value).join(" ").trim();
@@ -2026,18 +2100,36 @@ function printHashtableEntry(node, options) {
   const valueDoc = printExpression(node.value, options);
   const firstPart = node.value.parts[0];
   const startsWithKeyword = firstPart && firstPart.type === "Text" && firstPart.role === "keyword" && /^(if|switch|foreach|while|for)$/i.test(firstPart.value);
+  let entryDoc;
   if (startsWithKeyword) {
-    return group([
+    entryDoc = group([
       keyDoc,
       " = ",
       valueDoc
     ]);
+  } else {
+    entryDoc = group([
+      keyDoc,
+      " =",
+      indent([line, valueDoc])
+    ]);
   }
-  return group([
-    keyDoc,
-    " =",
-    indent([line, valueDoc])
-  ]);
+  if (node.leadingComments && node.leadingComments.length > 0) {
+    const commentDocs = node.leadingComments.map(
+      (comment) => printComment(comment)
+    );
+    entryDoc = [join(hardline, commentDocs), hardline, entryDoc];
+  }
+  if (node.trailingComments && node.trailingComments.length > 0) {
+    for (const comment of node.trailingComments) {
+      if (comment.inline) {
+        entryDoc = [entryDoc, lineSuffix([" ", printComment(comment)])];
+      } else {
+        entryDoc = [entryDoc, hardline, printComment(comment)];
+      }
+    }
+  }
+  return entryDoc;
 }
 function printHereString(node) {
   return dedentToRoot(node.value);

@@ -840,20 +840,42 @@ function printHashtableEntry(
         firstPart.role === "keyword" &&
         /^(if|switch|foreach|while|for)$/i.test(firstPart.value);
 
+    let entryDoc: Doc;
     if (startsWithKeyword) {
         // Keep keyword expressions on the same line as the '=' sign
-        return group([
+        entryDoc = group([
             keyDoc,
             " = ",
             valueDoc,
         ]);
+    } else {
+        entryDoc = group([
+            keyDoc,
+            " =",
+            indent([line, valueDoc]),
+        ]);
     }
 
-    return group([
-        keyDoc,
-        " =",
-        indent([line, valueDoc]),
-    ]);
+    // Add leading comments
+    if (node.leadingComments && node.leadingComments.length > 0) {
+        const commentDocs = node.leadingComments.map((comment) =>
+            printComment(comment)
+        );
+        entryDoc = [join(hardline, commentDocs), hardline, entryDoc];
+    }
+
+    // Add trailing comments
+    if (node.trailingComments && node.trailingComments.length > 0) {
+        for (const comment of node.trailingComments) {
+            if (comment.inline) {
+                entryDoc = [entryDoc, lineSuffix([" ", printComment(comment)])];
+            } else {
+                entryDoc = [entryDoc, hardline, printComment(comment)];
+            }
+        }
+    }
+
+    return entryDoc;
 }
 
 function printHereString(node: HereStringNode): Doc {

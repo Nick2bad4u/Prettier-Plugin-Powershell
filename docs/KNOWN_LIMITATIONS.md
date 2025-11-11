@@ -129,33 +129,46 @@ Get-Proccess  # Typo, but still formats
 
 ### 2. Comment Positioning Edge Cases
 
-**Status**: ✅ **MOSTLY FIXED** - Improved in v2.0.4
+**Status**: ✅ **FIXED** - Parser & printer enhanced in v2.0.4
 
-**Improvement**: Comments are now preserved correctly in most positions:
-- ✅ Inline comments after statements
-- ✅ Block comments in functions
-- ✅ Comments between pipeline segments
-- ✅ Documentation comments (#region, TODO, FIXME, NOTE)
-- ✅ Comment-based help (.SYNOPSIS, .EXAMPLE, etc.)
+**Now Supported** ✅:
+- Inline comments inside hashtable entries (`Key = "value" # comment`)
+- Leading comments before hashtable entries
+- Trailing comments after hashtable entries
+- Comments inside nested hashtables and arrays
+- Comments within `.psd1` manifests and PSScriptAnalyzer rules files
 
-**Remaining Limitation**: Comments inside hashtable/array literals are not preserved during parsing (parser limitation).
-
-**Example** of what works:
+**Example**:
 ```powershell
-# Original
-Get-Process | # Step 1
-Where-Object CPU | # Step 2
-Select-Object Name # Final step
+# Input:
+@{
+    # Leading comment
+    Key = "value" # Inline comment
+    Nested = @{
+        Item = 1 # Inline nested comment
+    }
+}
 
-# After formatting (comments preserved)
-Get-Process | # Step 1
-  Where-Object CPU | # Step 2
-  Select-Object Name # Final step
+# Output (comments preserved):
+@{
+    # Leading comment
+    Key =
+        "value" # Inline comment
+    Nested =
+        @{
+            Item = 1 # Inline nested comment
+        }
+}
 ```
 
-**Workaround** for hashtables/arrays: Place comments outside the literal.
+**Validation**:
+- 20+ comment positioning tests (including nested hashtables & arrays)
+- `.psd1` fixtures formatted without losing comment markers
+- Manual verification on PowerShell manifest and PSScriptAnalyzer configs
 
-**Impact**: Very low - most comment positions work correctly
+**Impact**: **Resolved** – it is now safe to format `.psd1` files and configuration hashtables with inline comments.
+
+**Tip**: Inline comments use `lineSuffix` handling so they remain attached even when entries wrap across lines.
 
 ---
 

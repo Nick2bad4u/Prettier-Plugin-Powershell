@@ -71,6 +71,24 @@ describe("Comment Positioning Improvements", () => {
             expect(result).toContain("# Hashtable comment");
         });
 
+        it("preserves comments within hashtable entries", async () => {
+            const input = `@{
+                # Leading comment for Key1
+                Key1 = "value1" # Inline comment for Key1
+                # Leading comment for Key2
+                Key2 = "value2"
+                Key3 = "value3" # Trailing inline comment
+                # Trailing comment after Key3
+            }`;
+
+            const result = await prettier.format(input, baseConfig);
+
+            expect(result).toContain("# Leading comment for Key1");
+            expect(result).toContain("# Inline comment for Key1");
+            expect(result).toContain("# Leading comment for Key2");
+            expect(result).toContain("# Trailing comment after Key3");
+        });
+
         it("handles comments in arrays", async () => {
             const input = `@(1, 2, 3) # Array comment`;
             const result = await prettier.format(input, baseConfig);

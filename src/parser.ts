@@ -836,17 +836,30 @@ function splitHashtableEntries(tokens: Token[]): Token[][] {
     let current: Token[] = [];
     const stack: string[] = [];
     let hasEquals = false;
+    let pendingComments: Token[] = [];
 
     for (const token of tokens) {
+        // Collect standalone comments
+        if (token.type === "comment" || token.type === "block-comment") {
+            pendingComments.push(token);
+            continue;
+        }
+
         // Track if we've seen an = in this entry
         if (token.type === "operator" && token.value === "=" && stack.length === 0) {
             hasEquals = true;
         }
 
         if (token.type === "newline" && stack.length === 0) {
+            // Attach pending comments to current entry before splitting
+            if (pendingComments.length > 0 && current.length > 0) {
+                current.push(...pendingComments);
+                pendingComments = [];
+            }
+
             // Only split on newline if we've completed an assignment (seen = and value)
             // Skip the newline immediately after = (hasEquals but current ends with =)
-            const lastNonNewline = current.filter(t => t.type !== "newline").slice(-1)[0];
+            const lastNonNewline = current.filter(t => t.type !== "newline" && t.type !== "comment" && t.type !== "block-comment").slice(-1)[0];
             const isRightAfterEquals = lastNonNewline && lastNonNewline.type === "operator" && lastNonNewline.value === "=";
 
             if (hasEquals && !isRightAfterEquals && current.length > 0) {
@@ -862,6 +875,12 @@ function splitHashtableEntries(tokens: Token[]): Token[][] {
             token.value === ";" &&
             stack.length === 0
         ) {
+            // Attach pending comments to current entry
+            if (pendingComments.length > 0 && current.length > 0) {
+                current.push(...pendingComments);
+                pendingComments = [];
+            }
+
             if (current.length > 0) {
                 entries.push(current);
                 current = [];
@@ -882,7 +901,23 @@ function splitHashtableEntries(tokens: Token[]): Token[][] {
             continue;
         }
 
+        // Add any pending comments to the current entry
+        if (pendingComments.length > 0) {
+            current.push(...pendingComments);
+            pendingComments = [];
+        }
+
         current.push(token);
+    }
+
+    // Don't forget final pending comments
+    if (pendingComments.length > 0) {
+        if (current.length > 0) {
+            current.push(...pendingComments);
+        } else if (entries.length > 0) {
+            // Attach to last entry if current is empty
+            entries[entries.length - 1].push(...pendingComments);
+        }
     }
 
     if (current.length > 0) {
@@ -896,31 +931,110 @@ function buildHashtableEntry(
     tokens: Token[],
     source: string = ""
 ): HashtableEntryNode {
-    const equalsIndex = findTopLevelEquals(tokens);
+    // Separate comments from other tokens
+    const leadingComments: Token[] = [];
+    const trailingComments: Token[] = [];
+    const otherTokens: Token[] = [];
+
+    let equalsIndex = -1;
+    let foundEquals = false;
+
+    for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i];
+
+        if (token.type === "comment" || token.type === "block-comment") {
+            // Comments before the = are leading, after are trailing
+            if (!foundEquals) {
+                leadingComments.push(token);
+            } else {
+                trailingComments.push(token);
+            }
+        } else {
+            if (token.type === "operator" && token.value === "=" && !foundEquals) {
+                equalsIndex = otherTokens.length;
+                foundEquals = true;
+            }
+            otherTokens.push(token);
+        }
+    }
+
     const keyTokens =
-        equalsIndex === -1 ? tokens : tokens.slice(0, equalsIndex);
-    const valueTokens = equalsIndex === -1 ? [] : tokens.slice(equalsIndex + 1);
+        equalsIndex === -1 ? otherTokens : otherTokens.slice(0, equalsIndex);
+    const valueTokens = equalsIndex === -1 ? [] : otherTokens.slice(equalsIndex + 1);
     const keyExpression = buildExpressionFromTokens(keyTokens, source);
     const valueExpression =
         valueTokens.length > 0
             ? buildExpressionFromTokens(valueTokens, source)
             : buildExpressionFromTokens([], source);
     const key = extractKeyText(keyTokens);
+
+    // Calculate start/end based on non-comment tokens like original logic
     const start = keyTokens[0]?.start ?? valueTokens[0]?.start ?? 0;
     const end =
         (valueTokens[valueTokens.length - 1] ?? keyTokens[keyTokens.length - 1])
             ?.end ?? start;
 
-    return {
+    const entry: HashtableEntryNode = {
         type: "HashtableEntry",
         key,
         rawKey: keyExpression,
         value: valueExpression,
         loc: { start, end },
-    } satisfies HashtableEntryNode;
-}
+    };
 
-function findTopLevelEquals(tokens: Token[]): number {
+    // Add comments if present
+    if (leadingComments.length > 0) {
+        entry.leadingComments = leadingComments.map((token) => ({
+            type: "Comment" as const,
+            value: token.value,
+            inline: false,
+            style:
+                token.type === "block-comment"
+                    ? ("block" as const)
+                    : ("line" as const),
+            loc: { start: token.start, end: token.end },
+        }));
+    }
+
+    if (trailingComments.length > 0) {
+        const trailingNodes: CommentNode[] = [];
+        let referenceEnd =
+            valueTokens[valueTokens.length - 1]?.end ??
+            keyTokens[keyTokens.length - 1]?.end ??
+            tokens[0]?.start ?? 0;
+
+        for (const token of trailingComments) {
+            const inline =
+                token.type === "comment" &&
+                isInlineSpacing(source, referenceEnd, token.start);
+
+            trailingNodes.push({
+                type: "Comment" as const,
+                value: token.value,
+                inline,
+                style:
+                    token.type === "block-comment"
+                        ? ("block" as const)
+                        : ("line" as const),
+                loc: { start: token.start, end: token.end },
+            });
+
+            referenceEnd = token.end;
+        }
+
+        if (trailingNodes.length > 1) {
+            for (const comment of trailingNodes) {
+                comment.inline = false;
+            }
+        }
+
+        if (trailingNodes.length > 0) {
+            entry.trailingComments = trailingNodes;
+        }
+    }
+
+    return entry;
+}function findTopLevelEquals(tokens: Token[]): number {
     const stack: string[] = [];
     for (let index = 0; index < tokens.length; index += 1) {
         const token = tokens[index];
@@ -941,6 +1055,22 @@ function findTopLevelEquals(tokens: Token[]): number {
         }
     }
     return -1;
+}
+
+function isInlineSpacing(source: string, start: number, end: number): boolean {
+    if (start === undefined || end === undefined) {
+        return false;
+    }
+    for (let index = start; index < end; index += 1) {
+        const char = source[index];
+        if (char === "\n" || char === "\r") {
+            return false;
+        }
+        if (char !== " " && char !== "\t") {
+            return false;
+        }
+    }
+    return true;
 }
 
 function extractKeyText(tokens: Token[]): string {

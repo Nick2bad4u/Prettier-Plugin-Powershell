@@ -93,6 +93,8 @@ export interface HashtableEntryNode extends BaseNode {
     key: string;
     rawKey: ExpressionNode;
     value: ExpressionNode;
+    leadingComments?: CommentNode[];
+    trailingComments?: CommentNode[];
 }
 
 export interface ArrayLiteralNode extends BaseNode {
