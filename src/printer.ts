@@ -32,6 +32,21 @@ const {
     align,
 } = doc.builders;
 
+/**
+ * The Prettier printer for PowerShell.
+ *
+ * This implements Prettier's Printer interface to convert PowerShell AST nodes
+ * into formatted output using Prettier's document builders.
+ *
+ * The printer handles:
+ * - Indentation and spacing
+ * - Line wrapping and breaking
+ * - Operator formatting
+ * - Comment preservation
+ * - Hashtable alignment
+ * - Pipeline formatting
+ * - And much more!
+ */
 export const powerShellPrinter: Printer<ScriptNode> = {
     print(path: AstPath, options: ParserOptions) {
         const node = path.getValue() as
@@ -47,6 +62,13 @@ export const powerShellPrinter: Printer<ScriptNode> = {
     },
 };
 
+/**
+ * Main routing function that dispatches AST nodes to their specific print functions.
+ *
+ * @param node - The AST node to print
+ * @param options - Resolved printer options
+ * @returns A Prettier Doc representing the formatted output
+ */
 function printNode(
     node:
         | ScriptNode

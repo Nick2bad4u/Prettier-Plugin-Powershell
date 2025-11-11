@@ -46,6 +46,7 @@
         "test:coverage": "vitest run --coverage",
         "test:watch": "vitest",
         "typecheck": "tsc --project tsconfig.json --noEmit",
+        "benchmark": "node benchmark.mjs",
         "prepare": "npm run build"
     },
     "devDependencies": {

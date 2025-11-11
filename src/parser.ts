@@ -1028,6 +1028,19 @@ function hasTopLevelComma(tokens: Token[]): boolean {
     return false;
 }
 
+/**
+ * Parses PowerShell source code into an Abstract Syntax Tree (AST).
+ *
+ * This is the main entry point for parsing. It tokenizes the source,
+ * creates a parser instance, and builds the AST representing the script structure.
+ *
+ * The parser is designed to be resilient and will attempt to parse even
+ * malformed code to provide the best formatting experience possible.
+ *
+ * @param source - The PowerShell source code to parse
+ * @param options - Parser options (currently used for resolving configuration)
+ * @returns A ScriptNode representing the root of the AST
+ */
 export function parsePowerShell(
     source: string,
     options: ParserOptions
@@ -1038,6 +1051,16 @@ export function parsePowerShell(
     return parser.parseScript();
 }
 
+/**
+ * Parses PowerShell source with custom terminator tokens.
+ *
+ * This is used internally for parsing sub-sections of scripts where
+ * certain tokens should stop parsing (e.g., closing braces, specific keywords).
+ *
+ * @param source - The PowerShell source code to parse
+ * @param terminators - Set of token values that should stop parsing
+ * @returns A ScriptNode representing the parsed section
+ */
 export function parseScriptWithTerminators(
     source: string,
     terminators: Set<string>
