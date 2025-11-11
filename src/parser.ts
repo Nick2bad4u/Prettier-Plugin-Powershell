@@ -915,100 +915,197 @@ function parseStatementForTest(tokens: Token[]): PipelineNode | null {
     return internal.parseStatement();
 }
 
-function splitHashtableEntries(tokens: Token[]): Token[][] {
-    const entries: Token[][] = [];
+type SplitDecision = "skip" | void;
+
+interface SplitContext<TState> {
+    token: Token;
+    state: TState;
+    current: Token[];
+    stack: string[];
+    topLevel: boolean;
+}
+
+interface SplitOptions<TState = Record<string, never>> {
+    delimiterValues?: string[];
+    splitOnNewline?: (context: SplitContext<TState>) => boolean;
+    shouldSplitOnDelimiter?: (context: SplitContext<TState>) => boolean;
+    onToken?: (context: SplitContext<TState>) => SplitDecision;
+    onBeforeAddToken?: (context: SplitContext<TState>) => void;
+    onAfterAddToken?: (context: SplitContext<TState>) => void;
+    onFlush?: (
+        segment: Token[],
+        state: TState,
+        segments: Token[][],
+        force: boolean
+    ) => Token[] | void;
+    createInitialState?: () => TState;
+}
+
+function splitTopLevelTokens<TState = Record<string, never>>(
+    tokens: Token[],
+    options: SplitOptions<TState> = {}
+): Token[][] {
+    const result: Token[][] = [];
     let current: Token[] = [];
     const stack: string[] = [];
-    let hasEquals = false;
-    let pendingComments: Token[] = [];
+    const state = options.createInitialState
+        ? options.createInitialState()
+        : ({} as TState);
+
+    const flush = (force = false) => {
+        if (!force && current.length === 0) {
+            return;
+        }
+        const maybeSegment = options.onFlush?.(current, state, result, force);
+        const segment = maybeSegment ?? current;
+        if (segment.length > 0) {
+            result.push(segment);
+        }
+        current = [];
+    };
 
     for (const token of tokens) {
-        // Collect standalone comments
-        if (token.type === "comment" || token.type === "block-comment") {
-            pendingComments.push(token);
-            continue;
-        }
+        const topLevel = stack.length === 0;
+        const context: SplitContext<TState> = {
+            token,
+            state,
+            current,
+            stack,
+            topLevel,
+        };
 
-        // Track if we've seen an = in this entry
-        if (token.type === "operator" && token.value === "=" && stack.length === 0) {
-            hasEquals = true;
-        }
-
-        if (token.type === "newline" && stack.length === 0) {
-            // Attach pending comments to current entry before splitting
-            if (pendingComments.length > 0 && current.length > 0) {
-                current.push(...pendingComments);
-                pendingComments = [];
-            }
-
-            // Only split on newline if we've completed an assignment (seen = and value)
-            // Skip the newline immediately after = (hasEquals but current ends with =)
-            const lastNonNewline = current.filter(t => t.type !== "newline" && t.type !== "comment" && t.type !== "block-comment").slice(-1)[0];
-            const isRightAfterEquals = lastNonNewline && lastNonNewline.type === "operator" && lastNonNewline.value === "=";
-
-            if (hasEquals && !isRightAfterEquals && current.length > 0) {
-                entries.push(current);
-                current = [];
-                hasEquals = false;
+        if (token.type === "newline" && topLevel) {
+            if (options.splitOnNewline?.(context)) {
+                flush();
             }
             continue;
         }
 
         if (
+            topLevel &&
             token.type === "punctuation" &&
-            token.value === ";" &&
-            stack.length === 0
+            options.delimiterValues?.includes(token.value)
         ) {
-            // Attach pending comments to current entry
-            if (pendingComments.length > 0 && current.length > 0) {
-                current.push(...pendingComments);
-                pendingComments = [];
-            }
-
-            if (current.length > 0) {
-                entries.push(current);
-                current = [];
-                hasEquals = false;
+            if (options.shouldSplitOnDelimiter?.(context) ?? true) {
+                flush();
             }
             continue;
         }
+
+        const decision = options.onToken?.(context);
+        if (decision === "skip") {
+            continue;
+        }
+
+        options.onBeforeAddToken?.(context);
 
         if (isOpeningToken(token)) {
             stack.push(token.value);
             current.push(token);
-            continue;
-        }
-
-        if (isClosingToken(token)) {
+        } else if (isClosingToken(token)) {
             stack.pop();
             current.push(token);
-            continue;
+        } else {
+            current.push(token);
         }
 
-        // Add any pending comments to the current entry
-        if (pendingComments.length > 0) {
-            current.push(...pendingComments);
-            pendingComments = [];
-        }
-
-        current.push(token);
+        options.onAfterAddToken?.({
+            token,
+            state,
+            current,
+            stack,
+            topLevel: stack.length === 0,
+        });
     }
 
-    // Don't forget final pending comments
-    if (pendingComments.length > 0) {
-        if (current.length > 0) {
-            current.push(...pendingComments);
-        } else if (entries.length > 0) {
-            // Attach to last entry if current is empty
-            entries[entries.length - 1].push(...pendingComments);
-        }
-    }
+    flush(true);
 
-    if (current.length > 0) {
-        entries.push(current);
-    }
+    return result;
+}
 
-    return entries;
+function splitHashtableEntries(tokens: Token[]): Token[][] {
+    type HashtableSplitState = {
+        hasEquals: boolean;
+        justSawEquals: boolean;
+        pendingComments: Token[];
+    };
+
+    const segments = splitTopLevelTokens<HashtableSplitState>(tokens, {
+        delimiterValues: [";"],
+        createInitialState: () => ({
+            hasEquals: false,
+            justSawEquals: false,
+            pendingComments: [],
+        }),
+        splitOnNewline: (context) => {
+            if (context.current.length === 0) {
+                return false;
+            }
+            if (!context.state.hasEquals || context.state.justSawEquals) {
+                return false;
+            }
+            if (context.state.pendingComments.length > 0) {
+                context.current.push(...context.state.pendingComments);
+                context.state.pendingComments = [];
+            }
+            return true;
+        },
+        shouldSplitOnDelimiter: (context) => {
+            if (context.current.length === 0) {
+                return false;
+            }
+            if (context.state.pendingComments.length > 0) {
+                context.current.push(...context.state.pendingComments);
+                context.state.pendingComments = [];
+            }
+            return true;
+        },
+        onToken: (context) => {
+            if (
+                context.token.type === "comment" ||
+                context.token.type === "block-comment"
+            ) {
+                context.state.pendingComments.push(context.token);
+                return "skip";
+            }
+        },
+        onBeforeAddToken: (context) => {
+            if (context.state.pendingComments.length > 0) {
+                context.current.push(...context.state.pendingComments);
+                context.state.pendingComments = [];
+            }
+        },
+        onAfterAddToken: (context) => {
+            const { token, state, topLevel } = context;
+            if (topLevel && token.type === "operator" && token.value === "=") {
+                state.hasEquals = true;
+                state.justSawEquals = true;
+                return;
+            }
+            if (
+                token.type !== "newline" &&
+                token.type !== "comment" &&
+                token.type !== "block-comment"
+            ) {
+                state.justSawEquals = false;
+            }
+        },
+        onFlush: (segment, state, segments, _force) => {
+            if (state.pendingComments.length > 0) {
+                if (segment.length > 0) {
+                    segment.push(...state.pendingComments);
+                } else if (segments.length > 0) {
+                    segments[segments.length - 1].push(...state.pendingComments);
+                }
+                state.pendingComments = [];
+            }
+            state.hasEquals = false;
+            state.justSawEquals = false;
+            return segment;
+        },
+    });
+
+    return segments;
 }
 
 function buildHashtableEntry(
@@ -1185,51 +1282,10 @@ function extractKeyText(tokens: Token[]): string {
 }
 
 function splitArrayElements(tokens: Token[]): Token[][] {
-    const elements: Token[][] = [];
-    let current: Token[] = [];
-    const stack: string[] = [];
-
-    for (const token of tokens) {
-        if (token.type === "newline" && stack.length === 0) {
-            if (current.length > 0) {
-                elements.push(current);
-                current = [];
-            }
-            continue;
-        }
-
-        if (
-            token.type === "punctuation" &&
-            token.value === "," &&
-            stack.length === 0
-        ) {
-            if (current.length > 0) {
-                elements.push(current);
-            }
-            current = [];
-            continue;
-        }
-
-        if (isOpeningToken(token)) {
-            stack.push(token.value);
-            current.push(token);
-            continue;
-        }
-
-        if (isClosingToken(token)) {
-            stack.pop();
-            current.push(token);
-            continue;
-        }
-
-        current.push(token);
-    }
-
-    if (current.length > 0) {
-        elements.push(current);
-    }
-
-    return elements;
+    return splitTopLevelTokens(tokens, {
+        delimiterValues: [","],
+        splitOnNewline: (context) => context.current.length > 0,
+    });
 }
 
 function hasTopLevelComma(tokens: Token[]): boolean {
@@ -1304,6 +1360,7 @@ export const __parserTestUtils: {
     extractKeyText: typeof extractKeyText;
     splitArrayElements: typeof splitArrayElements;
     hasTopLevelComma: typeof hasTopLevelComma;
+    splitTopLevelTokens: typeof splitTopLevelTokens;
     parseScriptWithTerminators: typeof parseScriptWithTerminators;
     buildExpressionFromTokens: typeof buildExpressionFromTokens;
     createHereStringNode: typeof createHereStringNode;
@@ -1320,6 +1377,7 @@ export const __parserTestUtils: {
     extractKeyText,
     splitArrayElements,
     hasTopLevelComma,
+    splitTopLevelTokens,
     parseScriptWithTerminators,
     buildExpressionFromTokens,
     createHereStringNode,
