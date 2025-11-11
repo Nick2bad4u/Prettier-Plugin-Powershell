@@ -181,12 +181,84 @@ export function cloneNode<T extends BaseNode>(node: T): T {
     return cloned;
 }
 
+/**
+ * Type guard to check if a node is a ScriptNode.
+ */
+export function isScriptNode(node: BaseNode): node is ScriptNode {
+    return node.type === "Script";
+}
+
+/**
+ * Type guard to check if a node is a PipelineNode.
+ */
+export function isPipelineNode(node: BaseNode): node is PipelineNode {
+    return node.type === "Pipeline";
+}
+
+/**
+ * Type guard to check if a node is a FunctionDeclarationNode.
+ */
+export function isFunctionDeclarationNode(node: BaseNode): node is FunctionDeclarationNode {
+    return node.type === "FunctionDeclaration";
+}
+
+/**
+ * Type guard to check if a node is a ScriptBlockNode.
+ */
+export function isScriptBlockNode(node: BaseNode): node is ScriptBlockNode {
+    return node.type === "ScriptBlock";
+}
+
+/**
+ * Type guard to check if a node is a HashtableNode.
+ */
+export function isHashtableNode(node: BaseNode): node is HashtableNode {
+    return node.type === "Hashtable";
+}
+
+/**
+ * Type guard to check if a node is an ArrayLiteralNode.
+ */
+export function isArrayLiteralNode(node: BaseNode): node is ArrayLiteralNode {
+    return node.type === "ArrayLiteral";
+}
+
+/**
+ * Type guard to check if a node is a CommentNode.
+ */
+export function isCommentNode(node: BaseNode): node is CommentNode {
+    return node.type === "Comment";
+}
+
+/**
+ * Type guard to check if a node is a HereStringNode.
+ */
+export function isHereStringNode(node: BaseNode): node is HereStringNode {
+    return node.type === "HereString";
+}
+
 export const runtimeExports: Readonly<{
     createLocation: typeof createLocation;
     isNodeType: typeof isNodeType;
     cloneNode: typeof cloneNode;
+    isScriptNode: typeof isScriptNode;
+    isPipelineNode: typeof isPipelineNode;
+    isFunctionDeclarationNode: typeof isFunctionDeclarationNode;
+    isScriptBlockNode: typeof isScriptBlockNode;
+    isHashtableNode: typeof isHashtableNode;
+    isArrayLiteralNode: typeof isArrayLiteralNode;
+    isCommentNode: typeof isCommentNode;
+    isHereStringNode: typeof isHereStringNode;
 }> = Object.freeze({
     createLocation,
     isNodeType,
     cloneNode,
+    isScriptNode,
+    isPipelineNode,
+    isFunctionDeclarationNode,
+    isScriptBlockNode,
+    isHashtableNode,
+    isArrayLiteralNode,
+    isCommentNode,
+    isHereStringNode,
 });
