@@ -47,6 +47,7 @@
         "test:watch": "vitest",
         "typecheck": "tsc --project tsconfig.json --noEmit",
         "benchmark": "node benchmark.mjs",
+        "profile": "node profile-parser.mjs",
         "prepare": "npm run build"
     },
     "devDependencies": {
