@@ -141,10 +141,6 @@
     "singleAttributePerLine": false,
     "singleQuote": false,
     "tabWidth": 4,
-    "tailwindFunctions": [
-        "clsx",
-        "cva"
-    ],
     "trailingComma": "es5",
     "tsdoc": true,
     "useTabs": false,

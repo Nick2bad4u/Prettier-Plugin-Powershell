@@ -167,6 +167,13 @@ export interface ResolvedOptions {
     rewriteWriteHost: boolean;
 }
 
+/**
+ * Resolves PowerShell-specific options and normalizes Prettier options.
+ *
+ * Note: This function mutates the input `options` object by setting
+ * `useTabs`, `tabWidth`, and `printWidth` to ensure consistency between
+ * PowerShell-specific settings and Prettier's core settings.
+ */
 export function resolveOptions(options: ParserOptions): ResolvedOptions {
     const indentStyle =
         (options.powershellIndentStyle as IndentStyleOption | undefined) ??

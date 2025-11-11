@@ -106,4 +106,70 @@ $d = 0X1234
         expect(result).toContain("0xDEADBEEF");
         expect(result).toContain("0X1234");
     });
+
+    it("formats binary literals correctly", async () => {
+        const script = "$binary = 0b1010";
+        const result = await prettier.format(script, baseConfig);
+        expect(result.trim()).toBe("$binary = 0b1010");
+    });
+
+    it("formats multiplier suffixes correctly", async () => {
+        const script = `
+$kb = 10KB
+$mb = 5MB
+$gb = 2GB
+$tb = 1TB
+$pb = 1PB
+`;
+        const result = await prettier.format(script, baseConfig);
+        expect(result).toContain("10KB");
+        expect(result).toContain("5MB");
+        expect(result).toContain("2GB");
+        expect(result).toContain("1TB");
+        expect(result).toContain("1PB");
+    });
+
+    it("formats scientific notation correctly", async () => {
+        const script = `
+$a = 1e10
+$b = 1e-5
+$c = 1.5e10
+$d = 2.5E-3
+`;
+        const result = await prettier.format(script, baseConfig);
+        expect(result).toContain("1e10");
+        expect(result).toContain("1e-5");
+        expect(result).toContain("1.5e10");
+        expect(result).toContain("2.5E-3");
+    });
+
+    it("formats type suffixes correctly", async () => {
+        const script = `
+$long = 100L
+$longLower = 200l
+$decimal = 1.5d
+$decimalUpper = 2.5D
+$float = 1.5f
+$floatUpper = 2.5F
+`;
+        const result = await prettier.format(script, baseConfig);
+        expect(result).toContain("100L");
+        expect(result).toContain("200l");
+        expect(result).toContain("1.5d");
+        expect(result).toContain("2.5D");
+        expect(result).toContain("1.5f");
+        expect(result).toContain("2.5F");
+    });
+
+    it("formats combined number features correctly", async () => {
+        const script = `
+$hexLong = 0x10L
+$hexWithSuffix = 0xFFMB
+$scientificFloat = 1.5e10f
+`;
+        const result = await prettier.format(script, baseConfig);
+        expect(result).toContain("0x10L");
+        expect(result).toContain("0xFFMB");
+        expect(result).toContain("1.5e10f");
+    });
 });

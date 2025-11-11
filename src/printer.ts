@@ -277,6 +277,26 @@ function printPipeline(node: PipelineNode, options: ResolvedOptions): Doc {
     return pipelineDoc;
 }
 
+/**
+ * Heuristic to detect if text appears to be comment prose rather than code.
+ * Uses a minimum length threshold to avoid false positives
+ * with short variable names or keywords that might not have typical syntax markers.
+ */
+function looksLikeCommentText(text: string): boolean {
+    const trimmed = text.trim();
+
+    // If the text doesn't start with typical PowerShell syntax markers
+    // and appears to be prose, it's likely comment text
+    return (
+        !trimmed.startsWith("$") &&
+        !trimmed.startsWith("[") &&
+        !trimmed.startsWith("(") &&
+        !trimmed.startsWith("{") &&
+        !trimmed.includes("=") &&
+        trimmed.length > MINIMUM_COMMENT_LENGTH
+    );
+}
+
 function printExpression(node: ExpressionNode, options: ResolvedOptions): Doc {
     const docs: Doc[] = [];
 
@@ -305,8 +325,8 @@ function printExpression(node: ExpressionNode, options: ResolvedOptions): Doc {
 
     let previous: ExpressionPartNode | null = null;
 
-    for (let i = 0; i < normalizedParts.length; i += 1) {
-        const part = normalizedParts[i];
+    for (let index = 0; index < normalizedParts.length; index += 1) {
+        const part = normalizedParts[index];
 
         if (part.type === "Parenthesis" && isParamKeyword(previous)) {
             docs.push(printParamParenthesis(part, options));
@@ -320,9 +340,7 @@ function printExpression(node: ExpressionNode, options: ResolvedOptions): Doc {
             part.role === "unknown" &&
             previous &&
             !part.value.trim().startsWith("#") &&
-            !part.value.trim().startsWith("$") &&
-            !part.value.trim().startsWith("[") &&
-            part.value.trim().length > 10
+            looksLikeCommentText(part.value)
         ) {
             // This looks like comment text - treat it as an inline comment
             docs.push(lineSuffix([" # ", part.value.trim()]));
@@ -337,9 +355,9 @@ function printExpression(node: ExpressionNode, options: ResolvedOptions): Doc {
                 part.type === "Parenthesis" &&
                 previous.type === "Text" &&
                 previous.role === "word" &&
-                i >= 2
+                index >= 2
             ) {
-                const beforeWord = normalizedParts[i - 2];
+                const beforeWord = normalizedParts[index - 2];
                 if (
                     beforeWord &&
                     beforeWord.type === "Text" &&
@@ -531,6 +549,11 @@ const NO_SPACE_AFTER = new Set([
     ">",
     "<",
 ]);
+/**
+ * Minimum character length for text to be considered comment prose.
+ * Used to avoid false positives with short variable names or keywords.
+ */
+const MINIMUM_COMMENT_LENGTH = 10;
 const SYMBOL_NO_GAP = new Set([
     ".:word",
     "::word",
@@ -781,8 +804,8 @@ function printParamParenthesis(
         pendingAttributes = [];
     };
 
-    for (let i = 0; i < node.elements.length; i += 1) {
-        const element = node.elements[i];
+    for (let index = 0; index < node.elements.length; index += 1) {
+        const element = node.elements[index];
 
         // Skip comment-only expressions - they'll be handled as trailing comments
         if (isCommentExpression(element)) {
@@ -797,12 +820,12 @@ function printParamParenthesis(
         let printed = printExpression(element, options);
 
         // Check if the next element is a comment - if so, attach it inline
-        const nextElement = node.elements[i + 1];
+        const nextElement = node.elements[index + 1];
         if (nextElement && isCommentExpression(nextElement)) {
             const commentText = extractCommentText(nextElement);
             if (commentText) {
                 printed = [printed, lineSuffix([" ", commentText])];
-                i += 1; // Skip the comment element since we've consumed it
+                index += 1; // Skip the comment element since we've consumed it
             }
         }
 
@@ -857,20 +880,7 @@ function isCommentExpression(node: ExpressionNode): boolean {
         return true;
     }
 
-    // If the text doesn't start with typical PowerShell syntax markers
-    // and appears to be prose, it's likely comment text
-    if (
-        !trimmed.startsWith("$") &&
-        !trimmed.startsWith("[") &&
-        !trimmed.startsWith("(") &&
-        !trimmed.startsWith("{") &&
-        !trimmed.includes("=") &&
-        trimmed.length > 10
-    ) {
-        return true;
-    }
-
-    return false;
+    return looksLikeCommentText(trimmed);
 }
 
 function extractCommentText(node: ExpressionNode): string | null {

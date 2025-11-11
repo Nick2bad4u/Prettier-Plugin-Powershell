@@ -54,7 +54,7 @@ function extendNodeLocation(node: { loc: SourceLocation }, end: number): void {
 }
 
 class Parser {
-    private index = 0;
+    private tokenIndex = 0;
 
     constructor(
         private readonly tokens: Token[],
@@ -83,15 +83,11 @@ class Parser {
                 const commentNode = this.createCommentNode(commentToken, false);
                 if (body.length > 0) {
                     const previousNode = body[body.length - 1];
-                    let lookahead = 0;
+                    let lookaheadOffset = 0;
                     let nextToken: Token | undefined;
-                    while (true) {
-                        nextToken = this.peek(lookahead);
-                        if (!nextToken) {
-                            break;
-                        }
+                    while ((nextToken = this.peek(lookaheadOffset)) !== undefined) {
                         if (nextToken.type === "newline") {
-                            lookahead += 1;
+                            lookaheadOffset += 1;
                             continue;
                         }
                         break;
@@ -425,8 +421,13 @@ class Parser {
         if (token.type !== "comment") {
             return false;
         }
-        if (this.source.length === 0 || token.start === 0) {
-            return true;
+        // Empty source means no context, treat as not inline
+        if (this.source.length === 0) {
+            return false;
+        }
+        // Comment at position 0 is at the beginning, not inline
+        if (token.start === 0) {
+            return false;
         }
 
         let cursor = token.start - 1;
@@ -449,11 +450,8 @@ class Parser {
 
     private isPipelineContinuationAfterNewline(): boolean {
         let offset = 1;
-        while (true) {
-            const next = this.peek(offset);
-            if (!next) {
-                return false;
-            }
+        let next: Token | undefined;
+        while ((next = this.peek(offset)) !== undefined) {
             if (next.type === "newline") {
                 offset += 1;
                 continue;
@@ -466,6 +464,7 @@ class Parser {
             }
             return false;
         }
+        return false;
     }
 
     private isFunctionDeclaration(): boolean {
@@ -478,17 +477,17 @@ class Parser {
     }
 
     private peek(offset = 0): Token | undefined {
-        return this.tokens[this.index + offset];
+        return this.tokens[this.tokenIndex + offset];
     }
 
     private advance(): Token {
-        const token = this.tokens[this.index];
-        this.index += 1;
+        const token = this.tokens[this.tokenIndex];
+        this.tokenIndex += 1;
         return token;
     }
 
     private isEOF(): boolean {
-        return this.index >= this.tokens.length;
+        return this.tokenIndex >= this.tokens.length;
     }
 }
 
@@ -754,22 +753,16 @@ function createHereStringNode(token: Token): HereStringNode {
 }
 
 function createTextNode(token: Token): TextNode {
-    let role: TokenRole =
-        token.type === "identifier"
-            ? "word"
-            : token.type === "keyword"
-              ? "keyword"
-              : token.type === "number"
-                ? "number"
-                : token.type === "variable"
-                  ? "variable"
-                  : token.type === "string"
-                    ? "string"
-                    : token.type === "operator"
-                      ? "operator"
-                      : token.type === "punctuation"
-                        ? "punctuation"
-                        : "unknown";
+    const tokenTypeToRole: Record<string, TokenRole> = {
+        identifier: "word",
+        keyword: "keyword",
+        number: "number",
+        variable: "variable",
+        string: "string",
+        operator: "operator",
+        punctuation: "punctuation",
+    };
+    let role: TokenRole = tokenTypeToRole[token.type] ?? "unknown";
 
     if (
         (role === "unknown" || role === "word") &&
@@ -966,7 +959,9 @@ function splitArrayElements(tokens: Token[]): Token[][] {
             token.value === "," &&
             stack.length === 0
         ) {
-            elements.push(current);
+            if (current.length > 0) {
+                elements.push(current);
+            }
             current = [];
             continue;
         }

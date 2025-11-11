@@ -82,18 +82,19 @@ export function tokenize(source: string): Token[] {
         }
 
         if (char === "<" && index + 1 < length && source[index + 1] === "#") {
-            let searchIndex = index + 2;
-            while (searchIndex < length - 1) {
+            let scanIndex = index + 2;
+            while (scanIndex < length) {
                 if (
-                    source[searchIndex] === "#" &&
-                    source[searchIndex + 1] === ">"
+                    scanIndex + 1 < length &&
+                    source[scanIndex] === "#" &&
+                    source[scanIndex + 1] === ">"
                 ) {
-                    searchIndex += 2;
+                    scanIndex += 2;
                     break;
                 }
-                searchIndex += 1;
+                scanIndex += 1;
             }
-            const end = searchIndex >= length ? length : searchIndex;
+            const end = scanIndex >= length ? length : scanIndex;
             push({
                 type: "block-comment",
                 value: source.slice(start, end),
@@ -129,42 +130,49 @@ export function tokenize(source: string): Token[] {
             }
             if (lookahead < length && /[A-Za-z_]/.test(source[lookahead])) {
                 let depth = 1;
-                let searchIndex = index + 1;
-                while (searchIndex < length && depth > 0) {
-                    const current = source[searchIndex];
+                let scanIndex = index + 1;
+                while (scanIndex < length && depth > 0) {
+                    const current = source[scanIndex];
                     if (current === "'" || current === '"') {
                         const quote = current;
-                        searchIndex += 1;
-                        while (searchIndex < length) {
-                            const ch = source[searchIndex];
-                            if (ch === "`") {
-                                searchIndex += 2;
+                        scanIndex += 1;
+                        while (scanIndex < length) {
+                            const currentChar = source[scanIndex];
+                            if (currentChar === "`") {
+                                // Only advance by 2 if there is a character after the backtick
+                                if (scanIndex + 1 < length) {
+                                    scanIndex += 2;
+                                } else {
+                                    // Backtick is the last character, advance by 1 and exit loop
+                                    scanIndex += 1;
+                                    break;
+                                }
                                 continue;
                             }
-                            if (ch === quote) {
-                                searchIndex += 1;
+                            if (currentChar === quote) {
+                                scanIndex += 1;
                                 break;
                             }
-                            searchIndex += 1;
+                            scanIndex += 1;
                         }
                         continue;
                     }
                     if (current === "[") {
                         depth += 1;
-                        searchIndex += 1;
+                        scanIndex += 1;
                         continue;
                     }
                     if (current === "]") {
                         depth -= 1;
-                        searchIndex += 1;
+                        scanIndex += 1;
                         if (depth === 0) {
                             break;
                         }
                         continue;
                     }
-                    searchIndex += 1;
+                    scanIndex += 1;
                 }
-                const attributeEnd = depth === 0 ? searchIndex : length;
+                const attributeEnd = depth === 0 ? scanIndex : length;
                 push({
                     type: "attribute",
                     value: source.slice(start, attributeEnd),
@@ -182,29 +190,30 @@ export function tokenize(source: string): Token[] {
         ) {
             const quoteChar = source[index + 1];
             const quote = quoteChar === '"' ? "double" : "single";
-            let searchIndex = index + 2;
+            let scanIndex = index + 2;
             let closing = -1;
-            while (searchIndex < length - 1) {
+            while (scanIndex < length) {
                 if (
-                    source[searchIndex] === quoteChar &&
-                    source[searchIndex + 1] === "@"
+                    scanIndex + 1 < length &&
+                    source[scanIndex] === quoteChar &&
+                    source[scanIndex + 1] === "@"
                 ) {
-                    const prevChar = source[searchIndex - 1];
-                    const prevPrev = source[searchIndex - 2];
-                    const atImmediateClosing = searchIndex === index + 2;
+                    const prevChar = source[scanIndex - 1];
+                    const prevPrev = source[scanIndex - 2];
+                    const atImmediateClosing = scanIndex === index + 2;
                     const atUnixLineStart = prevChar === "\n";
                     const atWindowsLineStart =
-                        prevChar === "\r" && prevPrev === "\n";
+                        prevChar === "\n" && prevPrev === "\r";
                     if (
                         atImmediateClosing ||
                         atUnixLineStart ||
                         atWindowsLineStart
                     ) {
-                        closing = searchIndex;
+                        closing = scanIndex;
                         break;
                     }
                 }
-                searchIndex += 1;
+                scanIndex += 1;
             }
 
             let end = length;
@@ -299,12 +308,14 @@ export function tokenize(source: string): Token[] {
         if (char === "$") {
             index += 1;
             while (index < length) {
-                const c = source[index];
-                if (/^[A-Za-z0-9_:-]$/.test(c)) {
+                const currentChar = source[index];
+                // PowerShell supports Unicode variable names
+                // Match Unicode letters, numbers, underscore, colon, and hyphen
+                if (/^[\p{L}\p{N}_:-]$/u.test(currentChar)) {
                     index += 1;
                     continue;
                 }
-                if (c === "{") {
+                if (currentChar === "{") {
                     index += 1;
                     while (index < length && source[index] !== "}") {
                         index += 1;
@@ -327,6 +338,7 @@ export function tokenize(source: string): Token[] {
 
         if (/[0-9]/.test(char)) {
             index += 1;
+
             // Check for hex number (0x...)
             if (
                 char === "0" &&
@@ -337,6 +349,17 @@ export function tokenize(source: string): Token[] {
                 while (index < length && /[0-9A-Fa-f]/.test(source[index])) {
                     index += 1;
                 }
+                // Check for long suffix (L or l)
+                if (index < length && (source[index] === "L" || source[index] === "l")) {
+                    index += 1;
+                }
+                // Check for multiplier suffixes (KB, MB, GB, TB, PB)
+                if (index + 1 < length) {
+                    const suffix = source.slice(index, index + 2).toUpperCase();
+                    if (["KB", "MB", "GB", "TB", "PB"].includes(suffix)) {
+                        index += 2;
+                    }
+                }
                 push({
                     type: "number",
                     value: source.slice(start, index),
@@ -345,16 +368,65 @@ export function tokenize(source: string): Token[] {
                 });
                 continue;
             }
+
+            // Check for binary number (0b...)
+            if (
+                char === "0" &&
+                index < length &&
+                (source[index] === "b" || source[index] === "B")
+            ) {
+                index += 1; // consume 'b' or 'B'
+                while (index < length && /[01]/.test(source[index])) {
+                    index += 1;
+                }
+                push({
+                    type: "number",
+                    value: source.slice(start, index),
+                    start,
+                    end: index,
+                });
+                continue;
+            }
+
             // Regular decimal number
             while (index < length && /[0-9]/.test(source[index])) {
                 index += 1;
             }
-            if (source[index] === "." && /[0-9]/.test(source[index + 1])) {
+
+            // Check for decimal point
+            if (index + 1 < length && source[index] === "." && /[0-9]/.test(source[index + 1])) {
                 index += 2;
                 while (index < length && /[0-9]/.test(source[index])) {
                     index += 1;
                 }
             }
+
+            // Check for scientific notation (e or E)
+            if (index < length && (source[index] === "e" || source[index] === "E")) {
+                index += 1;
+                // Optional sign
+                if (index < length && (source[index] === "+" || source[index] === "-")) {
+                    index += 1;
+                }
+                // Exponent digits
+                while (index < length && /[0-9]/.test(source[index])) {
+                    index += 1;
+                }
+            }
+
+            // Check for type suffixes (d/D for decimal, f/F for float, l/L for long)
+            if (index < length && /[dDfFlL]/.test(source[index])) {
+                index += 1;
+            }
+
+            // Check for multiplier suffixes (KB, MB, GB, TB, PB)
+            if (index + 1 < length) {
+                const suffix = source.slice(index, index + 2).toUpperCase();
+                if (["KB", "MB", "GB", "TB", "PB"].includes(suffix)) {
+                    index += 2;
+                }
+            }
+
             push({
                 type: "number",
                 value: source.slice(start, index),
@@ -365,13 +437,13 @@ export function tokenize(source: string): Token[] {
         }
 
         if (
-            /[A-Za-z_]/.test(char) ||
+            /[\p{L}_]/u.test(char) ||
             (char === "-" &&
                 index + 1 < length &&
-                /[-A-Za-z]/.test(source[index + 1]))
+                /[-\p{L}]/u.test(source[index + 1]))
         ) {
             index += 1;
-            while (index < length && /[A-Za-z0-9_-]/.test(source[index])) {
+            while (index < length && /[\p{L}\p{N}_-]/u.test(source[index])) {
                 index += 1;
             }
             const raw = source.slice(start, index);

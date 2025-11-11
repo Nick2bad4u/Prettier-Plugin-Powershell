@@ -228,15 +228,15 @@ function tokenize(source) {
       continue;
     }
     if (char === "<" && index + 1 < length && source[index + 1] === "#") {
-      let searchIndex = index + 2;
-      while (searchIndex < length - 1) {
-        if (source[searchIndex] === "#" && source[searchIndex + 1] === ">") {
-          searchIndex += 2;
+      let scanIndex = index + 2;
+      while (scanIndex < length) {
+        if (scanIndex + 1 < length && source[scanIndex] === "#" && source[scanIndex + 1] === ">") {
+          scanIndex += 2;
           break;
         }
-        searchIndex += 1;
+        scanIndex += 1;
       }
-      const end = searchIndex >= length ? length : searchIndex;
+      const end = scanIndex >= length ? length : scanIndex;
       push({
         type: "block-comment",
         value: source.slice(start, end),
@@ -266,42 +266,47 @@ function tokenize(source) {
       }
       if (lookahead < length && /[A-Za-z_]/.test(source[lookahead])) {
         let depth = 1;
-        let searchIndex = index + 1;
-        while (searchIndex < length && depth > 0) {
-          const current = source[searchIndex];
+        let scanIndex = index + 1;
+        while (scanIndex < length && depth > 0) {
+          const current = source[scanIndex];
           if (current === "'" || current === '"') {
             const quote = current;
-            searchIndex += 1;
-            while (searchIndex < length) {
-              const ch = source[searchIndex];
-              if (ch === "`") {
-                searchIndex += 2;
+            scanIndex += 1;
+            while (scanIndex < length) {
+              const currentChar = source[scanIndex];
+              if (currentChar === "`") {
+                if (scanIndex + 1 < length) {
+                  scanIndex += 2;
+                } else {
+                  scanIndex += 1;
+                  break;
+                }
                 continue;
               }
-              if (ch === quote) {
-                searchIndex += 1;
+              if (currentChar === quote) {
+                scanIndex += 1;
                 break;
               }
-              searchIndex += 1;
+              scanIndex += 1;
             }
             continue;
           }
           if (current === "[") {
             depth += 1;
-            searchIndex += 1;
+            scanIndex += 1;
             continue;
           }
           if (current === "]") {
             depth -= 1;
-            searchIndex += 1;
+            scanIndex += 1;
             if (depth === 0) {
               break;
             }
             continue;
           }
-          searchIndex += 1;
+          scanIndex += 1;
         }
-        const attributeEnd = depth === 0 ? searchIndex : length;
+        const attributeEnd = depth === 0 ? scanIndex : length;
         push({
           type: "attribute",
           value: source.slice(start, attributeEnd),
@@ -315,21 +320,21 @@ function tokenize(source) {
     if (char === "@" && (source[index + 1] === '"' || source[index + 1] === "'")) {
       const quoteChar = source[index + 1];
       const quote = quoteChar === '"' ? "double" : "single";
-      let searchIndex = index + 2;
+      let scanIndex = index + 2;
       let closing = -1;
-      while (searchIndex < length - 1) {
-        if (source[searchIndex] === quoteChar && source[searchIndex + 1] === "@") {
-          const prevChar = source[searchIndex - 1];
-          const prevPrev = source[searchIndex - 2];
-          const atImmediateClosing = searchIndex === index + 2;
+      while (scanIndex < length) {
+        if (scanIndex + 1 < length && source[scanIndex] === quoteChar && source[scanIndex + 1] === "@") {
+          const prevChar = source[scanIndex - 1];
+          const prevPrev = source[scanIndex - 2];
+          const atImmediateClosing = scanIndex === index + 2;
           const atUnixLineStart = prevChar === "\n";
-          const atWindowsLineStart = prevChar === "\r" && prevPrev === "\n";
+          const atWindowsLineStart = prevChar === "\n" && prevPrev === "\r";
           if (atImmediateClosing || atUnixLineStart || atWindowsLineStart) {
-            closing = searchIndex;
+            closing = scanIndex;
             break;
           }
         }
-        searchIndex += 1;
+        scanIndex += 1;
       }
       let end = length;
       if (closing !== -1) {
@@ -411,12 +416,12 @@ function tokenize(source) {
     if (char === "$") {
       index += 1;
       while (index < length) {
-        const c = source[index];
-        if (/^[A-Za-z0-9_:-]$/.test(c)) {
+        const currentChar = source[index];
+        if (/^[\p{L}\p{N}_:-]$/u.test(currentChar)) {
           index += 1;
           continue;
         }
-        if (c === "{") {
+        if (currentChar === "{") {
           index += 1;
           while (index < length && source[index] !== "}") {
             index += 1;
@@ -443,6 +448,28 @@ function tokenize(source) {
         while (index < length && /[0-9A-Fa-f]/.test(source[index])) {
           index += 1;
         }
+        if (index < length && (source[index] === "L" || source[index] === "l")) {
+          index += 1;
+        }
+        if (index + 1 < length) {
+          const suffix = source.slice(index, index + 2).toUpperCase();
+          if (["KB", "MB", "GB", "TB", "PB"].includes(suffix)) {
+            index += 2;
+          }
+        }
+        push({
+          type: "number",
+          value: source.slice(start, index),
+          start,
+          end: index
+        });
+        continue;
+      }
+      if (char === "0" && index < length && (source[index] === "b" || source[index] === "B")) {
+        index += 1;
+        while (index < length && /[01]/.test(source[index])) {
+          index += 1;
+        }
         push({
           type: "number",
           value: source.slice(start, index),
@@ -454,10 +481,28 @@ function tokenize(source) {
       while (index < length && /[0-9]/.test(source[index])) {
         index += 1;
       }
-      if (source[index] === "." && /[0-9]/.test(source[index + 1])) {
+      if (index + 1 < length && source[index] === "." && /[0-9]/.test(source[index + 1])) {
         index += 2;
         while (index < length && /[0-9]/.test(source[index])) {
           index += 1;
+        }
+      }
+      if (index < length && (source[index] === "e" || source[index] === "E")) {
+        index += 1;
+        if (index < length && (source[index] === "+" || source[index] === "-")) {
+          index += 1;
+        }
+        while (index < length && /[0-9]/.test(source[index])) {
+          index += 1;
+        }
+      }
+      if (index < length && /[dDfFlL]/.test(source[index])) {
+        index += 1;
+      }
+      if (index + 1 < length) {
+        const suffix = source.slice(index, index + 2).toUpperCase();
+        if (["KB", "MB", "GB", "TB", "PB"].includes(suffix)) {
+          index += 2;
         }
       }
       push({
@@ -468,9 +513,9 @@ function tokenize(source) {
       });
       continue;
     }
-    if (/[A-Za-z_]/.test(char) || char === "-" && index + 1 < length && /[-A-Za-z]/.test(source[index + 1])) {
+    if (/[\p{L}_]/u.test(char) || char === "-" && index + 1 < length && /[-\p{L}]/u.test(source[index + 1])) {
       index += 1;
-      while (index < length && /[A-Za-z0-9_-]/.test(source[index])) {
+      while (index < length && /[\p{L}\p{N}_-]/u.test(source[index])) {
         index += 1;
       }
       const raw = source.slice(start, index);
@@ -521,7 +566,7 @@ var Parser = class _Parser {
   constructor(tokens, source) {
     this.tokens = tokens;
     this.source = source;
-    this.index = 0;
+    this.tokenIndex = 0;
   }
   parseScript(terminators = /* @__PURE__ */ new Set()) {
     const body = [];
@@ -541,15 +586,11 @@ var Parser = class _Parser {
         const commentNode = this.createCommentNode(commentToken, false);
         if (body.length > 0) {
           const previousNode = body[body.length - 1];
-          let lookahead = 0;
+          let lookaheadOffset = 0;
           let nextToken;
-          while (true) {
-            nextToken = this.peek(lookahead);
-            if (!nextToken) {
-              break;
-            }
+          while ((nextToken = this.peek(lookaheadOffset)) !== void 0) {
             if (nextToken.type === "newline") {
-              lookahead += 1;
+              lookaheadOffset += 1;
               continue;
             }
             break;
@@ -800,8 +841,11 @@ var Parser = class _Parser {
     if (token.type !== "comment") {
       return false;
     }
-    if (this.source.length === 0 || token.start === 0) {
-      return true;
+    if (this.source.length === 0) {
+      return false;
+    }
+    if (token.start === 0) {
+      return false;
     }
     let cursor = token.start - 1;
     while (cursor >= 0) {
@@ -821,11 +865,8 @@ var Parser = class _Parser {
   }
   isPipelineContinuationAfterNewline() {
     let offset = 1;
-    while (true) {
-      const next = this.peek(offset);
-      if (!next) {
-        return false;
-      }
+    let next;
+    while ((next = this.peek(offset)) !== void 0) {
       if (next.type === "newline") {
         offset += 1;
         continue;
@@ -838,6 +879,7 @@ var Parser = class _Parser {
       }
       return false;
     }
+    return false;
   }
   isFunctionDeclaration() {
     const token = this.peek();
@@ -846,15 +888,15 @@ var Parser = class _Parser {
     );
   }
   peek(offset = 0) {
-    return this.tokens[this.index + offset];
+    return this.tokens[this.tokenIndex + offset];
   }
   advance() {
-    const token = this.tokens[this.index];
-    this.index += 1;
+    const token = this.tokens[this.tokenIndex];
+    this.tokenIndex += 1;
     return token;
   }
   isEOF() {
-    return this.index >= this.tokens.length;
+    return this.tokenIndex >= this.tokens.length;
   }
 };
 function isOpeningToken(token) {
@@ -1053,7 +1095,16 @@ function createHereStringNode(token) {
   };
 }
 function createTextNode(token) {
-  let role = token.type === "identifier" ? "word" : token.type === "keyword" ? "keyword" : token.type === "number" ? "number" : token.type === "variable" ? "variable" : token.type === "string" ? "string" : token.type === "operator" ? "operator" : token.type === "punctuation" ? "punctuation" : "unknown";
+  const tokenTypeToRole = {
+    identifier: "word",
+    keyword: "keyword",
+    number: "number",
+    variable: "variable",
+    string: "string",
+    operator: "operator",
+    punctuation: "punctuation"
+  };
+  let role = tokenTypeToRole[token.type] ?? "unknown";
   if ((role === "unknown" || role === "word") && FALLBACK_OPERATOR_TOKENS.has(token.value)) {
     role = "operator";
   }
@@ -1188,7 +1239,9 @@ function splitArrayElements(tokens) {
       continue;
     }
     if (token.type === "punctuation" && token.value === "," && stack.length === 0) {
-      elements.push(current);
+      if (current.length > 0) {
+        elements.push(current);
+      }
       current = [];
       continue;
     }
@@ -1424,6 +1477,10 @@ function printPipeline(node, options) {
   }
   return pipelineDoc;
 }
+function looksLikeCommentText(text) {
+  const trimmed = text.trim();
+  return !trimmed.startsWith("$") && !trimmed.startsWith("[") && !trimmed.startsWith("(") && !trimmed.startsWith("{") && !trimmed.includes("=") && trimmed.length > MINIMUM_COMMENT_LENGTH;
+}
 function printExpression(node, options) {
   const docs = [];
   const filteredParts = node.parts.filter((part) => !shouldSkipPart(part));
@@ -1448,21 +1505,21 @@ function printExpression(node, options) {
     normalizedParts.push(current);
   }
   let previous = null;
-  for (let i = 0; i < normalizedParts.length; i += 1) {
-    const part = normalizedParts[i];
+  for (let index = 0; index < normalizedParts.length; index += 1) {
+    const part = normalizedParts[index];
     if (part.type === "Parenthesis" && isParamKeyword(previous)) {
       docs.push(printParamParenthesis(part, options));
       previous = part;
       continue;
     }
-    if (part.type === "Text" && part.role === "unknown" && previous && !part.value.trim().startsWith("#") && !part.value.trim().startsWith("$") && !part.value.trim().startsWith("[") && part.value.trim().length > 10) {
+    if (part.type === "Text" && part.role === "unknown" && previous && !part.value.trim().startsWith("#") && looksLikeCommentText(part.value)) {
       docs.push(lineSuffix([" # ", part.value.trim()]));
       previous = part;
       continue;
     }
     if (previous) {
-      if (part.type === "Parenthesis" && previous.type === "Text" && previous.role === "word" && i >= 2) {
-        const beforeWord = normalizedParts[i - 2];
+      if (part.type === "Parenthesis" && previous.type === "Text" && previous.role === "word" && index >= 2) {
+        const beforeWord = normalizedParts[index - 2];
         if (beforeWord && beforeWord.type === "Text" && (beforeWord.value === "." || beforeWord.value === "::")) {
           docs.push(printNode(part, options));
           previous = part;
@@ -1594,6 +1651,7 @@ var NO_SPACE_AFTER = /* @__PURE__ */ new Set([
   ">",
   "<"
 ]);
+var MINIMUM_COMMENT_LENGTH = 10;
 var SYMBOL_NO_GAP = /* @__PURE__ */ new Set([
   ".:word",
   "::word",
@@ -1788,8 +1846,8 @@ function printParamParenthesis(node, options) {
     }
     pendingAttributes = [];
   };
-  for (let i = 0; i < node.elements.length; i += 1) {
-    const element = node.elements[i];
+  for (let index = 0; index < node.elements.length; index += 1) {
+    const element = node.elements[index];
     if (isCommentExpression(element)) {
       continue;
     }
@@ -1798,12 +1856,12 @@ function printParamParenthesis(node, options) {
       continue;
     }
     let printed = printExpression(element, options);
-    const nextElement = node.elements[i + 1];
+    const nextElement = node.elements[index + 1];
     if (nextElement && isCommentExpression(nextElement)) {
       const commentText = extractCommentText(nextElement);
       if (commentText) {
         printed = [printed, lineSuffix([" ", commentText])];
-        i += 1;
+        index += 1;
       }
     }
     flushAttributes(printed);
@@ -1846,10 +1904,7 @@ function isCommentExpression(node) {
   if (trimmed.startsWith("#") || trimmed.startsWith("<#")) {
     return true;
   }
-  if (!trimmed.startsWith("$") && !trimmed.startsWith("[") && !trimmed.startsWith("(") && !trimmed.startsWith("{") && !trimmed.includes("=") && trimmed.length > 10) {
-    return true;
-  }
-  return false;
+  return looksLikeCommentText(trimmed);
 }
 function extractCommentText(node) {
   if (!isCommentExpression(node)) {

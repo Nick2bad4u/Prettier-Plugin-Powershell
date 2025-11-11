@@ -136,11 +136,49 @@ export function isNodeType<
     return Boolean(node && node.type === type);
 }
 
+/**
+ * Creates a deep clone of an AST node, including nested arrays and objects.
+ * This ensures that modifications to the cloned node don't affect the original.
+ */
 export function cloneNode<T extends BaseNode>(node: T): T {
-    return {
+    const cloned = {
         ...node,
         loc: { ...node.loc },
     } as T;
+
+    // Deep clone nested arrays to prevent shared references
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    if ("body" in cloned && Array.isArray((cloned as any).body)) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+        (cloned as any).body = [...(cloned as any).body];
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    if ("parts" in cloned && Array.isArray((cloned as any).parts)) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+        (cloned as any).parts = [...(cloned as any).parts];
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    if ("segments" in cloned && Array.isArray((cloned as any).segments)) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+        (cloned as any).segments = [...(cloned as any).segments];
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    if ("elements" in cloned && Array.isArray((cloned as any).elements)) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+        (cloned as any).elements = [...(cloned as any).elements];
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    if ("entries" in cloned && Array.isArray((cloned as any).entries)) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+        (cloned as any).entries = [...(cloned as any).entries];
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    if ("parameters" in cloned && Array.isArray((cloned as any).parameters)) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+        (cloned as any).parameters = [...(cloned as any).parameters];
+    }
+
+    return cloned;
 }
 
 export const runtimeExports: Readonly<{
