@@ -39,6 +39,33 @@ const KEYWORDS = new Set([
     "class",
 ]);
 
+// PowerShell operators (case-insensitive)
+const POWERSHELL_OPERATORS = new Set([
+    // Comparison operators
+    "-eq", "-ne", "-gt", "-ge", "-lt", "-le",
+    "-like", "-notlike", "-match", "-notmatch",
+    "-contains", "-notcontains", "-in", "-notin",
+    "-is", "-isnot",
+    // Case-sensitive variants
+    "-ceq", "-cne", "-cgt", "-cge", "-clt", "-cle",
+    "-clike", "-cnotlike", "-cmatch", "-cnotmatch",
+    "-ccontains", "-cnotcontains", "-cin", "-cnotin",
+    // Case-insensitive explicit variants
+    "-ieq", "-ine", "-igt", "-ige", "-ilt", "-ile",
+    "-ilike", "-inotlike", "-imatch", "-inotmatch",
+    "-icontains", "-inotcontains", "-iin", "-inotin",
+    // Logical operators
+    "-and", "-or", "-xor", "-not",
+    // Bitwise operators
+    "-band", "-bor", "-bxor", "-bnot", "-shl", "-shr",
+    // String operators
+    "-split", "-join", "-replace", "-f",
+    // Type operators
+    "-as",
+    // Other operators
+    "-creplace", "-ireplace", "-csplit", "-isplit",
+]);
+
 const PUNCTUATION = new Set([
     "{",
     "}",
@@ -498,6 +525,23 @@ export function tokenize(source: string): Token[] {
             continue;
         }
 
+        // Stop parsing token: --%
+        if (char === "-" && source.slice(index, index + 3) === "--%") {
+            // Consume everything until end of line as the stop parsing argument
+            let endIndex = index + 3;
+            while (endIndex < length && source[endIndex] !== "\n" && source[endIndex] !== "\r") {
+                endIndex += 1;
+            }
+            push({
+                type: "operator",
+                value: source.slice(start, endIndex),
+                start,
+                end: endIndex,
+            });
+            index = endIndex;
+            continue;
+        }
+
         if (
             UNICODE_IDENTIFIER_START_PATTERN.test(char) ||
             (char === "-" &&
@@ -512,6 +556,8 @@ export function tokenize(source: string): Token[] {
             const lower = raw.toLowerCase();
             if (KEYWORDS.has(lower)) {
                 push({ type: "keyword", value: raw, start, end: index });
+            } else if (POWERSHELL_OPERATORS.has(lower)) {
+                push({ type: "operator", value: raw, start, end: index });
             } else {
                 push({ type: "identifier", value: raw, start, end: index });
             }

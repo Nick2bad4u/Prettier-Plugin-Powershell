@@ -191,6 +191,79 @@ var KEYWORDS = /* @__PURE__ */ new Set([
   "param",
   "class"
 ]);
+var POWERSHELL_OPERATORS = /* @__PURE__ */ new Set([
+  // Comparison operators
+  "-eq",
+  "-ne",
+  "-gt",
+  "-ge",
+  "-lt",
+  "-le",
+  "-like",
+  "-notlike",
+  "-match",
+  "-notmatch",
+  "-contains",
+  "-notcontains",
+  "-in",
+  "-notin",
+  "-is",
+  "-isnot",
+  // Case-sensitive variants
+  "-ceq",
+  "-cne",
+  "-cgt",
+  "-cge",
+  "-clt",
+  "-cle",
+  "-clike",
+  "-cnotlike",
+  "-cmatch",
+  "-cnotmatch",
+  "-ccontains",
+  "-cnotcontains",
+  "-cin",
+  "-cnotin",
+  // Case-insensitive explicit variants
+  "-ieq",
+  "-ine",
+  "-igt",
+  "-ige",
+  "-ilt",
+  "-ile",
+  "-ilike",
+  "-inotlike",
+  "-imatch",
+  "-inotmatch",
+  "-icontains",
+  "-inotcontains",
+  "-iin",
+  "-inotin",
+  // Logical operators
+  "-and",
+  "-or",
+  "-xor",
+  "-not",
+  // Bitwise operators
+  "-band",
+  "-bor",
+  "-bxor",
+  "-bnot",
+  "-shl",
+  "-shr",
+  // String operators
+  "-split",
+  "-join",
+  "-replace",
+  "-f",
+  // Type operators
+  "-as",
+  // Other operators
+  "-creplace",
+  "-ireplace",
+  "-csplit",
+  "-isplit"
+]);
 var PUNCTUATION = /* @__PURE__ */ new Set([
   "{",
   "}",
@@ -561,6 +634,20 @@ function tokenize(source) {
       });
       continue;
     }
+    if (char === "-" && source.slice(index, index + 3) === "--%") {
+      let endIndex = index + 3;
+      while (endIndex < length && source[endIndex] !== "\n" && source[endIndex] !== "\r") {
+        endIndex += 1;
+      }
+      push({
+        type: "operator",
+        value: source.slice(start, endIndex),
+        start,
+        end: endIndex
+      });
+      index = endIndex;
+      continue;
+    }
     if (UNICODE_IDENTIFIER_START_PATTERN.test(char) || char === "-" && index + 1 < length && UNICODE_IDENTIFIER_AFTER_DASH_PATTERN.test(source[index + 1])) {
       index += 1;
       while (index < length && UNICODE_IDENTIFIER_CHAR_PATTERN.test(source[index])) {
@@ -570,6 +657,8 @@ function tokenize(source) {
       const lower = raw.toLowerCase();
       if (KEYWORDS.has(lower)) {
         push({ type: "keyword", value: raw, start, end: index });
+      } else if (POWERSHELL_OPERATORS.has(lower)) {
+        push({ type: "operator", value: raw, start, end: index });
       } else {
         push({ type: "identifier", value: raw, start, end: index });
       }
