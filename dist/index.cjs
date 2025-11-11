@@ -305,7 +305,7 @@ var UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}_:-]$/u;
 var HEX_DIGIT_PATTERN = /[0-9A-Fa-f]/;
 var BINARY_DIGIT_PATTERN = /[01]/;
 var DECIMAL_DIGIT_PATTERN = /[0-9]/;
-var NUMBER_SUFFIX_PATTERN = /[dDfFlL]/;
+var NUMBER_SUFFIX_PATTERN = /[dDfFlLuU]/;
 var UNICODE_IDENTIFIER_START_PATTERN = /[\p{L}_]/u;
 var UNICODE_IDENTIFIER_CHAR_PATTERN = /[\p{L}\p{N}_-]/u;
 var UNICODE_IDENTIFIER_AFTER_DASH_PATTERN = /[-\p{L}]/u;
@@ -502,6 +502,20 @@ function tokenize(source) {
       push({ type: "operator", value, start, end: index });
       continue;
     }
+    if (char === "@" && index + 1 < length && (UNICODE_IDENTIFIER_START_PATTERN.test(source[index + 1]) || source[index + 1] === "_")) {
+      let scanIndex = index + 2;
+      while (scanIndex < length && UNICODE_IDENTIFIER_CHAR_PATTERN.test(source[scanIndex])) {
+        scanIndex += 1;
+      }
+      push({
+        type: "identifier",
+        value: source.slice(start, scanIndex),
+        start,
+        end: scanIndex
+      });
+      index = scanIndex;
+      continue;
+    }
     if (char === ":" && source[index + 1] === ":") {
       index += 2;
       push({ type: "operator", value: "::", start, end: index });
@@ -536,6 +550,10 @@ function tokenize(source) {
       } else {
         index += 1;
       }
+      if (source[index] === "&" && /[1-6]/.test(source[index + 1] ?? "")) {
+        value += "&" + source[index + 1];
+        index += 2;
+      }
       push({ type: "operator", value, start, end: index });
       continue;
     }
@@ -551,6 +569,11 @@ function tokenize(source) {
         index += 2;
       }
       push({ type: "operator", value, start, end: index });
+      continue;
+    }
+    if (char === "&") {
+      index += 1;
+      push({ type: "operator", value: "&", start, end: index });
       continue;
     }
     if (char === "1" && source[index + 1] === ">" && source[index + 2] === "&" && /[2-6]/.test(source[index + 3])) {
@@ -607,7 +630,7 @@ function tokenize(source) {
         while (index < length && HEX_DIGIT_PATTERN.test(source[index])) {
           index += 1;
         }
-        if (index < length && (source[index] === "L" || source[index] === "l")) {
+        if (index < length && (source[index] === "L" || source[index] === "l" || source[index] === "U" || source[index] === "u")) {
           index += 1;
         }
         if (index + 1 < length) {
@@ -627,6 +650,9 @@ function tokenize(source) {
       if (char === "0" && index < length && (source[index] === "b" || source[index] === "B")) {
         index += 1;
         while (index < length && BINARY_DIGIT_PATTERN.test(source[index])) {
+          index += 1;
+        }
+        if (index < length && (source[index] === "U" || source[index] === "u" || source[index] === "L" || source[index] === "l")) {
           index += 1;
         }
         push({

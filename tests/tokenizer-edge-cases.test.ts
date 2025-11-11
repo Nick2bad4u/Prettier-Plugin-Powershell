@@ -95,4 +95,40 @@ describe("Tokenizer edge cases", () => {
         expect(variable).toBeDefined();
         expect(tokens.filter((t) => t.type === "unknown")).toHaveLength(0);
     });
+
+    it("tokenizes the call operator", () => {
+        const script = `& $scriptBlock`;
+        const tokens = tokenize(script);
+
+        const callOperator = tokens.find((t) => t.type === "operator" && t.value === "&");
+        const variable = tokens.find((t) => t.type === "variable" && t.value === "$scriptBlock");
+
+        expect(callOperator).toBeDefined();
+        expect(variable).toBeDefined();
+        expect(tokens.filter((t) => t.type === "unknown")).toHaveLength(0);
+    });
+
+    it("tokenizes splatted commands as identifiers", () => {
+        const script = `& @commandArgs`;
+        const tokens = tokenize(script);
+
+        const splat = tokens.find((t) => t.type === "identifier" && t.value === "@commandArgs");
+
+        expect(splat).toBeDefined();
+        expect(tokens.filter((t) => t.type === "unknown")).toHaveLength(0);
+    });
+
+    it("recognizes numeric suffixes and multipliers", () => {
+        const script = `$values = @(123u, 0xFFu, 42KB, 1.5e3f, 99l, 5mb)`;
+        const tokens = tokenize(script);
+
+        const numbers = tokens.filter((t) => t.type === "number").map((t) => t.value);
+
+        expect(numbers).toContain("123u");
+        expect(numbers).toContain("0xFFu");
+        expect(numbers).toContain("42KB");
+        expect(numbers).toContain("1.5e3f");
+        expect(numbers).toContain("99l");
+        expect(numbers).toContain("5mb");
+    });
 });

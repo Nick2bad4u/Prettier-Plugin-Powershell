@@ -108,7 +108,7 @@ const UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}_:-]$/u;
 const HEX_DIGIT_PATTERN = /[0-9A-Fa-f]/;
 const BINARY_DIGIT_PATTERN = /[01]/;
 const DECIMAL_DIGIT_PATTERN = /[0-9]/;
-const NUMBER_SUFFIX_PATTERN = /[dDfFlL]/;
+const NUMBER_SUFFIX_PATTERN = /[dDfFlLuU]/;
 const UNICODE_IDENTIFIER_START_PATTERN = /[\p{L}_]/u;
 const UNICODE_IDENTIFIER_CHAR_PATTERN = /[\p{L}\p{N}_-]/u;
 const UNICODE_IDENTIFIER_AFTER_DASH_PATTERN = /[-\p{L}]/u;
@@ -364,6 +364,29 @@ export function tokenize(source: string): Token[] {
             continue;
         }
 
+        if (
+            char === "@" &&
+            index + 1 < length &&
+            (UNICODE_IDENTIFIER_START_PATTERN.test(source[index + 1]) ||
+                source[index + 1] === "_")
+        ) {
+            let scanIndex = index + 2;
+            while (
+                scanIndex < length &&
+                UNICODE_IDENTIFIER_CHAR_PATTERN.test(source[scanIndex])
+            ) {
+                scanIndex += 1;
+            }
+            push({
+                type: "identifier",
+                value: source.slice(start, scanIndex),
+                start,
+                end: scanIndex,
+            });
+            index = scanIndex;
+            continue;
+        }
+
         if (char === ":" && source[index + 1] === ":") {
             index += 2;
             push({ type: "operator", value: "::", start, end: index });
@@ -404,6 +427,13 @@ export function tokenize(source: string): Token[] {
             } else {
                 index += 1;
             }
+            if (
+                source[index] === "&" &&
+                /[1-6]/.test(source[index + 1] ?? "")
+            ) {
+                value += "&" + source[index + 1];
+                index += 2;
+            }
             push({ type: "operator", value, start, end: index });
             continue;
         }
@@ -423,6 +453,12 @@ export function tokenize(source: string): Token[] {
                 index += 2;
             }
             push({ type: "operator", value, start, end: index });
+            continue;
+        }
+
+        if (char === "&") {
+            index += 1;
+            push({ type: "operator", value: "&", start, end: index });
             continue;
         }
 
@@ -494,8 +530,14 @@ export function tokenize(source: string): Token[] {
                 while (index < length && HEX_DIGIT_PATTERN.test(source[index])) {
                     index += 1;
                 }
-                // Check for long suffix (L or l)
-                if (index < length && (source[index] === "L" || source[index] === "l")) {
+                // Check for unsigned/long suffixes (U/u/L/l)
+                if (
+                    index < length &&
+                    (source[index] === "L" ||
+                        source[index] === "l" ||
+                        source[index] === "U" ||
+                        source[index] === "u")
+                ) {
                     index += 1;
                 }
                 // Check for multiplier suffixes (KB, MB, GB, TB, PB)
@@ -522,6 +564,15 @@ export function tokenize(source: string): Token[] {
             ) {
                 index += 1; // consume 'b' or 'B'
                 while (index < length && BINARY_DIGIT_PATTERN.test(source[index])) {
+                    index += 1;
+                }
+                if (
+                    index < length &&
+                    (source[index] === "U" ||
+                        source[index] === "u" ||
+                        source[index] === "L" ||
+                        source[index] === "l")
+                ) {
                     index += 1;
                 }
                 push({
