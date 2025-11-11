@@ -285,16 +285,36 @@ function printPipeline(node: PipelineNode, options: ResolvedOptions): Doc {
 function looksLikeCommentText(text: string): boolean {
     const trimmed = text.trim();
 
-    // If the text doesn't start with typical PowerShell syntax markers
-    // and appears to be prose, it's likely comment text
-    return (
-        !trimmed.startsWith("$") &&
-        !trimmed.startsWith("[") &&
-        !trimmed.startsWith("(") &&
-        !trimmed.startsWith("{") &&
-        !trimmed.includes("=") &&
-        trimmed.length > MINIMUM_COMMENT_LENGTH
-    );
+    // Too short to determine reliably
+    if (trimmed.length <= MINIMUM_COMMENT_LENGTH) {
+        return false;
+    }
+
+    // Definitely code if it starts with typical PowerShell syntax
+    if (
+        trimmed.startsWith("$") ||
+        trimmed.startsWith("[") ||
+        trimmed.startsWith("(") ||
+        trimmed.startsWith("{") ||
+        trimmed.startsWith("@")
+    ) {
+        return false;
+    }
+
+    // Likely code if it contains assignment or typical operators
+    if (
+        trimmed.includes("=") ||
+        trimmed.includes("->") ||
+        trimmed.includes("::") ||
+        trimmed.match(/\b(function|param|if|foreach|while)\b/i)
+    ) {
+        return false;
+    }
+
+    // If it contains spaces and looks like natural language, it's likely a comment
+    const hasSpaces = trimmed.includes(" ");
+    const wordCount = trimmed.split(/\s+/).length;
+    return hasSpaces && wordCount >= 3;
 }
 
 function printExpression(node: ExpressionNode, options: ResolvedOptions): Doc {
@@ -750,6 +770,25 @@ function printHashtableEntry(
 ): Doc {
     const keyDoc = printExpression(node.rawKey, options);
     const valueDoc = printExpression(node.value, options);
+
+    // Check if the value expression starts with a control flow keyword
+    // (if, switch, foreach, etc.) - these should stay on the same line as '='
+    const firstPart = node.value.parts[0];
+    const startsWithKeyword =
+        firstPart &&
+        firstPart.type === "Text" &&
+        firstPart.role === "keyword" &&
+        /^(if|switch|foreach|while|for)$/i.test(firstPart.value);
+
+    if (startsWithKeyword) {
+        // Keep keyword expressions on the same line as the '=' sign
+        return group([
+            keyDoc,
+            " = ",
+            valueDoc,
+        ]);
+    }
+
     return group([
         keyDoc,
         " =",

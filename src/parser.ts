@@ -448,6 +448,11 @@ class Parser {
         return false;
     }
 
+    /**
+     * Checks if there's a pipeline continuation (|) after newlines.
+     * This handles multi-line pipelines where the pipe operator appears
+     * on a subsequent line.
+     */
     private isPipelineContinuationAfterNewline(): boolean {
         let offset = 1;
         let next: Token | undefined;
@@ -830,12 +835,24 @@ function splitHashtableEntries(tokens: Token[]): Token[][] {
     const entries: Token[][] = [];
     let current: Token[] = [];
     const stack: string[] = [];
+    let hasEquals = false;
 
     for (const token of tokens) {
+        // Track if we've seen an = in this entry
+        if (token.type === "operator" && token.value === "=" && stack.length === 0) {
+            hasEquals = true;
+        }
+
         if (token.type === "newline" && stack.length === 0) {
-            if (current.length > 0) {
+            // Only split on newline if we've completed an assignment (seen = and value)
+            // Skip the newline immediately after = (hasEquals but current ends with =)
+            const lastNonNewline = current.filter(t => t.type !== "newline").slice(-1)[0];
+            const isRightAfterEquals = lastNonNewline && lastNonNewline.type === "operator" && lastNonNewline.value === "=";
+
+            if (hasEquals && !isRightAfterEquals && current.length > 0) {
                 entries.push(current);
                 current = [];
+                hasEquals = false;
             }
             continue;
         }
@@ -848,6 +865,7 @@ function splitHashtableEntries(tokens: Token[]): Token[][] {
             if (current.length > 0) {
                 entries.push(current);
                 current = [];
+                hasEquals = false;
             }
             continue;
         }

@@ -52,6 +52,18 @@ const PUNCTUATION = new Set([
     ":",
 ]);
 
+// Cached regex patterns for performance
+const WHITESPACE_PATTERN = /\s/;
+const IDENTIFIER_START_PATTERN = /[A-Za-z_]/;
+const UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}_:-]$/u;
+const HEX_DIGIT_PATTERN = /[0-9A-Fa-f]/;
+const BINARY_DIGIT_PATTERN = /[01]/;
+const DECIMAL_DIGIT_PATTERN = /[0-9]/;
+const NUMBER_SUFFIX_PATTERN = /[dDfFlL]/;
+const UNICODE_IDENTIFIER_START_PATTERN = /[\p{L}_]/u;
+const UNICODE_IDENTIFIER_CHAR_PATTERN = /[\p{L}\p{N}_-]/u;
+const UNICODE_IDENTIFIER_AFTER_DASH_PATTERN = /[-\p{L}]/u;
+
 export function tokenize(source: string): Token[] {
     const tokens: Token[] = [];
     const length = source.length;
@@ -125,10 +137,10 @@ export function tokenize(source: string): Token[] {
 
         if (char === "[") {
             let lookahead = index + 1;
-            while (lookahead < length && /\s/.test(source[lookahead])) {
+            while (lookahead < length && WHITESPACE_PATTERN.test(source[lookahead])) {
                 lookahead += 1;
             }
-            if (lookahead < length && /[A-Za-z_]/.test(source[lookahead])) {
+            if (lookahead < length && IDENTIFIER_START_PATTERN.test(source[lookahead])) {
                 let depth = 1;
                 let scanIndex = index + 1;
                 while (scanIndex < length && depth > 0) {
@@ -311,7 +323,7 @@ export function tokenize(source: string): Token[] {
                 const currentChar = source[index];
                 // PowerShell supports Unicode variable names
                 // Match Unicode letters, numbers, underscore, colon, and hyphen
-                if (/^[\p{L}\p{N}_:-]$/u.test(currentChar)) {
+                if (UNICODE_VAR_CHAR_PATTERN.test(currentChar)) {
                     index += 1;
                     continue;
                 }
@@ -346,7 +358,7 @@ export function tokenize(source: string): Token[] {
                 (source[index] === "x" || source[index] === "X")
             ) {
                 index += 1; // consume 'x' or 'X'
-                while (index < length && /[0-9A-Fa-f]/.test(source[index])) {
+                while (index < length && HEX_DIGIT_PATTERN.test(source[index])) {
                     index += 1;
                 }
                 // Check for long suffix (L or l)
@@ -376,7 +388,7 @@ export function tokenize(source: string): Token[] {
                 (source[index] === "b" || source[index] === "B")
             ) {
                 index += 1; // consume 'b' or 'B'
-                while (index < length && /[01]/.test(source[index])) {
+                while (index < length && BINARY_DIGIT_PATTERN.test(source[index])) {
                     index += 1;
                 }
                 push({
@@ -389,14 +401,14 @@ export function tokenize(source: string): Token[] {
             }
 
             // Regular decimal number
-            while (index < length && /[0-9]/.test(source[index])) {
+            while (index < length && DECIMAL_DIGIT_PATTERN.test(source[index])) {
                 index += 1;
             }
 
             // Check for decimal point
-            if (index + 1 < length && source[index] === "." && /[0-9]/.test(source[index + 1])) {
+            if (index + 1 < length && source[index] === "." && DECIMAL_DIGIT_PATTERN.test(source[index + 1])) {
                 index += 2;
-                while (index < length && /[0-9]/.test(source[index])) {
+                while (index < length && DECIMAL_DIGIT_PATTERN.test(source[index])) {
                     index += 1;
                 }
             }
@@ -409,13 +421,13 @@ export function tokenize(source: string): Token[] {
                     index += 1;
                 }
                 // Exponent digits
-                while (index < length && /[0-9]/.test(source[index])) {
+                while (index < length && DECIMAL_DIGIT_PATTERN.test(source[index])) {
                     index += 1;
                 }
             }
 
             // Check for type suffixes (d/D for decimal, f/F for float, l/L for long)
-            if (index < length && /[dDfFlL]/.test(source[index])) {
+            if (index < length && NUMBER_SUFFIX_PATTERN.test(source[index])) {
                 index += 1;
             }
 
@@ -437,13 +449,13 @@ export function tokenize(source: string): Token[] {
         }
 
         if (
-            /[\p{L}_]/u.test(char) ||
+            UNICODE_IDENTIFIER_START_PATTERN.test(char) ||
             (char === "-" &&
                 index + 1 < length &&
-                /[-\p{L}]/u.test(source[index + 1]))
+                UNICODE_IDENTIFIER_AFTER_DASH_PATTERN.test(source[index + 1]))
         ) {
             index += 1;
-            while (index < length && /[\p{L}\p{N}_-]/u.test(source[index])) {
+            while (index < length && UNICODE_IDENTIFIER_CHAR_PATTERN.test(source[index])) {
                 index += 1;
             }
             const raw = source.slice(start, index);

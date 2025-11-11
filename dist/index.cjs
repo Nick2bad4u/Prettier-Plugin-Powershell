@@ -205,6 +205,16 @@ var PUNCTUATION = /* @__PURE__ */ new Set([
   ".",
   ":"
 ]);
+var WHITESPACE_PATTERN = /\s/;
+var IDENTIFIER_START_PATTERN = /[A-Za-z_]/;
+var UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}_:-]$/u;
+var HEX_DIGIT_PATTERN = /[0-9A-Fa-f]/;
+var BINARY_DIGIT_PATTERN = /[01]/;
+var DECIMAL_DIGIT_PATTERN = /[0-9]/;
+var NUMBER_SUFFIX_PATTERN = /[dDfFlL]/;
+var UNICODE_IDENTIFIER_START_PATTERN = /[\p{L}_]/u;
+var UNICODE_IDENTIFIER_CHAR_PATTERN = /[\p{L}\p{N}_-]/u;
+var UNICODE_IDENTIFIER_AFTER_DASH_PATTERN = /[-\p{L}]/u;
 function tokenize(source) {
   const tokens = [];
   const length = source.length;
@@ -263,10 +273,10 @@ function tokenize(source) {
     }
     if (char === "[") {
       let lookahead = index + 1;
-      while (lookahead < length && /\s/.test(source[lookahead])) {
+      while (lookahead < length && WHITESPACE_PATTERN.test(source[lookahead])) {
         lookahead += 1;
       }
-      if (lookahead < length && /[A-Za-z_]/.test(source[lookahead])) {
+      if (lookahead < length && IDENTIFIER_START_PATTERN.test(source[lookahead])) {
         let depth = 1;
         let scanIndex = index + 1;
         while (scanIndex < length && depth > 0) {
@@ -419,7 +429,7 @@ function tokenize(source) {
       index += 1;
       while (index < length) {
         const currentChar = source[index];
-        if (/^[\p{L}\p{N}_:-]$/u.test(currentChar)) {
+        if (UNICODE_VAR_CHAR_PATTERN.test(currentChar)) {
           index += 1;
           continue;
         }
@@ -447,7 +457,7 @@ function tokenize(source) {
       index += 1;
       if (char === "0" && index < length && (source[index] === "x" || source[index] === "X")) {
         index += 1;
-        while (index < length && /[0-9A-Fa-f]/.test(source[index])) {
+        while (index < length && HEX_DIGIT_PATTERN.test(source[index])) {
           index += 1;
         }
         if (index < length && (source[index] === "L" || source[index] === "l")) {
@@ -469,7 +479,7 @@ function tokenize(source) {
       }
       if (char === "0" && index < length && (source[index] === "b" || source[index] === "B")) {
         index += 1;
-        while (index < length && /[01]/.test(source[index])) {
+        while (index < length && BINARY_DIGIT_PATTERN.test(source[index])) {
           index += 1;
         }
         push({
@@ -480,12 +490,12 @@ function tokenize(source) {
         });
         continue;
       }
-      while (index < length && /[0-9]/.test(source[index])) {
+      while (index < length && DECIMAL_DIGIT_PATTERN.test(source[index])) {
         index += 1;
       }
-      if (index + 1 < length && source[index] === "." && /[0-9]/.test(source[index + 1])) {
+      if (index + 1 < length && source[index] === "." && DECIMAL_DIGIT_PATTERN.test(source[index + 1])) {
         index += 2;
-        while (index < length && /[0-9]/.test(source[index])) {
+        while (index < length && DECIMAL_DIGIT_PATTERN.test(source[index])) {
           index += 1;
         }
       }
@@ -494,11 +504,11 @@ function tokenize(source) {
         if (index < length && (source[index] === "+" || source[index] === "-")) {
           index += 1;
         }
-        while (index < length && /[0-9]/.test(source[index])) {
+        while (index < length && DECIMAL_DIGIT_PATTERN.test(source[index])) {
           index += 1;
         }
       }
-      if (index < length && /[dDfFlL]/.test(source[index])) {
+      if (index < length && NUMBER_SUFFIX_PATTERN.test(source[index])) {
         index += 1;
       }
       if (index + 1 < length) {
@@ -515,9 +525,9 @@ function tokenize(source) {
       });
       continue;
     }
-    if (/[\p{L}_]/u.test(char) || char === "-" && index + 1 < length && /[-\p{L}]/u.test(source[index + 1])) {
+    if (UNICODE_IDENTIFIER_START_PATTERN.test(char) || char === "-" && index + 1 < length && UNICODE_IDENTIFIER_AFTER_DASH_PATTERN.test(source[index + 1])) {
       index += 1;
-      while (index < length && /[\p{L}\p{N}_-]/u.test(source[index])) {
+      while (index < length && UNICODE_IDENTIFIER_CHAR_PATTERN.test(source[index])) {
         index += 1;
       }
       const raw = source.slice(start, index);
@@ -865,6 +875,11 @@ var Parser = class _Parser {
     }
     return false;
   }
+  /**
+   * Checks if there's a pipeline continuation (|) after newlines.
+   * This handles multi-line pipelines where the pipe operator appears
+   * on a subsequent line.
+   */
   isPipelineContinuationAfterNewline() {
     let offset = 1;
     let next;
@@ -1151,11 +1166,18 @@ function splitHashtableEntries(tokens) {
   const entries = [];
   let current = [];
   const stack = [];
+  let hasEquals = false;
   for (const token of tokens) {
+    if (token.type === "operator" && token.value === "=" && stack.length === 0) {
+      hasEquals = true;
+    }
     if (token.type === "newline" && stack.length === 0) {
-      if (current.length > 0) {
+      const lastNonNewline = current.filter((t) => t.type !== "newline").slice(-1)[0];
+      const isRightAfterEquals = lastNonNewline && lastNonNewline.type === "operator" && lastNonNewline.value === "=";
+      if (hasEquals && !isRightAfterEquals && current.length > 0) {
         entries.push(current);
         current = [];
+        hasEquals = false;
       }
       continue;
     }
@@ -1163,6 +1185,7 @@ function splitHashtableEntries(tokens) {
       if (current.length > 0) {
         entries.push(current);
         current = [];
+        hasEquals = false;
       }
       continue;
     }
@@ -1481,7 +1504,18 @@ function printPipeline(node, options) {
 }
 function looksLikeCommentText(text) {
   const trimmed = text.trim();
-  return !trimmed.startsWith("$") && !trimmed.startsWith("[") && !trimmed.startsWith("(") && !trimmed.startsWith("{") && !trimmed.includes("=") && trimmed.length > MINIMUM_COMMENT_LENGTH;
+  if (trimmed.length <= MINIMUM_COMMENT_LENGTH) {
+    return false;
+  }
+  if (trimmed.startsWith("$") || trimmed.startsWith("[") || trimmed.startsWith("(") || trimmed.startsWith("{") || trimmed.startsWith("@")) {
+    return false;
+  }
+  if (trimmed.includes("=") || trimmed.includes("->") || trimmed.includes("::") || trimmed.match(/\b(function|param|if|foreach|while)\b/i)) {
+    return false;
+  }
+  const hasSpaces = trimmed.includes(" ");
+  const wordCount = trimmed.split(/\s+/).length;
+  return hasSpaces && wordCount >= 3;
 }
 function printExpression(node, options) {
   const docs = [];
@@ -1808,6 +1842,15 @@ function printHashtable(node, options) {
 function printHashtableEntry(node, options) {
   const keyDoc = printExpression(node.rawKey, options);
   const valueDoc = printExpression(node.value, options);
+  const firstPart = node.value.parts[0];
+  const startsWithKeyword = firstPart && firstPart.type === "Text" && firstPart.role === "keyword" && /^(if|switch|foreach|while|for)$/i.test(firstPart.value);
+  if (startsWithKeyword) {
+    return group([
+      keyDoc,
+      " = ",
+      valueDoc
+    ]);
+  }
   return group([
     keyDoc,
     " =",
