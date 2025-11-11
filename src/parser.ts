@@ -72,6 +72,30 @@ class Parser {
                 break;
             }
 
+            if (this.classifyStatementTerminator(token, 0) === "semicolon") {
+                this.advance();
+                const nextToken = this.peek();
+                if (
+                    nextToken &&
+                    nextToken.type === "comment" &&
+                    body.length > 0 &&
+                    this.isInlineComment(nextToken)
+                ) {
+                    const commentNode = this.createCommentNode(
+                        this.advance(),
+                        true
+                    );
+                    const previousNode = body[body.length - 1];
+                    if (previousNode.type === "Pipeline") {
+                        previousNode.trailingComment = commentNode;
+                        extendNodeLocation(previousNode, commentNode.loc.end);
+                    } else {
+                        body.push(commentNode);
+                    }
+                }
+                continue;
+            }
+
             if (token.type === "newline") {
                 const blank = this.consumeBlankLines();
                 body.push(blank);
@@ -192,8 +216,12 @@ class Parser {
 
         while (!this.isEOF()) {
             const token = this.peek()!;
+            const terminatorType = this.classifyStatementTerminator(
+                token,
+                structureStack.length
+            );
 
-            if (token.type === "newline") {
+            if (terminatorType === "newline") {
                 if (lineContinuation) {
                     this.advance();
                     lineContinuation = false;
@@ -215,19 +243,13 @@ class Parser {
                 break;
             }
 
-            if (
-                token.type === "punctuation" &&
-                token.value === ";" &&
-                structureStack.length === 0
-            ) {
-                this.advance();
+            if (terminatorType === "semicolon") {
                 break;
             }
 
             if (
-                token.type === "punctuation" &&
-                token.value === "}" &&
-                structureStack.length === 0
+                terminatorType === "closing-brace" ||
+                terminatorType === "closing-paren"
             ) {
                 break;
             }
@@ -317,6 +339,33 @@ class Parser {
         }
 
         return pipelineNode;
+    }
+
+    private classifyStatementTerminator(
+        token: Token | undefined,
+        structureDepth: number
+    ): "newline" | "semicolon" | "closing-brace" | "closing-paren" | null {
+        if (!token) {
+            return null;
+        }
+        if (token.type === "newline") {
+            return structureDepth === 0 ? "newline" : null;
+        }
+        if (
+            structureDepth === 0 &&
+            token.type === "punctuation"
+        ) {
+            if (token.value === ";") {
+                return "semicolon";
+            }
+            if (token.value === "}") {
+                return "closing-brace";
+            }
+            if (token.value === ")") {
+                return "closing-paren";
+            }
+        }
+        return null;
     }
 
     private parseScriptBlock(): ScriptBlockNode {
@@ -1034,7 +1083,9 @@ function buildHashtableEntry(
     }
 
     return entry;
-}function findTopLevelEquals(tokens: Token[]): number {
+}
+
+function findTopLevelEquals(tokens: Token[]): number {
     const stack: string[] = [];
     for (let index = 0; index < tokens.length; index += 1) {
         const token = tokens[index];
@@ -1066,8 +1117,18 @@ function isInlineSpacing(source: string, start: number, end: number): boolean {
         if (char === "\n" || char === "\r") {
             return false;
         }
-        if (char !== " " && char !== "\t") {
-            return false;
+        switch (char) {
+            case " ":
+            case "\t":
+            case "\f":
+            case "\v":
+            case "\u00A0":
+            case "\u200B":
+            case "\u2060":
+            case "\uFEFF":
+                break;
+            default:
+                return false;
         }
     }
     return true;

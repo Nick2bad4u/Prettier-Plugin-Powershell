@@ -299,7 +299,7 @@ var PUNCTUATION = /* @__PURE__ */ new Set([
   ".",
   ":"
 ]);
-var WHITESPACE_PATTERN = /\s/;
+var WHITESPACE_PATTERN = /[\s\u00A0\u200B\u2060\uFEFF]/;
 var IDENTIFIER_START_PATTERN = /[A-Za-z_]/;
 var UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}_:-]$/u;
 var HEX_DIGIT_PATTERN = /[0-9A-Fa-f]/;
@@ -316,6 +316,21 @@ function tokenize(source) {
   const push = (token) => {
     tokens.push(token);
   };
+  const isWhitespaceCharacter = (ch) => {
+    switch (ch) {
+      case " ":
+      case "	":
+      case "\f":
+      case "\v":
+      case "\xA0":
+      case "\u200B":
+      case "\u2060":
+      case "\uFEFF":
+        return true;
+      default:
+        return false;
+    }
+  };
   while (index < length) {
     const char = source[index];
     const start = index;
@@ -329,7 +344,7 @@ function tokenize(source) {
       }
       continue;
     }
-    if (char === " " || char === "	" || char === "\f") {
+    if (isWhitespaceCharacter(char)) {
       index += 1;
       continue;
     }
@@ -736,6 +751,24 @@ var Parser = class _Parser {
       if (terminators.has(token.value) && token.type === "punctuation") {
         break;
       }
+      if (this.classifyStatementTerminator(token, 0) === "semicolon") {
+        this.advance();
+        const nextToken = this.peek();
+        if (nextToken && nextToken.type === "comment" && body.length > 0 && this.isInlineComment(nextToken)) {
+          const commentNode = this.createCommentNode(
+            this.advance(),
+            true
+          );
+          const previousNode = body[body.length - 1];
+          if (previousNode.type === "Pipeline") {
+            previousNode.trailingComment = commentNode;
+            extendNodeLocation(previousNode, commentNode.loc.end);
+          } else {
+            body.push(commentNode);
+          }
+        }
+        continue;
+      }
       if (token.type === "newline") {
         const blank = this.consumeBlankLines();
         body.push(blank);
@@ -830,7 +863,11 @@ var Parser = class _Parser {
     let lineContinuation = false;
     while (!this.isEOF()) {
       const token = this.peek();
-      if (token.type === "newline") {
+      const terminatorType = this.classifyStatementTerminator(
+        token,
+        structureStack.length
+      );
+      if (terminatorType === "newline") {
         if (lineContinuation) {
           this.advance();
           lineContinuation = false;
@@ -847,11 +884,10 @@ var Parser = class _Parser {
         }
         break;
       }
-      if (token.type === "punctuation" && token.value === ";" && structureStack.length === 0) {
-        this.advance();
+      if (terminatorType === "semicolon") {
         break;
       }
-      if (token.type === "punctuation" && token.value === "}" && structureStack.length === 0) {
+      if (terminatorType === "closing-brace" || terminatorType === "closing-paren") {
         break;
       }
       if (token.type === "comment") {
@@ -922,6 +958,26 @@ var Parser = class _Parser {
       pipelineNode.trailingComment = trailingComment;
     }
     return pipelineNode;
+  }
+  classifyStatementTerminator(token, structureDepth) {
+    if (!token) {
+      return null;
+    }
+    if (token.type === "newline") {
+      return structureDepth === 0 ? "newline" : null;
+    }
+    if (structureDepth === 0 && token.type === "punctuation") {
+      if (token.value === ";") {
+        return "semicolon";
+      }
+      if (token.value === "}") {
+        return "closing-brace";
+      }
+      if (token.value === ")") {
+        return "closing-paren";
+      }
+    }
+    return null;
   }
   parseScriptBlock() {
     const openToken = this.peek();
@@ -1457,8 +1513,18 @@ function isInlineSpacing(source, start, end) {
     if (char === "\n" || char === "\r") {
       return false;
     }
-    if (char !== " " && char !== "	") {
-      return false;
+    switch (char) {
+      case " ":
+      case "	":
+      case "\f":
+      case "\v":
+      case "\xA0":
+      case "\u200B":
+      case "\u2060":
+      case "\uFEFF":
+        break;
+      default:
+        return false;
     }
   }
   return true;

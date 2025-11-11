@@ -102,7 +102,7 @@ const PUNCTUATION = new Set([
 
 // Cached regex patterns for performance
 // These are defined at module level to avoid recreation in the tokenize loop
-const WHITESPACE_PATTERN = /\s/;
+const WHITESPACE_PATTERN = /[\s\u00A0\u200B\u2060\uFEFF]/;
 const IDENTIFIER_START_PATTERN = /[A-Za-z_]/;
 const UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}_:-]$/u;
 const HEX_DIGIT_PATTERN = /[0-9A-Fa-f]/;
@@ -140,6 +140,22 @@ export function tokenize(source: string): Token[] {
         tokens.push(token);
     };
 
+    const isWhitespaceCharacter = (ch: string): boolean => {
+        switch (ch) {
+            case " ":
+            case "\t":
+            case "\f":
+            case "\v":
+            case "\u00A0":
+            case "\u200B":
+            case "\u2060":
+            case "\uFEFF":
+                return true;
+            default:
+                return false;
+        }
+    };
+
     while (index < length) {
         const char = source[index];
         const start = index;
@@ -155,7 +171,7 @@ export function tokenize(source: string): Token[] {
             continue;
         }
 
-        if (char === " " || char === "\t" || char === "\f") {
+        if (isWhitespaceCharacter(char)) {
             index += 1;
             continue;
         }

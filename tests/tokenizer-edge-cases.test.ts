@@ -81,4 +81,18 @@ describe("Tokenizer edge cases", () => {
         expect(blockComment).toBeDefined();
         expect(blockComment?.value).toBe("<#test#>");
     });
+
+    it("treats zero-width and NBSP characters as whitespace", () => {
+        const script = `function\u200BFoo { $x\u00A0= 1\u200B}\uFEFF`;
+        const tokens = tokenize(script);
+
+        const keyword = tokens.find((t) => t.type === "keyword");
+        const identifier = tokens.find((t) => t.type === "identifier" && t.value === "Foo");
+        const variable = tokens.find((t) => t.type === "variable" && t.value === "$x");
+
+        expect(keyword?.value.toLowerCase()).toBe("function");
+        expect(identifier).toBeDefined();
+        expect(variable).toBeDefined();
+        expect(tokens.filter((t) => t.type === "unknown")).toHaveLength(0);
+    });
 });
