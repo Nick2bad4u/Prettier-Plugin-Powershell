@@ -1,13 +1,12 @@
 import * as fc from "fast-check";
-
 import { describe, it } from "vitest";
 
-import { formatAndAssert } from "./utils/format-and-assert.js";
 
 import plugin from "../src/index.js";
 import { parsePowerShell } from "../src/parser.js";
 import { tokenize } from "../src/tokenizer.js";
 
+import { formatAndAssert } from "./utils/format-and-assert.js";
 import { assertPowerShellParses } from "./utils/powershell.js";
 import { withProgress } from "./utils/progress.js";
 

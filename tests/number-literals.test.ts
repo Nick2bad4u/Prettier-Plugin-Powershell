@@ -1,8 +1,9 @@
 // NO_PARSE_ASSERT: This fixture contains numeric suffixes (e.g., 123u, 1.5e3f) that are not valid PowerShell tokens; skip parser assertions.
 import { readFileSync } from "node:fs";
 
-import { formatAndAssert } from "./utils/format-and-assert.js";
 import { describe, expect, it } from "vitest";
+
+import { formatAndAssert } from "./utils/format-and-assert.js";
 const baseConfig = {
     parser: "powershell" as const,
     plugins: ["./dist/index.cjs"],

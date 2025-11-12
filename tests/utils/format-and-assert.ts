@@ -1,4 +1,5 @@
 import prettier from "prettier";
+
 import { assertPowerShellParses } from "./powershell.js";
 
 export type FormatAndAssertOptions = {

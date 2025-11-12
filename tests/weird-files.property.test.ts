@@ -2,10 +2,11 @@ import * as fc from "fast-check";
 import type { Options } from "prettier";
 import { describe, it } from "vitest";
 
-import { formatAndAssert } from "./utils/format-and-assert.js";
 
 import plugin from "../src/index.js";
 import { parsePowerShell } from "../src/parser.js";
+
+import { formatAndAssert } from "./utils/format-and-assert.js";
 import { withProgress } from "./utils/progress.js";
 
 const PROPERTY_RUNS = Number.parseInt(

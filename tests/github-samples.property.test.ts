@@ -10,11 +10,11 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import * as fc from "fast-check";
-
 import { beforeAll, describe, it } from "vitest";
 
 import plugin from "../src/index.js";
 import { parsePowerShell } from "../src/parser.js";
+
 import { formatAndAssertRoundTrip } from "./utils/format-and-assert.js";
 import { withProgress } from "./utils/progress.js";
 

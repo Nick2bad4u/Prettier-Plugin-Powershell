@@ -2,7 +2,6 @@ import * as fc from "fast-check";
 import type { Options, ParserOptions } from "prettier";
 import { describe, it } from "vitest";
 
-import { formatAndAssert } from "./utils/format-and-assert.js";
 
 import type { BaseNode, SourceLocation } from "../src/ast.js";
 import plugin from "../src/index.js";
@@ -10,6 +9,7 @@ import { parsePowerShell } from "../src/parser.js";
 import { tokenize, type Token } from "../src/tokenizer.js";
 
 import { structuredScriptArbitrary } from "./property/arbitraries.js";
+import { formatAndAssert } from "./utils/format-and-assert.js";
 import { isPowerShellParsable } from "./utils/powershell.js";
 import { withProgress } from "./utils/progress.js";
 

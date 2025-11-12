@@ -2,10 +2,12 @@ import { readFile } from "node:fs/promises";
 import { URL } from "node:url";
 
 import { describe, expect, it } from "vitest";
+
+import plugin from "../src/index.js";
+
 import { formatAndAssert } from "./utils/format-and-assert.js";
 
 
-import plugin from "../src/index.js";
 
 const baseConfig = {
     parser: "powershell",

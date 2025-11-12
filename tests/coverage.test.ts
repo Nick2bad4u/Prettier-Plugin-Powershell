@@ -1,12 +1,12 @@
 
 import { describe, expect, it } from "vitest";
 
-import { formatAndAssert } from "./utils/format-and-assert.js";
-
-import { assertPowerShellParses } from "./utils/powershell.js";
-
 import plugin from "../src/index.js";
 import { tokenize } from "../src/tokenizer.js";
+
+import { formatAndAssert } from "./utils/format-and-assert.js";
+import { assertPowerShellParses } from "./utils/powershell.js";
+
 
 const baseConfig = {
     parser: "powershell",

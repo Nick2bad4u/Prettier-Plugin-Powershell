@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { formatAndAssert, formatAndAssertRoundTrip } from "./format-and-assert.js";
 
 const baseConfig = {

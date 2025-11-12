@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
+
+import { describe, it, expect } from "vitest";
 
 const TEST_DIR = join(process.cwd(), "tests");
 

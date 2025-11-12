@@ -1,5 +1,6 @@
 import prettier, { type AstPath, type Doc, type ParserOptions } from "prettier";
 import { describe, expect, it } from "vitest";
+
 import * as astRuntime from "../src/ast.js";
 import { runtimeExports } from "../src/ast.js";
 import type {
@@ -35,6 +36,7 @@ import {
 } from "../src/printer.js";
 import { tokenize, normalizeHereString } from "../src/tokenizer.js";
 import type { Token } from "../src/tokenizer.js";
+
 import { formatAndAssert } from "./utils/format-and-assert.js";
 
 
