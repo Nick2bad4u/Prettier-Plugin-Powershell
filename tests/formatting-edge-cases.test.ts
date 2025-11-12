@@ -1,4 +1,4 @@
-import prettier from "prettier";
+
 import { describe, expect, it } from "vitest";
 import plugin from "../src/index.js";
 import { formatAndAssert } from "./utils/format-and-assert.js";

@@ -1,5 +1,5 @@
 import * as fc from "fast-check";
-import prettier from "prettier";
+
 import { describe, it } from "vitest";
 
 import { formatAndAssert, formatAndAssertRoundTrip } from "./utils/format-and-assert.js";
@@ -125,7 +125,7 @@ describe("Printer property-based tests", () => {
                 await fc.assert(
                     fc.asyncProperty(simpleScriptArb, async (script) => {
                         tracker.advance();
-                        const formatted1 = await formatAndAssertRoundTrip(
+                        await formatAndAssertRoundTrip(
                             script,
                             {
                                 parser: "powershell",

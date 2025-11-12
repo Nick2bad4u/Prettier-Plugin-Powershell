@@ -10,7 +10,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import * as fc from "fast-check";
-import prettier from "prettier";
+
 import { beforeAll, describe, it } from "vitest";
 
 import plugin from "../src/index.js";

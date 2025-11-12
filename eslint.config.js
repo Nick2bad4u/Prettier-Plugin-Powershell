@@ -38,7 +38,34 @@ export default tseslint.config(
       '@typescript-eslint/consistent-type-imports': 'warn',
     },
   },
+  // Disallow direct prettier.format usage in tests to enforce using formatAndAssert helper
   {
-    ignores: ['dist/**', 'coverage/**', 'node_modules/**', '*.config.*', '**/*.mjs', '**/*.cjs'],
+    files: ['tests/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.type='MemberExpression'][callee.object.name='prettier'][callee.property.name='format']",
+          message: 'Use the tests/utils/format-and-assert helper instead of calling prettier.format directly in tests.',
+        },
+      ],
+    },
+  },
+  {
+    files: ['tests/utils/format-and-assert.ts', 'tests/utils/no-prettier-format.test.ts'],
+    rules: {
+      // Allow direct prettier.format usage inside the helper and the enforcement test itself
+      'no-restricted-syntax': 'off',
+    },
+  },
+  // Disable typed TypeScript rules that require type information for scripts
+  {
+    files: ['scripts/**/*.js', 'scripts/**/*.mjs'],
+    rules: {
+      '@typescript-eslint/await-thenable': 'off',
+    },
+  },
+  {
+    ignores: ['dist/**', 'coverage/**', 'node_modules/**', 'scripts/**', '*.config.*', '**/*.mjs', '**/*.cjs'],
   }
 );

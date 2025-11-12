@@ -3,6 +3,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Files where we explicitly do NOT add syntax assertions because they contain
+// intentionally non-parseable PowerShell snippets (e.g., numeric suffix tests).
+const SKIP_ASSERT_FILES = new Set([
+  'number-literals.test.ts',
+]);
+
 const files = [
   'tests/advanced-coverage.test.ts','tests/advanced-features.test.ts','tests/advanced-formatting.test.ts','tests/advanced-printer.test.ts','tests/call-operator.test.ts','tests/comment-positioning.test.ts','tests/coverage.test.ts','tests/deep-nesting.test.ts','tests/delimited-sequences.test.ts','tests/error-handling.test.ts','tests/formatting-edge-cases.test.ts','tests/long-line-wrapping.test.ts','tests/number-literals.test.ts','tests/operators.test.ts','tests/parser-edge-cases.test.ts','tests/plugin.test.ts'
 ];
@@ -14,17 +20,19 @@ for(const f of files){
     continue;
   }
   let content = fs.readFileSync(filePath,'utf8');
-  if(!content.includes('assertPowerShellParses')){
+  if(SKIP_ASSERT_FILES.has(path.basename(filePath)) || content.includes('NO_PARSE_ASSERT')){
+    console.log('Skipping parse assertion for', f);
+  } else if(!content.includes('assertPowerShellParses')){
     const importRegex = /(^\s*import[\s\S]*?;\r?\n)(?!import)/m;
     const importBlockMatch = content.match(importRegex);
     if(importBlockMatch){
       const idx = importBlockMatch.index + importBlockMatch[0].length;
       const before = content.slice(0, idx);
       const after = content.slice(idx);
-      content = before + '\nimport { assertPowerShellParses } from "./utils/powershell.js";\n' + after;
+      content = before + '\nimport { assertPowerShellParses } from "./utils/powershell.js";\nimport { formatAndAssert } from "./utils/format-and-assert.js";\n' + after;
       console.log('Inserted import in', f);
     } else {
-      content = 'import { assertPowerShellParses } from "./utils/powershell.js";\n' + content;
+      content = 'import { assertPowerShellParses } from "./utils/powershell.js";\nimport { formatAndAssert } from "./utils/format-and-assert.js";\n' + content;
       console.log('Inserted import at top in', f);
     }
   }

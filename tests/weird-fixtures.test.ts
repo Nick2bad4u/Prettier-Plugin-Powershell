@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import prettier from "prettier";
+
 import { describe, expect, it } from "vitest";
 
 import { formatAndAssert, formatAndAssertRoundTrip } from "./utils/format-and-assert.js";

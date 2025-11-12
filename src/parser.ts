@@ -1091,6 +1091,8 @@ function splitHashtableEntries(tokens: Token[]): Token[][] {
             }
         },
         onFlush: (segment, state, segments, _force) => {
+            // Use the `_force` parameter to appease lint rules about unused vars
+            void _force;
             if (state.pendingComments.length > 0) {
                 if (segment.length > 0) {
                     segment.push(...state.pendingComments);

@@ -1,5 +1,5 @@
 import * as fc from "fast-check";
-import prettier from "prettier";
+
 import { describe, it } from "vitest";
 
 import { formatAndAssert } from "./utils/format-and-assert.js";

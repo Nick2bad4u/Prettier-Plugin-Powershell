@@ -1,5 +1,5 @@
 import * as fc from "fast-check";
-import prettier from "prettier";
+import type { Options } from "prettier";
 import { describe, it } from "vitest";
 
 import { formatAndAssert } from "./utils/format-and-assert.js";
@@ -13,7 +13,7 @@ const PROPERTY_RUNS = Number.parseInt(
     10
 );
 
-const prettierConfig: prettier.Options = {
+const prettierConfig: Options = {
     parser: "powershell",
     plugins: [plugin],
     filepath: "weird.ps1",

@@ -1,4 +1,4 @@
-import prettier from "prettier";
+
 import { describe, expect, it } from "vitest";
 import plugin from "../src/index.js";
 import { formatAndAssert } from "./utils/format-and-assert.js";
@@ -37,7 +37,7 @@ describe("Parser empty array element handling", () => {
         const script = "@(1,, 2)";
         // Just ensure it doesn't crash
         try {
-            await prettier.format(script, baseConfig);
+            await formatAndAssert(script, baseConfig, { skipParse: true });
         } catch (e) {
             // Expected to fail during parsing or formatting, but not crash
             expect(e).toBeDefined();

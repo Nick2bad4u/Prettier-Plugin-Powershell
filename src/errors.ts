@@ -115,7 +115,13 @@ export function createParseError(
 /**
  * Common PowerShell anti-patterns to detect and warn about.
  */
-export const ANTI_PATTERNS = [
+export type AntiPatternSpec = {
+    pattern: RegExp;
+    type: WarningType;
+    message: string;
+    suggestion?: string;
+};
+export const ANTI_PATTERNS: AntiPatternSpec[] = [
     {
         pattern: /Write-Host/gi,
         type: "anti-pattern" as WarningType,
@@ -154,7 +160,12 @@ export const ANTI_PATTERNS = [
 /**
  * Deprecated PowerShell syntax patterns.
  */
-export const DEPRECATED_SYNTAX = [
+export type DeprecatedSyntaxSpec = {
+    pattern: RegExp;
+    modern: string;
+    message: string;
+};
+export const DEPRECATED_SYNTAX: DeprecatedSyntaxSpec[] = [
     {
         pattern: /\$\(/g,
         modern: "$(...) subexpressions",

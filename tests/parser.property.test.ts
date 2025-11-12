@@ -1,5 +1,5 @@
 import * as fc from "fast-check";
-import prettier from "prettier";
+import type { Options, ParserOptions } from "prettier";
 import { describe, it } from "vitest";
 
 import { formatAndAssert } from "./utils/format-and-assert.js";
@@ -10,10 +10,7 @@ import { parsePowerShell } from "../src/parser.js";
 import { tokenize, type Token } from "../src/tokenizer.js";
 
 import { structuredScriptArbitrary } from "./property/arbitraries.js";
-import {
-    assertPowerShellParses,
-    isPowerShellParsable,
-} from "./utils/powershell.js";
+import { isPowerShellParsable } from "./utils/powershell.js";
 import { withProgress } from "./utils/progress.js";
 
 const PROPERTY_RUNS = Number.parseInt(
@@ -21,7 +18,7 @@ const PROPERTY_RUNS = Number.parseInt(
     10
 );
 
-const prettierConfig: prettier.Options = {
+const prettierConfig: Options = {
     parser: "powershell",
     plugins: [plugin],
     filepath: "property.ps1",
@@ -29,11 +26,11 @@ const prettierConfig: prettier.Options = {
 
 const createParserOptions = (
     overrides: Record<string, unknown> = {}
-): prettier.ParserOptions =>
+): ParserOptions =>
     ({
         tabWidth: 2,
         ...overrides,
-    }) as unknown as prettier.ParserOptions;
+    }) as unknown as ParserOptions;
 
 const isNode = (value: unknown): value is BaseNode =>
     Boolean(value) &&
