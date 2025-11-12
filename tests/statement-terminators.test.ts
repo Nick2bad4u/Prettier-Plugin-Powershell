@@ -40,6 +40,8 @@ describe("Statement terminator handling", () => {
         );
         const result = await prettier.format(input, baseConfig);
 
+        assertPowerShellParses(result, "statement-terminators");
+
         expect(result).toContain("# trailing comment");
         const expected = joinLines(
             "$scriptBlock = {",

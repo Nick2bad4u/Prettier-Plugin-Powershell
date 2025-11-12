@@ -31,6 +31,7 @@ describe("Unicode support in tokenizer", () => {
     it("supports Unicode identifiers (function names)", async () => {
         const script = "function Δ { Write-Output 'Delta' }";
         const result = await prettier.format(script, baseConfig);
+        assertPowerShellParses(result, "unicode-support");
         expect(result).toContain("function Δ");
     });
 
@@ -46,12 +47,14 @@ describe("Unicode support in tokenizer", () => {
     it("handles braced variable names with spaces and emoji", async () => {
         const script = "${'var with spaces'} = 1";
         const result = await prettier.format(script, baseConfig);
+        assertPowerShellParses(result, "unicode-support");
         expect(result).toContain("${'var with spaces'}");
     });
 
     it("preserves Unicode in strings", async () => {
         const script = "$text = 'Hello 世界 🌍'";
         const result = await prettier.format(script, baseConfig);
+        assertPowerShellParses(result, "unicode-support");
         expect(result).toContain("世界 🌍");
     });
 
