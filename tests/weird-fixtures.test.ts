@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import prettier from "prettier";
 import { describe, expect, it } from "vitest";
 
+import { formatAndAssert, formatAndAssertRoundTrip } from "./utils/format-and-assert.js";
 import { assertPowerShellParses } from "./utils/powershell.js";
 
 const baseConfig = {
@@ -37,7 +38,7 @@ describe("Additional regression fixtures", () => {
             file: "./fixtures/call-operator-nested.ps1",
             assertInput: (input) => {
                 expect(input).toContain("& (Get-Command Write-Output)");
-                expect(input).toContain("@splat.ScriptBlock");
+                expect(input).toContain("$splat.ScriptBlock");
             },
         },
         {
@@ -146,21 +147,28 @@ describe("Additional regression fixtures", () => {
 
             fixture.assertInput?.(input);
 
-            const firstPass = await prettier.format(input, {
-                ...baseConfig,
-                filepath: filePath,
-            });
-
-            const secondPass = await prettier.format(firstPass, {
-                ...baseConfig,
-                filepath: filePath,
-            });
-
+            let firstPass: string;
             if (fixture.expectIdempotent === false) {
+                firstPass = await formatAndAssert(input, {
+                    ...baseConfig,
+                    filepath: filePath,
+                });
+
+                const secondPass = await formatAndAssert(firstPass, {
+                    ...baseConfig,
+                    filepath: filePath,
+                }, "weird-fixtures.secondPass");
+                assertPowerShellParses(
+                    secondPass,
+                    `weird-fixtures.secondPass.${fixture.name}`
+                );
                 const normalizedSecond = secondPass.replace(/;{2,}/g, ";");
                 expect(normalizedSecond).toBe(firstPass);
             } else {
-                expect(secondPass).toBe(firstPass);
+                firstPass = await formatAndAssertRoundTrip(input, {
+                    ...baseConfig,
+                    filepath: filePath,
+                }, `weird-fixtures.${fixture.name}`);
             }
             fixture.assertFormatted?.(firstPass);
 

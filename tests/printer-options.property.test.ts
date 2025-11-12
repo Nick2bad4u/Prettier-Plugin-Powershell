@@ -2,9 +2,9 @@ import * as fc from "fast-check";
 import prettier from "prettier";
 import { describe, it } from "vitest";
 
-import plugin from "../src/index.js";
+import { formatAndAssert } from "./utils/format-and-assert.js";
 
-import { assertPowerShellParses } from "./utils/powershell.js";
+import plugin from "../src/index.js";
 import { withProgress } from "./utils/progress.js";
 
 const PROPERTY_RUNS = Number.parseInt(
@@ -16,13 +16,12 @@ const runFormat = async (
     script: string,
     overrides: Record<string, unknown> = {}
 ): Promise<string> => {
-    const formatted = await prettier.format(script, {
+    const formatted = await formatAndAssert(script, {
         parser: "powershell",
         plugins: [plugin],
         filepath: "options-test.ps1",
         ...overrides,
-    });
-    assertPowerShellParses(formatted, "printerOptions.runFormat");
+    }, "printerOptions.runFormat");
     return formatted;
 };
 

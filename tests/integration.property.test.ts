@@ -2,6 +2,8 @@ import * as fc from "fast-check";
 import prettier from "prettier";
 import { describe, it } from "vitest";
 
+import { formatAndAssert } from "./utils/format-and-assert.js";
+
 import plugin from "../src/index.js";
 import { parsePowerShell } from "../src/parser.js";
 import { tokenize } from "../src/tokenizer.js";
@@ -52,14 +54,14 @@ describe("Integration property tests", () => {
                                     throw new Error("Parsing failed");
                                 }
 
-                                const formatted = await prettier.format(
+                                const formatted = await formatAndAssert(
                                     script,
                                     {
                                         parser: "powershell",
                                         plugins: [plugin],
                                         filepath: "test.ps1",
                                     }
-                                );
+                                , "integration.property.formatted");
                                 assertPowerShellParses(
                                     formatted,
                                     "integration.crossModule.formatted"
@@ -133,7 +135,7 @@ describe("Integration property tests", () => {
                             ),
                             async (options, script) => {
                                 tracker.advance();
-                                const formatted = await prettier.format(
+                                const formatted = await formatAndAssert(
                                     script,
                                     {
                                         parser: "powershell",
@@ -148,7 +150,7 @@ describe("Integration property tests", () => {
                                         powershellPreferSingleQuote:
                                             options.preferSingleQuote,
                                     }
-                                );
+                                , "integration.property.formatted");
                                 assertPowerShellParses(
                                     formatted,
                                     "integration.optionCombos.formatted"
@@ -163,7 +165,7 @@ describe("Integration property tests", () => {
                                     );
                                 }
 
-                                const formatted2 = await prettier.format(
+                                const formatted2 = await formatAndAssert(
                                     formatted,
                                     {
                                         parser: "powershell",
@@ -178,7 +180,7 @@ describe("Integration property tests", () => {
                                         powershellPreferSingleQuote:
                                             options.preferSingleQuote,
                                     }
-                                );
+                                , "integration.property.formatted2");
                                 assertPowerShellParses(
                                     formatted2,
                                     "integration.optionCombos.formatted2"
@@ -274,14 +276,14 @@ describe("Integration property tests", () => {
                             ),
                             async (script) => {
                                 tracker.advance();
-                                const formatted = await prettier.format(
+                                const formatted = await formatAndAssert(
                                     script,
                                     {
                                         parser: "powershell",
                                         plugins: [plugin],
                                         filepath: "test.ps1",
                                     }
-                                );
+                                , "integration.property.formatted");
 
                                 const tokens = tokenize(formatted);
                                 const ast = parsePowerShell(formatted, {
@@ -343,14 +345,14 @@ describe("Integration property tests", () => {
                                     );
                                 }
 
-                                const formatted = await prettier.format(
+                                const formatted = await formatAndAssert(
                                     combined,
                                     {
                                         parser: "powershell",
                                         plugins: [plugin],
                                         filepath: "test.ps1",
                                     }
-                                );
+                                , "integration.property.formatted");
                                 assertPowerShellParses(
                                     formatted,
                                     "integration.concatenated.formatted"
@@ -396,14 +398,14 @@ describe("Integration property tests", () => {
                                 let current: string = script;
 
                                 for (let i = 0; i < iterations; i++) {
-                                    const formatted = await prettier.format(
+                                    const formatted = await formatAndAssert(
                                         current,
                                         {
                                             parser: "powershell",
                                             plugins: [plugin],
                                             filepath: "test.ps1",
                                         }
-                                    );
+                                    , "integration.property.formatted");
                                     assertPowerShellParses(
                                         formatted,
                                         "integration.repeatedFormatting.iteration"
@@ -421,14 +423,14 @@ describe("Integration property tests", () => {
                                     current = formatted;
                                 }
 
-                                const finalFormat = await prettier.format(
+                                const finalFormat = await formatAndAssert(
                                     current,
                                     {
                                         parser: "powershell",
                                         plugins: [plugin],
                                         filepath: "test.ps1",
                                     }
-                                );
+                                , "integration.property.finalFormat");
                                 assertPowerShellParses(
                                     finalFormat,
                                     "integration.repeatedFormatting.final"
@@ -538,27 +540,27 @@ describe("Integration property tests", () => {
                             ),
                             async (ext1, ext2, script) => {
                                 tracker.advance();
-                                const formatted1 = await prettier.format(
+                                const formatted1 = await formatAndAssert(
                                     script,
                                     {
                                         parser: "powershell",
                                         plugins: [plugin],
                                         filepath: `test${ext1}`,
                                     }
-                                );
+                                , "integration.property.formatted1");
                                 assertPowerShellParses(
                                     formatted1,
                                     "integration.extensions.formatted1"
                                 );
 
-                                const formatted2 = await prettier.format(
+                                const formatted2 = await formatAndAssert(
                                     script,
                                     {
                                         parser: "powershell",
                                         plugins: [plugin],
                                         filepath: `test${ext2}`,
                                     }
-                                );
+                                , "integration.property.formatted2");
                                 assertPowerShellParses(
                                     formatted2,
                                     "integration.extensions.formatted2"

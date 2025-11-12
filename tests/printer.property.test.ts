@@ -2,6 +2,8 @@ import * as fc from "fast-check";
 import prettier from "prettier";
 import { describe, it } from "vitest";
 
+import { formatAndAssert, formatAndAssertRoundTrip } from "./utils/format-and-assert.js";
+
 import plugin from "../src/index.js";
 import { parsePowerShell } from "../src/parser.js";
 
@@ -71,11 +73,11 @@ describe("Printer property-based tests", () => {
                 await fc.assert(
                     fc.asyncProperty(simpleScriptArb, async (script) => {
                         tracker.advance();
-                        await prettier.format(script, {
+                        await formatAndAssert(script, {
                             parser: "powershell",
                             plugins: [plugin],
                             filepath: "test.ps1",
-                        });
+                        }, { id: "printer.noThrow", skipParse: true });
                     }),
                     { numRuns: PROPERTY_RUNS }
                 );
@@ -91,11 +93,11 @@ describe("Printer property-based tests", () => {
                 await fc.assert(
                     fc.asyncProperty(simpleScriptArb, async (script) => {
                         tracker.advance();
-                        const formatted = await prettier.format(script, {
+                        const formatted = await formatAndAssert(script, {
                             parser: "powershell",
                             plugins: [plugin],
                             filepath: "test.ps1",
-                        });
+                        }, "printer.property.formatted");
                         assertPowerShellParses(
                             formatted,
                             "printer.property.formattedOutput"
@@ -123,31 +125,15 @@ describe("Printer property-based tests", () => {
                 await fc.assert(
                     fc.asyncProperty(simpleScriptArb, async (script) => {
                         tracker.advance();
-                        const formatted1 = await prettier.format(script, {
-                            parser: "powershell",
-                            plugins: [plugin],
-                            filepath: "test.ps1",
-                        });
-                        assertPowerShellParses(
-                            formatted1,
-                            "printer.property.idempotent.first"
+                        const formatted1 = await formatAndAssertRoundTrip(
+                            script,
+                            {
+                                parser: "powershell",
+                                plugins: [plugin],
+                                filepath: "test.ps1",
+                            },
+                            "printer.property.idempotent"
                         );
-
-                        const formatted2 = await prettier.format(formatted1, {
-                            parser: "powershell",
-                            plugins: [plugin],
-                            filepath: "test.ps1",
-                        });
-                        assertPowerShellParses(
-                            formatted2,
-                            "printer.property.idempotent.second"
-                        );
-
-                        if (formatted1 !== formatted2) {
-                            throw new Error(
-                                `Formatting is not idempotent:\nFirst:\n${formatted1}\n\nSecond:\n${formatted2}`
-                            );
-                        }
                     }),
                     { numRuns: PROPERTY_RUNS }
                 );
@@ -167,11 +153,11 @@ describe("Printer property-based tests", () => {
                             script,
                             {} as never
                         );
-                        const formatted = await prettier.format(script, {
+                        const formatted = await formatAndAssert(script, {
                             parser: "powershell",
                             plugins: [plugin],
                             filepath: "test.ps1",
-                        });
+                        }, "printer.property.formatted");
                         assertPowerShellParses(
                             formatted,
                             "printer.property.semantic"
@@ -215,13 +201,13 @@ describe("Printer property-based tests", () => {
                             tracker.advance();
                             const script =
                                 'if ($true) {\nWrite-Output "test"\n}';
-                            const formatted = await prettier.format(script, {
+                            const formatted = await formatAndAssert(script, {
                                 parser: "powershell",
                                 plugins: [plugin],
                                 filepath: "test.ps1",
                                 powershellIndentSize: indentSize,
                                 tabWidth: indentSize,
-                            });
+                            }, "printer.property.formatted");
                             assertPowerShellParses(
                                 formatted,
                                 "printer.property.indentSize"
@@ -263,12 +249,12 @@ describe("Printer property-based tests", () => {
                             tracker.advance();
                             const script =
                                 'function Test-Func { Write-Output "test" }';
-                            const formatted = await prettier.format(script, {
+                            const formatted = await formatAndAssert(script, {
                                 parser: "powershell",
                                 plugins: [plugin],
                                 filepath: "test.ps1",
                                 powershellBraceStyle: braceStyle,
-                            });
+                            }, "printer.property.formatted");
                             assertPowerShellParses(
                                 formatted,
                                 "printer.property.braceStyle"
@@ -306,12 +292,12 @@ describe("Printer property-based tests", () => {
                         async (keywordCase) => {
                             tracker.advance();
                             const script = 'IF ($true) { WRITE-OUTPUT "test" }';
-                            const formatted = await prettier.format(script, {
+                            const formatted = await formatAndAssert(script, {
                                 parser: "powershell",
                                 plugins: [plugin],
                                 filepath: "test.ps1",
                                 powershellKeywordCase: keywordCase,
-                            });
+                            }, "printer.property.formatted");
                             assertPowerShellParses(
                                 formatted,
                                 "printer.property.keywordCase"
@@ -350,11 +336,11 @@ describe("Printer property-based tests", () => {
             await fc.assert(
                 fc.asyncProperty(fc.constant(""), async (script) => {
                     tracker.advance();
-                    const formatted = await prettier.format(script, {
+                    const formatted = await formatAndAssert(script, {
                         parser: "powershell",
                         plugins: [plugin],
                         filepath: "test.ps1",
-                    });
+                    }, "printer.property.formatted");
                     assertPowerShellParses(
                         formatted,
                         "printer.property.emptyScript"
@@ -379,11 +365,11 @@ describe("Printer property-based tests", () => {
                 await fc.assert(
                     fc.asyncProperty(commentArb, async (comment) => {
                         tracker.advance();
-                        const formatted = await prettier.format(comment, {
+                        const formatted = await formatAndAssert(comment, {
                             parser: "powershell",
                             plugins: [plugin],
                             filepath: "test.ps1",
-                        });
+                        }, "printer.property.formatted");
                         assertPowerShellParses(
                             formatted,
                             "printer.property.comment"
@@ -413,11 +399,11 @@ describe("Printer property-based tests", () => {
                             .map((comments) => comments.join("\n")),
                         async (script) => {
                             tracker.advance();
-                            const formatted = await prettier.format(script, {
+                            const formatted = await formatAndAssert(script, {
                                 parser: "powershell",
                                 plugins: [plugin],
                                 filepath: "test.ps1",
-                            });
+                            }, "printer.property.formatted");
                             assertPowerShellParses(
                                 formatted,
                                 "printer.property.commentOnly"
@@ -453,11 +439,11 @@ describe("Printer property-based tests", () => {
                 await fc.assert(
                     fc.asyncProperty(simpleScriptArb, async (script) => {
                         tracker.advance();
-                        const formatted = await prettier.format(script, {
+                        const formatted = await formatAndAssert(script, {
                             parser: "powershell",
                             plugins: [plugin],
                             filepath: "test.ps1",
-                        });
+                        }, "printer.property.formatted");
                         assertPowerShellParses(
                             formatted,
                             "printer.property.lineEndings"

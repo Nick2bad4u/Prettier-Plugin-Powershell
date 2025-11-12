@@ -18,6 +18,6 @@ $splat = @{
     ArgumentList  = @("Value1", "Value2")
 }
 
-& @splat.ScriptBlock -Value "Inline"
+& $splat.ScriptBlock -Value "Inline"
 
 & (& { Get-Command Write-Output }) @("Pipelines", "Still", "Work")

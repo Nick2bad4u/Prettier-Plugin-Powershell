@@ -15,8 +15,7 @@ import { beforeAll, describe, it } from "vitest";
 
 import plugin from "../src/index.js";
 import { parsePowerShell } from "../src/parser.js";
-
-import { assertPowerShellParses } from "./utils/powershell.js";
+import { formatAndAssertRoundTrip } from "./utils/format-and-assert.js";
 import { withProgress } from "./utils/progress.js";
 
 type GitHubCodeItem = {
@@ -320,16 +319,13 @@ describe("Real-world GitHub PowerShell samples", () => {
                             );
                         }
 
-                        const formatted = await prettier.format(
+                        const formatted = await formatAndAssertRoundTrip(
                             sample.content,
                             {
                                 parser: "powershell",
                                 plugins: [plugin],
                                 filepath: sample.identifier,
-                            }
-                        );
-                        assertPowerShellParses(
-                            formatted,
+                            },
                             `githubSamples.formatted:${sample.identifier}`
                         );
 
@@ -342,23 +338,7 @@ describe("Real-world GitHub PowerShell samples", () => {
                             );
                         }
 
-                        const formattedTwice = await prettier.format(
-                            formatted,
-                            {
-                                parser: "powershell",
-                                plugins: [plugin],
-                                filepath: sample.identifier,
-                            }
-                        );
-                        assertPowerShellParses(
-                            formattedTwice,
-                            `githubSamples.formattedTwice:${sample.identifier}`
-                        );
-                        if (formatted !== formattedTwice) {
-                            throw new Error(
-                                `Formatting was not idempotent for ${sample.identifier}`
-                            );
-                        }
+                        // formatAndAssertRoundTrip already verified idempotence and parseability
                     }
                 ),
                 { numRuns: runCount }

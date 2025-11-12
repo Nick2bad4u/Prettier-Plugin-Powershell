@@ -2,6 +2,8 @@ import * as fc from "fast-check";
 import prettier from "prettier";
 import { describe, it } from "vitest";
 
+import { formatAndAssert } from "./utils/format-and-assert.js";
+
 import type { BaseNode, SourceLocation } from "../src/ast.js";
 import plugin from "../src/index.js";
 import { parsePowerShell } from "../src/parser.js";
@@ -136,26 +138,19 @@ describe("PowerShell parser property-based tests", () => {
                     );
                     fc.pre(isValidPowerShell);
                     const options = createParserOptions();
-                    const formatted = await prettier.format(
-                        script,
-                        prettierConfig
-                    );
-                    const formattedTwice = await prettier.format(
-                        formatted,
-                        prettierConfig
-                    );
                     const hasTryCatch =
                         /\btry\b/i.test(script) && /\bcatch\b/i.test(script);
-                    if (!hasTryCatch) {
-                        assertPowerShellParses(
-                            formatted,
-                            "parser.property.formatted"
-                        );
-                        assertPowerShellParses(
-                            formattedTwice,
-                            "parser.property.formattedTwice"
-                        );
-                    }
+                    const formatted = await formatAndAssert(
+                        script,
+                        prettierConfig,
+                        { id: "parser.property.formatted", skipParse: hasTryCatch }
+                    );
+                    const formattedTwice = await formatAndAssert(
+                        formatted,
+                        prettierConfig,
+                        { id: "parser.property.formattedTwice", skipParse: hasTryCatch }
+                    );
+                    // formatAndAssert already asserted parse when applicable
                     if (formatted !== formattedTwice) {
                         throw new Error(
                             `Formatter is not idempotent under generated input.\n` +

@@ -1,5 +1,6 @@
 import prettier from "prettier";
 import { describe, expect, it } from "vitest";
+import { formatAndAssert } from "./utils/format-and-assert.js";
 
 const baseConfig = {
     parser: "powershell" as const,
@@ -19,8 +20,7 @@ describe("Call operator formatting", () => {
             '& $scriptBlock -name "World"',
             ""
         );
-        const result = await prettier.format(input, baseConfig);
-
+        const result = await formatAndAssert(input, baseConfig, "call-operator.result");
         expect(result).toContain("param($name)");
         expect(result).toContain('"Hello $name"');
         expect(result).toContain('& $scriptBlock -name "World"');
@@ -28,8 +28,7 @@ describe("Call operator formatting", () => {
 
     it("handles call operator with command expressions", async () => {
         const input = '& (Get-Command Write-Host) "hi"';
-        const result = await prettier.format(input, baseConfig);
-
+        const result = await formatAndAssert(input, baseConfig, "call-operator.result");
         expect(result).toBe('& (Get-Command Write-Host) "hi"\n');
     });
 
@@ -41,8 +40,7 @@ describe("Call operator formatting", () => {
             '& $invoke @params',
             ""
         );
-        const result = await prettier.format(input, baseConfig);
-
+        const result = await formatAndAssert(input, baseConfig, "call-operator.result");
         expect(result).toBe(
             '$invoke = Get-Command Invoke-RestMethod\n' +
                 '$params = @{ Uri = "https://example.com" }\n' +
@@ -57,8 +55,7 @@ describe("Call operator formatting", () => {
             '& $object.Script.Invoke()',
             ""
         );
-        const result = await prettier.format(input, baseConfig);
-
+        const result = await formatAndAssert(input, baseConfig, "call-operator.result");
         expect(result).toContain('[PSCustomObject]');
         expect(result).toMatch(/& \$object\.Script\.Invoke\(\)/);
     });

@@ -1,5 +1,6 @@
 import prettier from "prettier";
 import { describe, expect, it } from "vitest";
+import { formatAndAssert } from "./utils/format-and-assert.js";
 
 const baseConfig = {
     parser: "powershell" as const,
@@ -10,7 +11,7 @@ describe("Advanced Printer Features", () => {
     describe("Multi-line Condition Alignment", () => {
         it("handles multi-line if conditions", async () => {
             const input = `if ($value -gt 10 -and $name -like "*test*" -or $status -eq "active") { Write-Output "matched" }`;
-            const result = await prettier.format(input, baseConfig);
+            const result = await formatAndAssert(input, baseConfig, "advanced-printer.result");
             expect(result).toBeTruthy();
             expect(result).toContain("-gt");
             expect(result).toContain("-like");
@@ -19,7 +20,7 @@ describe("Advanced Printer Features", () => {
 
         it("handles complex nested conditions", async () => {
             const input = `if (($x -gt 5 -and $y -lt 10) -or ($z -eq 0 -and $w -ne 100)) { $true }`;
-            const result = await prettier.format(input, baseConfig);
+            const result = await formatAndAssert(input, baseConfig, "advanced-printer.result");
             expect(result).toBeTruthy();
             expect(result).toContain("-gt");
             expect(result).toContain("-eq");
@@ -27,7 +28,7 @@ describe("Advanced Printer Features", () => {
 
         it("handles where-object with conditions", async () => {
             const input = `Get-Process | Where-Object { $_.CPU -gt 10 -and $_.WorkingSet -gt 1MB -or $_.Name -like "*chrome*" }`;
-            const result = await prettier.format(input, baseConfig);
+            const result = await formatAndAssert(input, baseConfig, "advanced-printer.result");
             expect(result).toBeTruthy();
             expect(result).toContain("-gt");
             expect(result).toContain("-like");
@@ -37,26 +38,26 @@ describe("Advanced Printer Features", () => {
     describe("Error Recovery", () => {
         it("recovers from unclosed braces", async () => {
             const input = `function Test { Write-Output "test"`;
-            const result = await prettier.format(input, baseConfig);
+            const result = await formatAndAssert(input, baseConfig, "advanced-printer.result");
             expect(result).toBeTruthy();
             expect(result).toContain("function Test");
         });
 
         it("recovers from unclosed parentheses", async () => {
             const input = `$result = (Get-Process | Select-Object Name`;
-            const result = await prettier.format(input, baseConfig);
+            const result = await formatAndAssert(input, baseConfig, "advanced-printer.result");
             expect(result).toBeTruthy();
         });
 
         it("recovers from unclosed strings", async () => {
             const input = `$text = "incomplete string`;
-            const result = await prettier.format(input, baseConfig);
+            const result = await formatAndAssert(input, baseConfig, "advanced-printer.result");
             expect(result).toBeTruthy();
         });
 
         it("handles mixed valid and invalid syntax", async () => {
             const input = `$valid = 1\nif ($broken { \n$alsoValid = 2`;
-            const result = await prettier.format(input, baseConfig);
+            const result = await formatAndAssert(input, baseConfig, "advanced-printer.result");
             expect(result).toBeTruthy();
             expect(result).toContain("$valid = 1");
             expect(result).toContain("$alsoValid = 2");
@@ -64,7 +65,7 @@ describe("Advanced Printer Features", () => {
 
         it("recovers from malformed hashtables", async () => {
             const input = `$hash = @{ Key1 = "Value1"; Key2 =`;
-            const result = await prettier.format(input, baseConfig);
+            const result = await formatAndAssert(input, baseConfig, "advanced-printer.result");
             expect(result).toBeTruthy();
         });
     });
@@ -72,14 +73,14 @@ describe("Advanced Printer Features", () => {
     describe("Command Parameter Handling", () => {
         it("formats short parameters correctly", async () => {
             const input = `Get-Process -Name "powershell" -Id 1234`;
-            const result = await prettier.format(input, baseConfig);
+            const result = await formatAndAssert(input, baseConfig, "advanced-printer.result");
             expect(result).toContain("-Name");
             expect(result).toContain("-Id");
         });
 
         it("formats long GNU-style parameters", async () => {
             const input = `docker run --name mycontainer --detach --publish 8080:80 nginx`;
-            const result = await prettier.format(input, baseConfig);
+            const result = await formatAndAssert(input, baseConfig, "advanced-printer.result");
             expect(result).toContain("--name");
             expect(result).toContain("--detach");
             expect(result).toContain("--publish");
@@ -87,7 +88,7 @@ describe("Advanced Printer Features", () => {
 
         it("preserves mixed parameter styles", async () => {
             const input = `node script.js --verbose -p 3000 --config "config.json"`;
-            const result = await prettier.format(input, baseConfig);
+            const result = await formatAndAssert(input, baseConfig, "advanced-printer.result");
             expect(result).toContain("--verbose");
             expect(result).toContain("-p");
             expect(result).toContain("--config");
@@ -95,7 +96,7 @@ describe("Advanced Printer Features", () => {
 
         it("handles parameters with values", async () => {
             const input = `Get-ChildItem -Path C:\\Windows -Filter *.log -Recurse -ErrorAction SilentlyContinue`;
-            const result = await prettier.format(input, baseConfig);
+            const result = await formatAndAssert(input, baseConfig, "advanced-printer.result");
             expect(result).toContain("-Path");
             expect(result).toContain("-Filter");
             expect(result).toContain("-Recurse");
@@ -113,7 +114,7 @@ describe("Advanced Printer Features", () => {
             const input = functions.join("\n");
 
             const start = Date.now();
-            const result = await prettier.format(input, baseConfig);
+            const result = await formatAndAssert(input, baseConfig, "advanced-printer.result");
             const duration = Date.now() - start;
 
             expect(result).toBeTruthy();
@@ -132,7 +133,7 @@ describe("Advanced Printer Features", () => {
                     }
                 }
             }`;
-            const result = await prettier.format(input, baseConfig);
+            const result = await formatAndAssert(input, baseConfig, "advanced-printer.result");
             expect(result).toBeTruthy();
             expect(result).toContain("deep");
         });

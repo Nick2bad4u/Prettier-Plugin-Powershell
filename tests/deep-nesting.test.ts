@@ -1,5 +1,6 @@
 import prettier from "prettier";
 import { describe, expect, it } from "vitest";
+import { formatAndAssert } from "./utils/format-and-assert.js";
 
 const baseConfig = {
     parser: "powershell" as const,
@@ -10,8 +11,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
     describe("DSC Configuration Support", () => {
         it("handles basic DSC configuration", async () => {
             const input = `Configuration MyConfig { Node localhost { File MyFile { DestinationPath = "C:\\test.txt"; Contents = "test" } } }`;
-            const result = await prettier.format(input, baseConfig);
-
+            const result = await formatAndAssert(input, baseConfig, "deep-nesting.result");
             expect(result).toBeTruthy();
             expect(result).toContain("Configuration MyConfig");
             expect(result).toContain("Node localhost");
@@ -31,8 +31,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                     }
                 }
             }`;
-            const result = await prettier.format(input, baseConfig);
-
+            const result = await formatAndAssert(input, baseConfig, "deep-nesting.result");
             expect(result).toContain("Configuration WebServer");
             expect(result).toContain("WindowsFeature IIS");
             expect(result).toContain("WindowsFeature ASP");
@@ -52,8 +51,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                     }
                 }
             }`;
-            const result = await prettier.format(input, baseConfig);
-
+            const result = await formatAndAssert(input, baseConfig, "deep-nesting.result");
             expect(result).toBeTruthy();
             expect(result).toContain("Configuration Complex");
         });
@@ -67,8 +65,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                     }
                 }
             }`;
-            const result = await prettier.format(input, baseConfig);
-
+            const result = await formatAndAssert(input, baseConfig, "deep-nesting.result");
             expect(result).toContain("MultiNode");
             expect(result).toContain("Server01");
         });
@@ -87,8 +84,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                     }
                 }
             }`;
-            const result = await prettier.format(input, baseConfig);
-
+            const result = await formatAndAssert(input, baseConfig, "deep-nesting.result");
             expect(result).toBeTruthy();
             expect(result).toContain("deep");
         });
@@ -100,8 +96,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                     @{ Name = "Bob"; Settings = @{ Theme = "light"; Font = @{ Size = 14 } } }
                 )
             }`;
-            const result = await prettier.format(input, baseConfig);
-
+            const result = await formatAndAssert(input, baseConfig, "deep-nesting.result");
             expect(result).toBeTruthy();
             expect(result).toContain("Alice");
             expect(result).toContain("Bob");
@@ -109,8 +104,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
 
         it("handles 10-level deep nesting", async () => {
             const input = `$deep = @{ L1 = @{ L2 = @{ L3 = @{ L4 = @{ L5 = @{ L6 = @{ L7 = @{ L8 = @{ L9 = @{ L10 = "bottom" } } } } } } } } } }`;
-            const result = await prettier.format(input, baseConfig);
-
+            const result = await formatAndAssert(input, baseConfig, "deep-nesting.result");
             expect(result).toBeTruthy();
             expect(result).toContain("bottom");
         });
@@ -119,8 +113,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
     describe("Deep Array Nesting", () => {
         it("handles nested arrays", async () => {
             const input = `$matrix = @(@(1, 2, 3), @(4, 5, 6), @(7, 8, 9))`;
-            const result = await prettier.format(input, baseConfig);
-
+            const result = await formatAndAssert(input, baseConfig, "deep-nesting.result");
             expect(result).toBeTruthy();
             expect(result).toContain("1");
             expect(result).toContain("9");
@@ -128,8 +121,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
 
         it("handles deeply nested arrays", async () => {
             const input = `$nested = @(@(@(@(@(1)))))`;
-            const result = await prettier.format(input, baseConfig);
-
+            const result = await formatAndAssert(input, baseConfig, "deep-nesting.result");
             expect(result).toBeTruthy();
             expect(result).toContain("1");
         });
@@ -138,24 +130,21 @@ describe("Deep Nesting and Complex Structure Handling", () => {
     describe("Deep Function Nesting", () => {
         it("handles nested script blocks", async () => {
             const input = `$script = { $inner1 = { $inner2 = { $inner3 = { Write-Output "deep" } } } }`;
-            const result = await prettier.format(input, baseConfig);
-
+            const result = await formatAndAssert(input, baseConfig, "deep-nesting.result");
             expect(result).toBeTruthy();
             expect(result).toContain("deep");
         });
 
         it("handles nested if statements", async () => {
             const input = `if ($a) { if ($b) { if ($c) { if ($d) { if ($e) { Write-Output "nested" } } } } }`;
-            const result = await prettier.format(input, baseConfig);
-
+            const result = await formatAndAssert(input, baseConfig, "deep-nesting.result");
             expect(result).toBeTruthy();
             expect(result).toContain("nested");
         });
 
         it("handles nested foreach loops", async () => {
             const input = `foreach ($i in 1..3) { foreach ($j in 1..3) { foreach ($k in 1..3) { Write-Output "$i,$j,$k" } } }`;
-            const result = await prettier.format(input, baseConfig);
-
+            const result = await formatAndAssert(input, baseConfig, "deep-nesting.result");
             expect(result).toBeTruthy();
             expect(result).toContain("foreach");
         });
@@ -177,8 +166,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 }
                 return $config
             }`;
-            const result = await prettier.format(input, baseConfig);
-
+            const result = await formatAndAssert(input, baseConfig, "deep-nesting.result");
             expect(result).toContain("Get-Config");
             expect(result).toContain("SQL01");
         });
@@ -189,8 +177,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 2 { switch ($sub) { "a" { "2-a" } "b" { "2-b" } } }
                 default { foreach ($item in $items) { Write-Output $item } }
             }`;
-            const result = await prettier.format(input, baseConfig);
-
+            const result = await formatAndAssert(input, baseConfig, "deep-nesting.result");
             expect(result).toBeTruthy();
             expect(result).toContain("switch");
         });
@@ -205,7 +192,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
             }
             const input = `$deep = ${deep}`;
 
-            const result = await prettier.format(input, baseConfig);
+            const result = await formatAndAssert(input, baseConfig, "deep-nesting.result");
             expect(result).toBeTruthy();
         });
 
@@ -215,7 +202,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
             }`;
 
             const start = Date.now();
-            const result = await prettier.format(input, baseConfig);
+            const result = await formatAndAssert(input, baseConfig, "deep-nesting.result");
             const duration = Date.now() - start;
 
             expect(result).toBeTruthy();
@@ -226,15 +213,13 @@ describe("Deep Nesting and Complex Structure Handling", () => {
     describe("Edge Cases in Deep Structures", () => {
         it("handles empty nested structures", async () => {
             const input = `$empty = @{ A = @{ B = @{ C = @{} } } }`;
-            const result = await prettier.format(input, baseConfig);
-
+            const result = await formatAndAssert(input, baseConfig, "deep-nesting.result");
             expect(result).toBeTruthy();
         });
 
         it("handles mixed empty and filled structures", async () => {
             const input = `$mixed = @{ A = @{}; B = @{ C = "value" }; D = @{} }`;
-            const result = await prettier.format(input, baseConfig);
-
+            const result = await formatAndAssert(input, baseConfig, "deep-nesting.result");
             expect(result).toBeTruthy();
             expect(result).toContain("value");
         });

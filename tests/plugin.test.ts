@@ -1,8 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { URL } from "node:url";
-
 import prettier from "prettier";
 import { describe, expect, it } from "vitest";
+import { formatAndAssert } from "./utils/format-and-assert.js";
+
 
 import plugin from "../src/index.js";
 
@@ -40,7 +41,7 @@ line1
 }
 `;
 
-        const result = await prettier.format(input, baseConfig);
+        const result = await formatAndAssert(input, baseConfig, "plugin.result");
         expect(normalize(result)).toBe(normalize(expected));
     });
 
@@ -50,9 +51,8 @@ line1
             "utf8"
         );
 
-        const once = await prettier.format(formatted, baseConfig);
-        const twice = await prettier.format(once, baseConfig);
-
+        const once = await formatAndAssert(formatted, baseConfig, "plugin.once");
+        const twice = await formatAndAssert(once, baseConfig, "plugin.twice");
         expect(twice).toBe(once);
     });
 
@@ -66,11 +66,10 @@ Write-Host "Hello"
 }
 }`;
 
-        const result = await prettier.format(input, {
+        const result = await formatAndAssert(input, {
             ...baseConfig,
             powershellIndentSize: 4,
-        });
-
+        }, "plugin.result");
         const lines = normalize(result).trimEnd().split("\n");
         expect(lines[0]).toBe("function Test {");
         expect(lines[1]).toMatch(/^ {4}param\($/);
@@ -85,11 +84,10 @@ Write-Host "Hello"
 
     it("sorts hashtable keys when enabled", async () => {
         const input = `@{ z = 1; a = 2; m = 3 }`;
-        const result = await prettier.format(input, {
+        const result = await formatAndAssert(input, {
             ...baseConfig,
             powershellSortHashtableKeys: true,
-        });
-
+        }, "plugin.result");
         expect(result.trim()).toBe(`@{ a = 2; m = 3; z = 1 }`);
     });
 
@@ -99,8 +97,7 @@ param([string] $Name, [int] $Count)
 Write-Host $Name
 }`;
 
-        const result = await prettier.format(input, baseConfig);
-
+        const result = await formatAndAssert(input, baseConfig, "plugin.result");
         const expected = `function Foo {
   param(
     [string] $Name,
@@ -119,11 +116,10 @@ param([string] $Name, [int] $Count)
 Write-Host $Name
 }`;
 
-        const result = await prettier.format(input, {
+        const result = await formatAndAssert(input, {
             ...baseConfig,
             powershellBlankLineAfterParam: false,
-        });
-
+        }, "plugin.result");
         const expected = `function Foo {
   param(
     [string] $Name,
@@ -143,8 +139,7 @@ line
 return $here
 }`;
 
-        const result = await prettier.format(input, baseConfig);
-
+        const result = await formatAndAssert(input, baseConfig, "plugin.result");
         expect(result).toContain(`\n  return $here\n`);
     });
 
@@ -153,12 +148,11 @@ return $here
 Write-Host "Hi"
 }`;
 
-        const defaultResult = await prettier.format(input, baseConfig);
-        const allmanResult = await prettier.format(input, {
+        const defaultResult = await formatAndAssert(input, baseConfig, "plugin.defaultResult");
+        const allmanResult = await formatAndAssert(input, {
             ...baseConfig,
             powershellBraceStyle: "allman",
-        });
-
+        }, "plugin.allmanResult");
         expect(defaultResult.trim()).toBe(`function Foo {
   Write-Host "Hi"
 }`);
@@ -179,16 +173,14 @@ a = 1
 b = 2
 }`;
 
-        const arrayResult = await prettier.format(arrayInput, {
+        const arrayResult = await formatAndAssert(arrayInput, {
             ...baseConfig,
             powershellTrailingComma: "all",
-        });
-
-        const hashResult = await prettier.format(hashInput, {
+        }, "plugin.arrayResult");
+        const hashResult = await formatAndAssert(hashInput, {
             ...baseConfig,
             powershellTrailingComma: "all",
-        });
-
+        }, "plugin.hashResult");
         // Arrays should NEVER have trailing commas (PowerShell doesn't support this)
         expect(arrayResult).not.toMatch(new RegExp(",\\s*\\)"));
         // Hashtables CAN have trailing semicolons
@@ -198,11 +190,10 @@ b = 2
     it("wraps pipelines when exceeding the configured line width", async () => {
         const input = `$items = Get-Process | Where-Object { $_.CPU -gt 0 } | Select-Object -First 5`;
 
-        const result = await prettier.format(input, {
+        const result = await formatAndAssert(input, {
             ...baseConfig,
             powershellLineWidth: 60,
-        });
-
+        }, "plugin.result");
         expect(result).toContain("|");
         expect(
             result.split("\n").some((line) => line.trimStart().startsWith("|"))
@@ -212,22 +203,20 @@ b = 2
     it("prefers single quotes for simple strings when enabled", async () => {
         const input = `Write-Host "Hello"`;
 
-        const result = await prettier.format(input, {
+        const result = await formatAndAssert(input, {
             ...baseConfig,
             powershellPreferSingleQuote: true,
-        });
-
+        }, "plugin.result");
         expect(result.trim()).toBe("Write-Host 'Hello'");
     });
 
     it("rewrites common aliases when enabled", async () => {
         const input = `ls | % { $_.Name }`;
 
-        const result = await prettier.format(input, {
+        const result = await formatAndAssert(input, {
             ...baseConfig,
             powershellRewriteAliases: true,
-        });
-
+        }, "plugin.result");
         expect(result).toContain("Get-ChildItem");
         expect(result).toContain("ForEach-Object");
     });
@@ -235,11 +224,10 @@ b = 2
     it("rewrites Write-Host when configured", async () => {
         const input = `Write-Host $Message`;
 
-        const result = await prettier.format(input, {
+        const result = await formatAndAssert(input, {
             ...baseConfig,
             powershellRewriteWriteHost: true,
-        });
-
+        }, "plugin.result");
         expect(result.trim()).toBe("Write-Output $Message");
     });
 
@@ -251,8 +239,7 @@ Write-Host ` +
             `
 $value`;
 
-        const result = await prettier.format(input, baseConfig);
-
+        const result = await formatAndAssert(input, baseConfig, "plugin.result");
         expect(result).not.toContain("`");
         expect(
             result
@@ -268,11 +255,10 @@ Write-Output "hi"
 }
 }`;
 
-        const result = await prettier.format(input, {
+        const result = await formatAndAssert(input, {
             ...baseConfig,
             powershellKeywordCase: "lower",
-        });
-
+        }, "plugin.result");
         const lines = result.split("\n");
         expect(lines[0]).toBe("function Foo {");
         expect(lines[1].trim()).toBe("if ($true) {");
@@ -281,8 +267,7 @@ Write-Output "hi"
     it("normalises whitespace and removes trailing semicolons", async () => {
         const input = `Write-Host  $value ;`;
 
-        const result = await prettier.format(input, baseConfig);
-
+        const result = await formatAndAssert(input, baseConfig, "plugin.result");
         expect(result.trim()).toBe("Write-Host $value");
     });
 
@@ -323,8 +308,7 @@ begin {
 }
 `;
 
-        const result = await prettier.format(input, baseConfig);
-
+        const result = await formatAndAssert(input, baseConfig, "plugin.result");
         expect(normalize(result)).toBe(normalize(expected));
     });
 });
