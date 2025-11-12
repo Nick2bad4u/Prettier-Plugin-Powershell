@@ -55,7 +55,9 @@ export async function formatAndAssertRoundTrip(
     if (typeof id !== "undefined") opts2.id = id + ".second";
     const formatted2 = await formatAndAssert(formatted1, options, opts2);
     // If check idempotent is true (default), assert equality
-    if ((typeof opts !== "string" && opts.expectIdempotent === false) === false) {
+    if (
+        (typeof opts !== "string" && opts.expectIdempotent === false) === false
+    ) {
         // default to strict equality
         if (formatted1 !== formatted2) {
             throw new Error(

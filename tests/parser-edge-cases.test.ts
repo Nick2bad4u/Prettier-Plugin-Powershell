@@ -1,10 +1,8 @@
-
 import { describe, expect, it } from "vitest";
 
 import plugin from "../src/index.js";
 
 import { formatAndAssert } from "./utils/format-and-assert.js";
-
 
 const baseConfig = {
     parser: "powershell",
@@ -14,20 +12,32 @@ const baseConfig = {
 describe("Parser inline comment detection", () => {
     it("treats comment at position 0 as non-inline", async () => {
         const script = "# Comment at start\n$a = 1";
-        const result = await formatAndAssert(script, baseConfig, "parser-edge-cases.result");
+        const result = await formatAndAssert(
+            script,
+            baseConfig,
+            "parser-edge-cases.result"
+        );
         // Comment at position 0 should be on its own line
         expect(result).toContain("# Comment at start\n");
     });
 
     it("treats empty source correctly", async () => {
         const script = "";
-        const result = await formatAndAssert(script, baseConfig, "parser-edge-cases.result");
+        const result = await formatAndAssert(
+            script,
+            baseConfig,
+            "parser-edge-cases.result"
+        );
         expect(result.trim()).toBe("");
     });
 
     it("treats actual inline comments correctly", async () => {
         const script = "$a = 1 # inline comment";
-        const result = await formatAndAssert(script, baseConfig, "parser-edge-cases.result");
+        const result = await formatAndAssert(
+            script,
+            baseConfig,
+            "parser-edge-cases.result"
+        );
         // Inline comment should stay on same line
         expect(result).toContain("# inline comment");
     });
@@ -48,7 +58,11 @@ describe("Parser empty array element handling", () => {
 
     it("handles arrays with newlines and commas correctly", async () => {
         const script = "@(\n1,\n2\n)";
-        const result = await formatAndAssert(script, baseConfig, "parser-edge-cases.result");
+        const result = await formatAndAssert(
+            script,
+            baseConfig,
+            "parser-edge-cases.result"
+        );
         expect(result).toContain("@(");
         expect(result).toContain(")");
     });

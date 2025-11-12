@@ -1,4 +1,3 @@
-
 import { describe, expect, it } from "vitest";
 
 import { formatAndAssert } from "./utils/format-and-assert.js";
@@ -17,7 +16,10 @@ describe("Statement terminator handling", () => {
             '}; Write-Output "After"',
             ""
         );
-        const result = await formatAndAssert(input, baseConfig, { id: "statement-terminators.test.ts.result", skipParse: true });
+        const result = await formatAndAssert(input, baseConfig, {
+            id: "statement-terminators.test.ts.result",
+            skipParse: true,
+        });
 
         const expected = joinLines(
             "$scriptBlock = {",
@@ -33,17 +35,21 @@ describe("Statement terminator handling", () => {
         const input = joinLines(
             "$scriptBlock = {",
             '    Write-Output "Hello"',
-            '}; # trailing comment',
+            "}; # trailing comment",
             'Write-Output "After"',
             ""
         );
-        const result = await formatAndAssert(input, baseConfig, "statement-terminators");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "statement-terminators"
+        );
 
         expect(result).toContain("# trailing comment");
         const expected = joinLines(
             "$scriptBlock = {",
             '  Write-Output "Hello"',
-            '} # trailing comment',
+            "} # trailing comment",
             'Write-Output "After"',
             ""
         );
@@ -53,7 +59,10 @@ describe("Statement terminator handling", () => {
     it("normalizes inline semicolon-separated commands", async () => {
         const input =
             'Write-Output "one"; Write-Output "two"; Write-Output "three"';
-        const result = await formatAndAssert(input, baseConfig, { id: "statement-terminators.test.ts.result", skipParse: true });
+        const result = await formatAndAssert(input, baseConfig, {
+            id: "statement-terminators.test.ts.result",
+            skipParse: true,
+        });
 
         const expected = joinLines(
             'Write-Output "one"',

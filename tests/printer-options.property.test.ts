@@ -15,12 +15,16 @@ const runFormat = async (
     script: string,
     overrides: Record<string, unknown> = {}
 ): Promise<string> => {
-    const formatted = await formatAndAssert(script, {
-        parser: "powershell",
-        plugins: [plugin],
-        filepath: "options-test.ps1",
-        ...overrides,
-    }, "printerOptions.runFormat");
+    const formatted = await formatAndAssert(
+        script,
+        {
+            parser: "powershell",
+            plugins: [plugin],
+            filepath: "options-test.ps1",
+            ...overrides,
+        },
+        "printerOptions.runFormat"
+    );
     return formatted;
 };
 

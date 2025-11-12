@@ -1,4 +1,3 @@
-
 import { describe, expect, it } from "vitest";
 
 import plugin from "../src/index.js";
@@ -6,7 +5,6 @@ import { tokenize } from "../src/tokenizer.js";
 
 import { formatAndAssert } from "./utils/format-and-assert.js";
 import { assertPowerShellParses } from "./utils/powershell.js";
-
 
 const baseConfig = {
     parser: "powershell",
@@ -17,7 +15,11 @@ const baseConfig = {
 describe("Coverage - Tokenizer edge cases", () => {
     it("handles carriage return only newlines", async () => {
         const input = "function Foo {\r$x = 1\r}";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("function Foo");
     });
 
@@ -125,7 +127,11 @@ Hello
 
     it("handles variable with braces", async () => {
         const input = "${my-var}";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result.trim()).toBe("${my-var}");
     });
 
@@ -158,7 +164,11 @@ Hello
 describe("Coverage - Parser edge cases", () => {
     it("handles empty script blocks", async () => {
         const input = "function Foo {}";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result.trim()).toBe("function Foo {}");
     });
 
@@ -167,7 +177,11 @@ describe("Coverage - Parser edge cases", () => {
 
 
 Write-Host "test"`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("# comment");
     });
 
@@ -175,25 +189,41 @@ Write-Host "test"`;
         const input = `Get-Process
 
 | Where-Object { $true }`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("|");
     });
 
     it("handles hashtable entries with quoted keys", async () => {
         const input = `@{ "my-key" = 1; 'other-key' = 2 }`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("my-key");
     });
 
     it("handles hashtable entry without equals sign", async () => {
         const input = `@{ key }`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
     it("handles nested structures in hashtable entries", async () => {
         const input = `@{ key = @{ nested = 1 } }`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("nested");
     });
 
@@ -203,7 +233,11 @@ Write-Host "test"`;
 2
 3
 )`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("1");
     });
 
@@ -212,7 +246,11 @@ Write-Host "test"`;
 @{ a = 1 },
 @{ b = 2 }
 )`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("a");
     });
 
@@ -221,19 +259,31 @@ Write-Host "test"`;
 a = 1
 b = 2
 }`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("a");
     });
 
     it("handles function without body tokens", async () => {
         const input = "function Test";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
     it("handles pipeline with no segments", async () => {
         const input = "";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result.trim()).toBe("");
     });
 
@@ -242,7 +292,11 @@ b = 2
 # comment
 Write-Host "Hi"
 }`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("# comment");
     });
 
@@ -250,37 +304,61 @@ Write-Host "Hi"
         const input = `{
 $x = 1;
 }`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
     it("handles closing brace without statement", async () => {
         const input = "if ($true) { }";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("if");
     });
 
     it("handles multi-element arrays with explicit syntax", async () => {
         const input = "[1, 2, 3]";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("[");
     });
 
     it("handles empty hashtables", async () => {
         const input = "@{}";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result.trim()).toBe("@{}");
     });
 
     it("handles empty parentheses", async () => {
         const input = "Get-Process()";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("()");
     });
 
     it("handles parentheses without commas or newlines", async () => {
         const input = "($x $y)";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 });
@@ -290,102 +368,154 @@ describe("Coverage - Printer edge cases", () => {
         const input = `function Foo {
 Write-Host "Hi"
 }`;
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellIndentStyle: "tabs",
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellIndentStyle: "tabs",
+            },
+            "coverage.result"
+        );
         expect(result).toContain("\t");
     });
 
     it("handles text nodes with operator role", async () => {
         const input = "-eq";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result.trim()).toBe("-eq");
     });
 
     it("handles text nodes with punctuation role", async () => {
         const input = "$x.Property";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain(".");
     });
 
     it("handles space after opening punctuation", async () => {
         const input = "($x)";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("($x)");
     });
 
     it("handles space before closing punctuation", async () => {
         const input = "$array[0]";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("[0]");
     });
 
     it("handles symbol pairs without gap", async () => {
         const input = "$obj::Method";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("::");
     });
 
     it("handles getSymbol returning null for non-text nodes", async () => {
         const input = "@{ a = 1 }";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
     it("handles uppercase keyword casing", async () => {
         const input = "function Foo { if ($true) { } }";
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellKeywordCase: "upper",
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellKeywordCase: "upper",
+            },
+            "coverage.result"
+        );
         expect(result).toContain("FUNCTION");
         expect(result).toContain("IF");
     });
 
     it("handles pascal keyword casing", async () => {
         const input = "function Foo { if ($true) { } }";
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellKeywordCase: "pascal",
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellKeywordCase: "pascal",
+            },
+            "coverage.result"
+        );
         expect(result).toContain("Function");
         expect(result).toContain("If");
     });
 
     it("handles single quotes with embedded single quote", async () => {
         const input = `"It's working"`;
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellPreferSingleQuote: true,
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellPreferSingleQuote: true,
+            },
+            "coverage.result"
+        );
         expect(result.trim()).toBe(`"It's working"`);
     });
 
     it("handles single quotes with special characters", async () => {
         const input = `"Hello$world"`;
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellPreferSingleQuote: true,
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellPreferSingleQuote: true,
+            },
+            "coverage.result"
+        );
         expect(result).toContain('"');
     });
 
     it("handles non-string quote normalization", async () => {
         const input = `$var`;
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellPreferSingleQuote: true,
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellPreferSingleQuote: true,
+            },
+            "coverage.result"
+        );
         expect(result.trim()).toBe("$var");
     });
 
     it("rewrites various aliases", async () => {
         const input = "gi | gci | dir | cat | echo | ps | where | ?";
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellRewriteAliases: true,
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellRewriteAliases: true,
+            },
+            "coverage.result"
+        );
         expect(result).toContain("Get-Item");
         expect(result).toContain("Get-ChildItem");
         expect(result).toContain("Get-Content");
@@ -396,10 +526,14 @@ Write-Host "Hi"
 
     it("never adds trailing comma to arrays (PowerShell doesn't support this)", async () => {
         const input = "@(1, 2)";
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellTrailingComma: "all",
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellTrailingComma: "all",
+            },
+            "coverage.result"
+        );
         // PowerShell arrays don't support trailing commas
         expect(result).not.toMatch(/,\s*\)/);
     });
@@ -409,29 +543,41 @@ Write-Host "Hi"
 1,
 2
 )`;
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellTrailingComma: "none",
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellTrailingComma: "none",
+            },
+            "coverage.result"
+        );
         expect(result).not.toMatch(/2,/);
     });
 
     it("handles hashtable with trailing semicolon set to all", async () => {
         const input = "@{ a = 1; b = 2 }";
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellTrailingComma: "all",
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellTrailingComma: "all",
+            },
+            "coverage.result"
+        );
         expect(result).toMatch(/2;/);
     });
 
     it("handles zero blank lines between functions", async () => {
         const input = `function A {}
 function B {}`;
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellBlankLinesBetweenFunctions: 0,
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellBlankLinesBetweenFunctions: 0,
+            },
+            "coverage.result"
+        );
         expect(
             result.split("\n").filter((l) => l.trim() === "").length
         ).toBeGreaterThanOrEqual(0);
@@ -439,113 +585,177 @@ function B {}`;
 
     it("handles extreme line width values", async () => {
         const input = 'Write-Host "test"';
-        const result1 = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellLineWidth: 30,
-        }, "coverage.result1");
+        const result1 = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellLineWidth: 30,
+            },
+            "coverage.result1"
+        );
         expect(result1).toBeDefined();
 
-        const result2 = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellLineWidth: 250,
-        }, "coverage.result2");
+        const result2 = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellLineWidth: 250,
+            },
+            "coverage.result2"
+        );
         expect(result2).toBeDefined();
     });
 
     it("handles script blocks in expressions", async () => {
         const input = 'Get-Process | Where-Object { $_.Name -eq "test" }';
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("Where-Object");
     });
 
     it("handles array literals in expressions", async () => {
         const input = "$x = @(1, 2, 3)";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("@(");
     });
 
     it("handles hashtables in expressions", async () => {
         const input = "$x = @{ a = 1 }";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("@{");
     });
 
     it("skips punctuation tokens correctly", async () => {
         const input = "Write-Host.Invoke()";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain(".");
     });
 
     it("handles no space before block structures", async () => {
         const input = '$x={ Write-Host "test" }';
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("$x = {");
     });
 
     it("handles operators with spacing", async () => {
         const input = "$x=$y+$z";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain(" = ");
     });
 
     it("handles single-element arrays without breaking", async () => {
         const input = "@(1)";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result.trim()).toBe("@(1)");
     });
 
     it("handles explicit array with single element", async () => {
         const input = "[1]";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result.trim()).toBe("[1]");
     });
 
     it("handles empty keyword case transformation", async () => {
         const input = "";
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellKeywordCase: "pascal",
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellKeywordCase: "pascal",
+            },
+            "coverage.result"
+        );
         expect(result.trim()).toBe("");
     });
 
     it("handles printWidth affecting options", async () => {
         const input = 'Write-Host "test"';
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            printWidth: 200,
-            powershellLineWidth: 100,
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                printWidth: 200,
+                powershellLineWidth: 100,
+            },
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
     it("handles comment nodes", async () => {
         const input = "# This is a comment";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result.trim()).toBe("# This is a comment");
     });
 
     it("handles blank lines with specific count", async () => {
         const input = 'Write-Host "A"\n\n\nWrite-Host "B"';
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("Write-Host");
     });
 
     it("handles allman brace style for functions", async () => {
         const input = 'function Test { Write-Host "Hi" }';
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellBraceStyle: "allman",
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellBraceStyle: "allman",
+            },
+            "coverage.result"
+        );
         expect(result).toContain("function Test\n{");
     });
 
     it("handles rewriting unknown role aliases", async () => {
         const input = "~";
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellRewriteAliases: true,
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellRewriteAliases: true,
+            },
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
@@ -555,37 +765,61 @@ param(
 [string] $Name
 )
 }`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("param");
     });
 
     it("handles parenthesis with multiple elements without comma", async () => {
         const input = "($x $y $z)";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
     it("handles parenthesis with comma and no newline", async () => {
         const input = "($x, $y)";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
     it("handles empty array literal", async () => {
         const input = "@()";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result.trim()).toBe("@()");
     });
 
     it("handles explicit empty array", async () => {
         const input = "[]";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result.trim()).toBe("[]");
     });
 
     it("handles array with shouldBreak false", async () => {
         const input = "@(1)";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result.trim()).toBe("@(1)");
     });
 
@@ -594,7 +828,11 @@ param(
 a = 1
 b = 2
 }`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("a");
     });
 
@@ -603,7 +841,11 @@ b = 2
 @{ a = 1 },
 @{ b = 2 }
 )`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("a");
     });
 
@@ -612,19 +854,31 @@ b = 2
 a = 1
 b = 2
 }`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("b");
     });
 
     it("handles function header without body", async () => {
         const input = "function Test";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
     it("handles statement with only semicolons", async () => {
         const input = ";;;";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
@@ -634,63 +888,103 @@ $x = @{
 a = 1
 }
 }`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("a");
     });
 
     it("handles backtick line continuation", async () => {
         const input = 'Write-Host `\n"test"';
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).not.toContain("`");
     });
 
     it("handles backtick before pipe operator", async () => {
         const input = "Get-Process `\n| Where-Object";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("|");
     });
 
     it("handles multiple consecutive comments after newlines", async () => {
         const input = `# comment1\n\n\n# comment2\nWrite-Host "test"`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("# comment1");
         expect(result).toContain("# comment2");
     });
 
     it("handles pipeline continuation after comment in multiline", async () => {
         const input = `Get-Process | Where-Object`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("|");
     });
 
     it("handles hashtable key extraction with quotes", async () => {
         const input = `@{ "quoted-key" = 1; 'single-key' = 2 }`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("quoted-key");
         expect(result).toContain("single-key");
     });
 
     it("handles array element split with nested structures", async () => {
         const input = `@(@{ a = 1 }, @{ b = 2 })`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain("a");
     });
 
     it("handles closing token in array split", async () => {
         const input = `@(1, [2, 3], 4)`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
     it("handles empty expressions in various contexts", async () => {
         const input = "()";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result.trim()).toBe("()");
     });
 
     it("handles various symbol combinations for spacing", async () => {
         const input = "$obj.Property";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toContain(".");
     });
 
@@ -699,7 +993,11 @@ a = 1
 $x
 $y
 )`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
@@ -708,13 +1006,21 @@ $y
 $x,
 $y
 )`;
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
     it("handles shouldBreak true for arrays", async () => {
         const input = "@(1, 2, 3)";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
@@ -724,37 +1030,57 @@ a = 1
 b = 2
 c = 3
 }`;
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellTrailingComma: "multiline",
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellTrailingComma: "multiline",
+            },
+            "coverage.result"
+        );
         expect(result).toContain("a");
     });
 
     it("handles explicit array with multiple elements", async () => {
         const input = "[1, 2, 3, 4]";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
     it("handles hashtable entry is last flag correctly", async () => {
         const input = "@{ a = 1; b = 2; c = 3 }";
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellTrailingComma: "none",
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellTrailingComma: "none",
+            },
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
     it("handles single element parenthesis without newline", async () => {
         const input = "($single)";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result.trim()).toBe("($single)");
     });
 
     it("handles multi-element parenthesis without newline or comma", async () => {
         const input = "($x $y $z)";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
@@ -763,41 +1089,65 @@ c = 3
 $a
 $b
 )`;
-        const result1 = await formatAndAssert(input1, baseConfig, "coverage.result1");
+        const result1 = await formatAndAssert(
+            input1,
+            baseConfig,
+            "coverage.result1"
+        );
         expect(result1).toBeDefined();
 
         const input2 = "($a, $b)";
-        const result2 = await formatAndAssert(input2, baseConfig, "coverage.result2");
+        const result2 = await formatAndAssert(
+            input2,
+            baseConfig,
+            "coverage.result2"
+        );
         expect(result2).toBeDefined();
     });
 
     it("handles array elements without breaking", async () => {
         const input = "@(42)";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result.trim()).toBe("@(42)");
     });
 
     it("handles normalizeStringLiteral for non-quoted strings", async () => {
         const input = "$variable";
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellPreferSingleQuote: true,
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellPreferSingleQuote: true,
+            },
+            "coverage.result"
+        );
         expect(result.trim()).toBe("$variable");
     });
 
     it("handles string normalization with backtick", async () => {
         const input = '"Hello`nworld"';
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellPreferSingleQuote: true,
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellPreferSingleQuote: true,
+            },
+            "coverage.result"
+        );
         expect(result).toContain('"');
     });
 
     it("handles shouldSkipPart for backtick tokens", async () => {
         const input = "Write-Host `\n$value";
-        const result = await formatAndAssert(input, baseConfig, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "coverage.result"
+        );
         expect(result).not.toContain("`");
     });
 });
@@ -805,29 +1155,41 @@ $b
 describe("Coverage - Options edge cases", () => {
     it("handles invalid blank lines between functions (too high)", async () => {
         const input = "function A {}\nfunction B {}";
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellBlankLinesBetweenFunctions: 10,
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellBlankLinesBetweenFunctions: 10,
+            },
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
     it("handles invalid blank lines between functions (negative)", async () => {
         const input = "function A {}\nfunction B {}";
-        const result = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellBlankLinesBetweenFunctions: -5,
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellBlankLinesBetweenFunctions: -5,
+            },
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
     it("uses default tabWidth when not specified", async () => {
         const input = "function Foo { $x = 1 }";
-        const result = await formatAndAssert(input, {
-            parser: "powershell",
-            plugins: [plugin],
-            filepath: "test.ps1",
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                parser: "powershell",
+                plugins: [plugin],
+                filepath: "test.ps1",
+            },
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
@@ -841,10 +1203,14 @@ describe("Coverage - Options edge cases", () => {
             "upper",
             "pascal",
         ]) {
-            const result = await formatAndAssert(input, {
-                ...baseConfig,
-                powershellKeywordCase: caseOption,
-            }, "coverage.result");
+            const result = await formatAndAssert(
+                input,
+                {
+                    ...baseConfig,
+                    powershellKeywordCase: caseOption,
+                },
+                "coverage.result"
+            );
             expect(result).toBeDefined();
         }
     });
@@ -857,35 +1223,47 @@ describe("Coverage - Options edge cases", () => {
             "multiline",
             "all",
         ]) {
-            const result = await formatAndAssert(input, {
-                ...baseConfig,
-                powershellTrailingComma: commaOption,
-            }, "coverage.result");
+            const result = await formatAndAssert(
+                input,
+                {
+                    ...baseConfig,
+                    powershellTrailingComma: commaOption,
+                },
+                "coverage.result"
+            );
             expect(result).toBeDefined();
         }
     });
 
     it("sets printWidth from powershellLineWidth when printWidth is not specified", async () => {
         const input = 'Write-Host "test"';
-        const result = await formatAndAssert(input, {
-            parser: "powershell",
-            plugins: [plugin],
-            filepath: "test.ps1",
-            powershellLineWidth: 80,
-        }, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                parser: "powershell",
+                plugins: [plugin],
+                filepath: "test.ps1",
+                powershellLineWidth: 80,
+            },
+            "coverage.result"
+        );
         expect(result).toBeDefined();
     });
 
     it("keeps existing printWidth when it is lower than powershellLineWidth", async () => {
         const input = 'Write-Host "test"';
-        const result = await formatAndAssert(input, {
-            parser: "powershell",
-            plugins: [plugin],
-            filepath: "test.ps1",
-            printWidth: 60,
-            powershellLineWidth: 120,
-        }, "coverage.result");
-    assertPowerShellParses(result, "coverage.result");
+        const result = await formatAndAssert(
+            input,
+            {
+                parser: "powershell",
+                plugins: [plugin],
+                filepath: "test.ps1",
+                printWidth: 60,
+                powershellLineWidth: 120,
+            },
+            "coverage.result"
+        );
+        assertPowerShellParses(result, "coverage.result");
         expect(result).toBeDefined();
     });
 
@@ -893,80 +1271,116 @@ describe("Coverage - Options edge cases", () => {
         const input = "function Foo { param([string] $x) Write-Host $x }";
 
         // Test all combinations of boolean flags
-        const result1 = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellSortHashtableKeys: true,
-            powershellBlankLineAfterParam: true,
-            powershellPreferSingleQuote: true,
-            powershellRewriteAliases: true,
-            powershellRewriteWriteHost: true,
-        }, "coverage.result1");
-    assertPowerShellParses(result1, "coverage.result1");
+        const result1 = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellSortHashtableKeys: true,
+                powershellBlankLineAfterParam: true,
+                powershellPreferSingleQuote: true,
+                powershellRewriteAliases: true,
+                powershellRewriteWriteHost: true,
+            },
+            "coverage.result1"
+        );
+        assertPowerShellParses(result1, "coverage.result1");
         expect(result1).toBeDefined();
 
-        const result2 = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellSortHashtableKeys: false,
-            powershellBlankLineAfterParam: false,
-            powershellPreferSingleQuote: false,
-            powershellRewriteAliases: false,
-            powershellRewriteWriteHost: false,
-        }, "coverage.result2");
-    assertPowerShellParses(result2, "coverage.result2");
+        const result2 = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellSortHashtableKeys: false,
+                powershellBlankLineAfterParam: false,
+                powershellPreferSingleQuote: false,
+                powershellRewriteAliases: false,
+                powershellRewriteWriteHost: false,
+            },
+            "coverage.result2"
+        );
+        assertPowerShellParses(result2, "coverage.result2");
         expect(result2).toBeDefined();
     });
 
     it("handles tabs vs spaces indentation branches", async () => {
         const input = 'function Foo { Write-Host "Hi" }';
 
-        const spacesResult = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellIndentStyle: "spaces",
-        }, "coverage.spacesResult");
+        const spacesResult = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellIndentStyle: "spaces",
+            },
+            "coverage.spacesResult"
+        );
         expect(spacesResult).not.toMatch(/\t/);
 
-        const tabsResult = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellIndentStyle: "tabs",
-        }, "coverage.tabsResult");
+        const tabsResult = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellIndentStyle: "tabs",
+            },
+            "coverage.tabsResult"
+        );
         expect(tabsResult).toMatch(/\t/);
     });
 
     it("handles all trailingComma option values", async () => {
         const input = "@{ a = 1 }";
 
-        const noneResult = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellTrailingComma: "none",
-        }, "coverage.noneResult");
+        const noneResult = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellTrailingComma: "none",
+            },
+            "coverage.noneResult"
+        );
         expect(noneResult).toBeDefined();
 
-        const multilineResult = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellTrailingComma: "multiline",
-        }, "coverage.multilineResult");
+        const multilineResult = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellTrailingComma: "multiline",
+            },
+            "coverage.multilineResult"
+        );
         expect(multilineResult).toBeDefined();
 
-        const allResult = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellTrailingComma: "all",
-        }, "coverage.allResult");
+        const allResult = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellTrailingComma: "all",
+            },
+            "coverage.allResult"
+        );
         expect(allResult).toBeDefined();
     });
 
     it("handles all braceStyle option values", async () => {
         const input = "function Foo { }";
 
-        const oneTbsResult = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellBraceStyle: "1tbs",
-        }, "coverage.oneTbsResult");
+        const oneTbsResult = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellBraceStyle: "1tbs",
+            },
+            "coverage.oneTbsResult"
+        );
         expect(oneTbsResult).toBeDefined();
 
-        const allmanResult = await formatAndAssert(input, {
-            ...baseConfig,
-            powershellBraceStyle: "allman",
-        }, "coverage.allmanResult");
+        const allmanResult = await formatAndAssert(
+            input,
+            {
+                ...baseConfig,
+                powershellBraceStyle: "allman",
+            },
+            "coverage.allmanResult"
+        );
         expect(allmanResult).toBeDefined();
     });
 
@@ -979,10 +1393,14 @@ describe("Coverage - Options edge cases", () => {
             "upper",
             "pascal",
         ] as const) {
-            const result = await formatAndAssert(input, {
-                ...baseConfig,
-                powershellKeywordCase: caseValue,
-            }, "coverage.result");
+            const result = await formatAndAssert(
+                input,
+                {
+                    ...baseConfig,
+                    powershellKeywordCase: caseValue,
+                },
+                "coverage.result"
+            );
             expect(result).toBeDefined();
         }
     });

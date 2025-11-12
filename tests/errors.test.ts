@@ -63,8 +63,7 @@ describe("Error Handling System", () => {
         });
 
         it("gets context around error", () => {
-            const source =
-                "line 1\nline 2\nline 3 ERROR\nline 4\nline 5";
+            const source = "line 1\nline 2\nline 3 ERROR\nline 4\nline 5";
             const error = createParseError("Test error", source, 21);
 
             const context = error.getContext(1);

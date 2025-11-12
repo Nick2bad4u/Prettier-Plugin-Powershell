@@ -1,7 +1,6 @@
 import * as fc from "fast-check";
 import { describe, it } from "vitest";
 
-
 import plugin from "../src/index.js";
 import { parsePowerShell } from "../src/parser.js";
 import { tokenize } from "../src/tokenizer.js";
@@ -59,8 +58,9 @@ describe("Integration property tests", () => {
                                         parser: "powershell",
                                         plugins: [plugin],
                                         filepath: "test.ps1",
-                                    }
-                                , "integration.property.formatted");
+                                    },
+                                    "integration.property.formatted"
+                                );
                                 assertPowerShellParses(
                                     formatted,
                                     "integration.crossModule.formatted"
@@ -148,8 +148,9 @@ describe("Integration property tests", () => {
                                             options.keywordCase,
                                         powershellPreferSingleQuote:
                                             options.preferSingleQuote,
-                                    }
-                                , "integration.property.formatted");
+                                    },
+                                    "integration.property.formatted"
+                                );
                                 assertPowerShellParses(
                                     formatted,
                                     "integration.optionCombos.formatted"
@@ -178,8 +179,9 @@ describe("Integration property tests", () => {
                                             options.keywordCase,
                                         powershellPreferSingleQuote:
                                             options.preferSingleQuote,
-                                    }
-                                , "integration.property.formatted2");
+                                    },
+                                    "integration.property.formatted2"
+                                );
                                 assertPowerShellParses(
                                     formatted2,
                                     "integration.optionCombos.formatted2"
@@ -281,8 +283,9 @@ describe("Integration property tests", () => {
                                         parser: "powershell",
                                         plugins: [plugin],
                                         filepath: "test.ps1",
-                                    }
-                                , "integration.property.formatted");
+                                    },
+                                    "integration.property.formatted"
+                                );
 
                                 const tokens = tokenize(formatted);
                                 const ast = parsePowerShell(formatted, {
@@ -350,8 +353,9 @@ describe("Integration property tests", () => {
                                         parser: "powershell",
                                         plugins: [plugin],
                                         filepath: "test.ps1",
-                                    }
-                                , "integration.property.formatted");
+                                    },
+                                    "integration.property.formatted"
+                                );
                                 assertPowerShellParses(
                                     formatted,
                                     "integration.concatenated.formatted"
@@ -403,8 +407,9 @@ describe("Integration property tests", () => {
                                             parser: "powershell",
                                             plugins: [plugin],
                                             filepath: "test.ps1",
-                                        }
-                                    , "integration.property.formatted");
+                                        },
+                                        "integration.property.formatted"
+                                    );
                                     assertPowerShellParses(
                                         formatted,
                                         "integration.repeatedFormatting.iteration"
@@ -428,8 +433,9 @@ describe("Integration property tests", () => {
                                         parser: "powershell",
                                         plugins: [plugin],
                                         filepath: "test.ps1",
-                                    }
-                                , "integration.property.finalFormat");
+                                    },
+                                    "integration.property.finalFormat"
+                                );
                                 assertPowerShellParses(
                                     finalFormat,
                                     "integration.repeatedFormatting.final"
@@ -545,8 +551,9 @@ describe("Integration property tests", () => {
                                         parser: "powershell",
                                         plugins: [plugin],
                                         filepath: `test${ext1}`,
-                                    }
-                                , "integration.property.formatted1");
+                                    },
+                                    "integration.property.formatted1"
+                                );
                                 assertPowerShellParses(
                                     formatted1,
                                     "integration.extensions.formatted1"
@@ -558,8 +565,9 @@ describe("Integration property tests", () => {
                                         parser: "powershell",
                                         plugins: [plugin],
                                         filepath: `test${ext2}`,
-                                    }
-                                , "integration.property.formatted2");
+                                    },
+                                    "integration.property.formatted2"
+                                );
                                 assertPowerShellParses(
                                     formatted2,
                                     "integration.extensions.formatted2"

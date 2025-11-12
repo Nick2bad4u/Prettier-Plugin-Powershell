@@ -39,7 +39,10 @@ describe("enforce formatAndAssert usage", () => {
 
         // If found, report files and fail
         if (matches.length > 0) {
-            expect(matches, "Found direct prettier.format usages in tests; use formatAndAssert helper instead").toEqual([]);
+            expect(
+                matches,
+                "Found direct prettier.format usages in tests; use formatAndAssert helper instead"
+            ).toEqual([]);
         }
     });
 });

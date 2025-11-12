@@ -2,7 +2,6 @@ import * as fc from "fast-check";
 import type { Options } from "prettier";
 import { describe, it } from "vitest";
 
-
 import plugin from "../src/index.js";
 import { parsePowerShell } from "../src/parser.js";
 
@@ -36,7 +35,11 @@ describe("Weird PowerShell file property tests", () => {
             throw new Error("Parser did not return a Script node");
         }
 
-        const formatted = await formatAndAssert(script, prettierConfig, "weirdFiles.formatted");
+        const formatted = await formatAndAssert(
+            script,
+            prettierConfig,
+            "weirdFiles.formatted"
+        );
         const formattedAst = parsePowerShell(formatted, {
             tabWidth: 2,
         } as never);
@@ -44,7 +47,11 @@ describe("Weird PowerShell file property tests", () => {
             throw new Error("Formatted output did not parse to Script node");
         }
 
-        const formattedAgain = await formatAndAssert(formatted, prettierConfig, "weirdFiles.formattedAgain");
+        const formattedAgain = await formatAndAssert(
+            formatted,
+            prettierConfig,
+            "weirdFiles.formattedAgain"
+        );
         if (formattedAgain !== formatted) {
             throw new Error("Formatting was not idempotent");
         }

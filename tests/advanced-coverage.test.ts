@@ -39,7 +39,6 @@ import type { Token } from "../src/tokenizer.js";
 
 import { formatAndAssert } from "./utils/format-and-assert.js";
 
-
 interface ParserTestUtils {
     isOpeningToken: (token: Token) => boolean;
     isClosingToken: (token: Token) => boolean;
@@ -784,11 +783,15 @@ describe("printer advanced coverage", () => {
     it("formats multiple functions with custom spacing options", async () => {
         const script =
             'function A {\n  param([string]$Name)\n  Write-Host $Name\n}\nfunction B {\n  Write-Host "B"\n}\n';
-        const result = await formatAndAssert(script, {
-            ...baseConfig,
-            powershellBlankLinesBetweenFunctions: 2,
-            powershellBlankLineAfterParam: true,
-        }, "advanced-coverage.result");
+        const result = await formatAndAssert(
+            script,
+            {
+                ...baseConfig,
+                powershellBlankLinesBetweenFunctions: 2,
+                powershellBlankLineAfterParam: true,
+            },
+            "advanced-coverage.result"
+        );
         expect(result).toContain("function A");
         const blankLineSegments = result.split("\n");
         expect(
@@ -798,12 +801,16 @@ describe("printer advanced coverage", () => {
 
     it("honors allman brace style and tab indentation", async () => {
         const script = 'function Tabs { if ($true) { Write-Host "tab" } }';
-        const result = await formatAndAssert(script, {
-            ...baseConfig,
-            powershellBraceStyle: "allman",
-            powershellIndentStyle: "tabs",
-            powershellIndentSize: 1,
-        }, "advanced-coverage.result");
+        const result = await formatAndAssert(
+            script,
+            {
+                ...baseConfig,
+                powershellBraceStyle: "allman",
+                powershellIndentStyle: "tabs",
+                powershellIndentSize: 1,
+            },
+            "advanced-coverage.result"
+        );
         expect(result).toContain("function Tabs");
         expect(result).toContain("\n{\n");
         expect(result).toContain("\t");
@@ -812,7 +819,11 @@ describe("printer advanced coverage", () => {
     it("prints pipelines with multiple segments and trailing comments", async () => {
         const script =
             "Get-Process | Where-Object { $_.Name } | Select-Object Name # in pipeline";
-        const result = await formatAndAssert(script, baseConfig, "advanced-coverage.result");
+        const result = await formatAndAssert(
+            script,
+            baseConfig,
+            "advanced-coverage.result"
+        );
         expect(result).toContain("| Where-Object");
         expect(result).toContain("# in pipeline");
     });
@@ -822,7 +833,11 @@ describe("printer advanced coverage", () => {
   New-Item -ItemType Directory -Path $cacheRoot -Force | Out-Null
   $script:CacheDir = $cacheRoot
 }`;
-        const result = await formatAndAssert(script, baseConfig, "advanced-coverage.result");
+        const result = await formatAndAssert(
+            script,
+            baseConfig,
+            "advanced-coverage.result"
+        );
         expect(result).toContain(
             "New-Item -ItemType Directory -Path $cacheRoot -Force | Out-Null"
         );
@@ -837,7 +852,11 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
   $values[$i]--
 }
 `;
-        const result = await formatAndAssert(script, baseConfig, "advanced-coverage.result");
+        const result = await formatAndAssert(
+            script,
+            baseConfig,
+            "advanced-coverage.result"
+        );
         expect(result).toContain("$i++)");
         expect(result).toContain("$values[$i] += 1");
         expect(result).toContain("$values[$i]++");
@@ -846,7 +865,11 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
 
     it("handles param keyword parenthesis spacing", async () => {
         const script = "param([string]$Name, [int]$Age)";
-        const result = await formatAndAssert(script, baseConfig, "advanced-coverage.result");
+        const result = await formatAndAssert(
+            script,
+            baseConfig,
+            "advanced-coverage.result"
+        );
         expect(result.trim()).toBe(
             "param(\n  [string] $Name,\n  [int] $Age\n)"
         );
@@ -854,7 +877,11 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
 
     it("preserves spacing around hashtables and property access", async () => {
         const script = "$obj.Property::Method(@{ a = 1 })";
-        const result = await formatAndAssert(script, baseConfig, "advanced-coverage.result");
+        const result = await formatAndAssert(
+            script,
+            baseConfig,
+            "advanced-coverage.result"
+        );
         expect(result).toContain("Property::Method");
         expect(result).toContain("@{ a = 1 }");
     });
@@ -883,11 +910,15 @@ function Sample {
 Sample
 `;
 
-        const result = await formatAndAssert(script, {
-            ...baseConfig,
-            powershellKeywordCase: "upper",
-            powershellPreferSingleQuote: true,
-        }, "advanced-coverage.result");
+        const result = await formatAndAssert(
+            script,
+            {
+                ...baseConfig,
+                powershellKeywordCase: "upper",
+                powershellPreferSingleQuote: true,
+            },
+            "advanced-coverage.result"
+        );
         expect(result).toContain("FUNCTION Sample");
         expect(result).toContain("'quoted'");
         expect(result).toContain("Property::Method");
@@ -895,20 +926,28 @@ Sample
 
     it("sorts hashtable keys when option enabled", async () => {
         const script = "@{ b = 1; a = 2 }";
-        const result = await formatAndAssert(script, {
-            ...baseConfig,
-            powershellSortHashtableKeys: true,
-        }, "advanced-coverage.result");
+        const result = await formatAndAssert(
+            script,
+            {
+                ...baseConfig,
+                powershellSortHashtableKeys: true,
+            },
+            "advanced-coverage.result"
+        );
         expect(result.indexOf("a = 2")).toBeLessThan(result.indexOf("b = 1"));
     });
 
     it("rewrites aliases and Write-Host invocations when configured", async () => {
         const script = 'ls\nWrite-Host "hi"';
-        const result = await formatAndAssert(script, {
-            ...baseConfig,
-            powershellRewriteAliases: true,
-            powershellRewriteWriteHost: true,
-        }, "advanced-coverage.result");
+        const result = await formatAndAssert(
+            script,
+            {
+                ...baseConfig,
+                powershellRewriteAliases: true,
+                powershellRewriteWriteHost: true,
+            },
+            "advanced-coverage.result"
+        );
         expect(result).toContain("Get-ChildItem");
         expect(result).toContain('Write-Output "hi"');
     });

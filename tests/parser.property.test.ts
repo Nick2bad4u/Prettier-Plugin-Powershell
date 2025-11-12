@@ -2,7 +2,6 @@ import * as fc from "fast-check";
 import type { Options, ParserOptions } from "prettier";
 import { describe, it } from "vitest";
 
-
 import type { BaseNode, SourceLocation } from "../src/ast.js";
 import plugin from "../src/index.js";
 import { parsePowerShell } from "../src/parser.js";
@@ -140,12 +139,18 @@ describe("PowerShell parser property-based tests", () => {
                     const formatted = await formatAndAssert(
                         script,
                         prettierConfig,
-                        { id: "parser.property.formatted", skipParse: hasTryCatch }
+                        {
+                            id: "parser.property.formatted",
+                            skipParse: hasTryCatch,
+                        }
                     );
                     const formattedTwice = await formatAndAssert(
                         formatted,
                         prettierConfig,
-                        { id: "parser.property.formattedTwice", skipParse: hasTryCatch }
+                        {
+                            id: "parser.property.formattedTwice",
+                            skipParse: hasTryCatch,
+                        }
                     );
                     // formatAndAssert already asserted parse when applicable
                     if (formatted !== formattedTwice) {

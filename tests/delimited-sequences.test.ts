@@ -1,4 +1,3 @@
-
 import { describe, expect, it } from "vitest";
 
 import { formatAndAssert } from "./utils/format-and-assert.js";
@@ -11,7 +10,11 @@ const baseConfig = {
 describe("Delimited sequence handling", () => {
     it("keeps array elements stable across commas and newlines", async () => {
         const input = "@(1, 2, 3,\n4, 5)";
-        const result = await formatAndAssert(input, baseConfig, "delimited-sequences.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "delimited-sequences.result"
+        );
         expect(result).toBe("@( 1, 2, 3, 4, 5 )\n");
     });
 
@@ -23,7 +26,11 @@ describe("Delimited sequence handling", () => {
     )
     Write-Output $A
 }`;
-        const result = await formatAndAssert(input, baseConfig, "delimited-sequences.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "delimited-sequences.result"
+        );
         expect(result).toBe(`function Test {
   param(
     [int] $A,
@@ -41,7 +48,11 @@ describe("Delimited sequence handling", () => {
     # trailing
     Count = 2; Other = 3
 }`;
-        const result = await formatAndAssert(input, baseConfig, "delimited-sequences.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "delimited-sequences.result"
+        );
         expect(result).toBe(`@{
   Name = "Value"
   # trailing

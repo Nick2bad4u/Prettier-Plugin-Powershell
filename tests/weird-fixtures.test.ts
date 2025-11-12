@@ -1,10 +1,12 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-
 import { describe, expect, it } from "vitest";
 
-import { formatAndAssert, formatAndAssertRoundTrip } from "./utils/format-and-assert.js";
+import {
+    formatAndAssert,
+    formatAndAssertRoundTrip,
+} from "./utils/format-and-assert.js";
 import { assertPowerShellParses } from "./utils/powershell.js";
 
 const baseConfig = {
@@ -118,7 +120,7 @@ describe("Additional regression fixtures", () => {
             file: "./fixtures/string-interpolation-complex.ps1",
             assertInput: (input) => {
                 expect(input).toContain("$($");
-                expect(input).toContain("@\"");
+                expect(input).toContain('@"');
             },
         },
         {
@@ -154,10 +156,14 @@ describe("Additional regression fixtures", () => {
                     filepath: filePath,
                 });
 
-                const secondPass = await formatAndAssert(firstPass, {
-                    ...baseConfig,
-                    filepath: filePath,
-                }, "weird-fixtures.secondPass");
+                const secondPass = await formatAndAssert(
+                    firstPass,
+                    {
+                        ...baseConfig,
+                        filepath: filePath,
+                    },
+                    "weird-fixtures.secondPass"
+                );
                 assertPowerShellParses(
                     secondPass,
                     `weird-fixtures.secondPass.${fixture.name}`
@@ -165,17 +171,18 @@ describe("Additional regression fixtures", () => {
                 const normalizedSecond = secondPass.replace(/;{2,}/g, ";");
                 expect(normalizedSecond).toBe(firstPass);
             } else {
-                firstPass = await formatAndAssertRoundTrip(input, {
-                    ...baseConfig,
-                    filepath: filePath,
-                }, `weird-fixtures.${fixture.name}`);
+                firstPass = await formatAndAssertRoundTrip(
+                    input,
+                    {
+                        ...baseConfig,
+                        filepath: filePath,
+                    },
+                    `weird-fixtures.${fixture.name}`
+                );
             }
             fixture.assertFormatted?.(firstPass);
 
-            assertPowerShellParses(
-                firstPass,
-                `weird-fixtures.${fixture.name}`
-            );
+            assertPowerShellParses(firstPass, `weird-fixtures.${fixture.name}`);
         });
     }
 });

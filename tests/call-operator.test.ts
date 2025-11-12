@@ -1,4 +1,3 @@
-
 import { describe, expect, it } from "vitest";
 
 import { formatAndAssert } from "./utils/format-and-assert.js";
@@ -21,7 +20,11 @@ describe("Call operator formatting", () => {
             '& $scriptBlock -name "World"',
             ""
         );
-        const result = await formatAndAssert(input, baseConfig, "call-operator.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "call-operator.result"
+        );
         expect(result).toContain("param($name)");
         expect(result).toContain('"Hello $name"');
         expect(result).toContain('& $scriptBlock -name "World"');
@@ -29,7 +32,11 @@ describe("Call operator formatting", () => {
 
     it("handles call operator with command expressions", async () => {
         const input = '& (Get-Command Write-Host) "hi"';
-        const result = await formatAndAssert(input, baseConfig, "call-operator.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "call-operator.result"
+        );
         expect(result).toBe('& (Get-Command Write-Host) "hi"\n');
     });
 
@@ -38,14 +45,18 @@ describe("Call operator formatting", () => {
             "",
             "$invoke = Get-Command Invoke-RestMethod",
             '$params = @{ Uri = "https://example.com" }',
-            '& $invoke @params',
+            "& $invoke @params",
             ""
         );
-        const result = await formatAndAssert(input, baseConfig, "call-operator.result");
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "call-operator.result"
+        );
         expect(result).toBe(
-            '$invoke = Get-Command Invoke-RestMethod\n' +
+            "$invoke = Get-Command Invoke-RestMethod\n" +
                 '$params = @{ Uri = "https://example.com" }\n' +
-                '& $invoke @params\n'
+                "& $invoke @params\n"
         );
     });
 
@@ -53,11 +64,15 @@ describe("Call operator formatting", () => {
         const input = joinLines(
             "",
             '$object = [PSCustomObject]@{ Script = { "ok" } }',
-            '& $object.Script.Invoke()',
+            "& $object.Script.Invoke()",
             ""
         );
-        const result = await formatAndAssert(input, baseConfig, "call-operator.result");
-        expect(result).toContain('[PSCustomObject]');
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "call-operator.result"
+        );
+        expect(result).toContain("[PSCustomObject]");
         expect(result).toMatch(/& \$object\.Script\.Invoke\(\)/);
     });
 });
