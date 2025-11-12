@@ -1,6 +1,8 @@
 import prettier from "prettier";
 import { describe, expect, it } from "vitest";
 
+import { assertPowerShellParses } from "./utils/powershell.js";
+
 const baseConfig = {
     parser: "powershell" as const,
     plugins: ["./dist/index.cjs"],

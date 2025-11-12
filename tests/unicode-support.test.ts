@@ -2,6 +2,7 @@ import prettier from "prettier";
 import { describe, expect, it } from "vitest";
 
 import plugin from "../src/index.js";
+import { assertPowerShellParses } from "./utils/powershell.js";
 
 const baseConfig = {
     parser: "powershell",

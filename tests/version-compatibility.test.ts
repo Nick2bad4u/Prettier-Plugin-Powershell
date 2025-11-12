@@ -1,6 +1,8 @@
 import prettier from "prettier";
 import { describe, expect, it } from "vitest";
 
+import { assertPowerShellParses } from "./utils/powershell.js";
+
 const baseConfig = {
     parser: "powershell" as const,
     plugins: ["./dist/index.cjs"],
@@ -11,6 +13,7 @@ describe("PowerShell Version Compatibility", () => {
         it("formats classes (PS 5.0+)", async () => {
             const input = `class Person { [string]$Name; [int]$Age }`;
             const result = await prettier.format(input, baseConfig);
+            assertPowerShellParses(result, "version-compat.classes");
             expect(result).toContain("class Person");
         });
 
