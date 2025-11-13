@@ -63,28 +63,76 @@ const KEYWORDS = new Set([
 // PowerShell operators (case-insensitive)
 const POWERSHELL_OPERATORS = new Set([
     // Comparison operators
-    "-eq", "-ne", "-gt", "-ge", "-lt", "-le",
-    "-like", "-notlike", "-match", "-notmatch",
-    "-contains", "-notcontains", "-in", "-notin",
-    "-is", "-isnot",
+    "-eq",
+    "-ne",
+    "-gt",
+    "-ge",
+    "-lt",
+    "-le",
+    "-like",
+    "-notlike",
+    "-match",
+    "-notmatch",
+    "-contains",
+    "-notcontains",
+    "-in",
+    "-notin",
+    "-is",
+    "-isnot",
     // Case-sensitive variants
-    "-ceq", "-cne", "-cgt", "-cge", "-clt", "-cle",
-    "-clike", "-cnotlike", "-cmatch", "-cnotmatch",
-    "-ccontains", "-cnotcontains", "-cin", "-cnotin",
+    "-ceq",
+    "-cne",
+    "-cgt",
+    "-cge",
+    "-clt",
+    "-cle",
+    "-clike",
+    "-cnotlike",
+    "-cmatch",
+    "-cnotmatch",
+    "-ccontains",
+    "-cnotcontains",
+    "-cin",
+    "-cnotin",
     // Case-insensitive explicit variants
-    "-ieq", "-ine", "-igt", "-ige", "-ilt", "-ile",
-    "-ilike", "-inotlike", "-imatch", "-inotmatch",
-    "-icontains", "-inotcontains", "-iin", "-inotin",
+    "-ieq",
+    "-ine",
+    "-igt",
+    "-ige",
+    "-ilt",
+    "-ile",
+    "-ilike",
+    "-inotlike",
+    "-imatch",
+    "-inotmatch",
+    "-icontains",
+    "-inotcontains",
+    "-iin",
+    "-inotin",
     // Logical operators
-    "-and", "-or", "-xor", "-not",
+    "-and",
+    "-or",
+    "-xor",
+    "-not",
     // Bitwise operators
-    "-band", "-bor", "-bxor", "-bnot", "-shl", "-shr",
+    "-band",
+    "-bor",
+    "-bxor",
+    "-bnot",
+    "-shl",
+    "-shr",
     // String operators
-    "-split", "-join", "-replace", "-f",
+    "-split",
+    "-join",
+    "-replace",
+    "-f",
     // Type operators
     "-as",
     // Other operators
-    "-creplace", "-ireplace", "-csplit", "-isplit",
+    "-creplace",
+    "-ireplace",
+    "-csplit",
+    "-isplit",
 ]);
 
 const PUNCTUATION = new Set([
@@ -116,7 +164,9 @@ const UNICODE_IDENTIFIER_AFTER_DASH_PATTERN = /[-\p{L}]/u;
 /**
  * Tokenizes PowerShell source code into an array of tokens.
  *
- * This is the first stage of parsing. It breaks the source into meaningful chunks:
+ * This is the first stage of parsing. It breaks the source into meaningful
+ * chunks:
+ *
  * - Keywords (if, function, class, etc.)
  * - Operators (-eq, -and, &&, ||, etc.)
  * - Variables ($var, $$, $global:name, etc.)
@@ -125,10 +175,11 @@ const UNICODE_IDENTIFIER_AFTER_DASH_PATTERN = /[-\p{L}]/u;
  * - Comments (# line, <# block #>)
  * - Punctuation ({, }, [, ], etc.)
  *
- * The tokenizer is designed to be resilient - it will tokenize even
- * malformed PowerShell to allow the formatter to work on incomplete code.
+ * The tokenizer is designed to be resilient - it will tokenize even malformed
+ * PowerShell to allow the formatter to work on incomplete code.
  *
  * @param source - The PowerShell source code to tokenize
+ *
  * @returns An array of tokens with type, value, and position information
  */
 export function tokenize(source: string): Token[] {
@@ -235,10 +286,16 @@ export function tokenize(source: string): Token[] {
 
         if (char === "[") {
             let lookahead = index + 1;
-            while (lookahead < length && WHITESPACE_PATTERN.test(source[lookahead])) {
+            while (
+                lookahead < length &&
+                WHITESPACE_PATTERN.test(source[lookahead])
+            ) {
                 lookahead += 1;
             }
-            if (lookahead < length && IDENTIFIER_START_PATTERN.test(source[lookahead])) {
+            if (
+                lookahead < length &&
+                IDENTIFIER_START_PATTERN.test(source[lookahead])
+            ) {
                 let depth = 1;
                 let scanIndex = index + 1;
                 while (scanIndex < length && depth > 0) {
@@ -482,7 +539,12 @@ export function tokenize(source: string): Token[] {
         }
 
         // Merging redirection for stream 1: 1>&2
-        if (char === "1" && source[index + 1] === ">" && source[index + 2] === "&" && /[2-6]/.test(source[index + 3])) {
+        if (
+            char === "1" &&
+            source[index + 1] === ">" &&
+            source[index + 2] === "&" &&
+            /[2-6]/.test(source[index + 3])
+        ) {
             const value = "1>&" + source[index + 3];
             index += 4;
             push({ type: "operator", value, start, end: index });
@@ -495,7 +557,12 @@ export function tokenize(source: string): Token[] {
             // Special variables: $$, $^, $?, $_
             if (index < length) {
                 const nextChar = source[index];
-                if (nextChar === "$" || nextChar === "^" || nextChar === "?" || nextChar === "_") {
+                if (
+                    nextChar === "$" ||
+                    nextChar === "^" ||
+                    nextChar === "?" ||
+                    nextChar === "_"
+                ) {
                     index += 1;
                     push({
                         type: "variable",
@@ -550,7 +617,10 @@ export function tokenize(source: string): Token[] {
                 (source[index] === "x" || source[index] === "X")
             ) {
                 index += 1; // consume 'x' or 'X'
-                while (index < length && HEX_DIGIT_PATTERN.test(source[index])) {
+                while (
+                    index < length &&
+                    HEX_DIGIT_PATTERN.test(source[index])
+                ) {
                     index += 1;
                 }
                 // Check for unsigned/long suffixes (U/u/L/l)
@@ -566,7 +636,15 @@ export function tokenize(source: string): Token[] {
                 // Check for multiplier suffixes (KB, MB, GB, TB, PB)
                 if (index + 1 < length) {
                     const suffix = source.slice(index, index + 2).toUpperCase();
-                    if (["KB", "MB", "GB", "TB", "PB"].includes(suffix)) {
+                    if (
+                        [
+                            "KB",
+                            "MB",
+                            "GB",
+                            "TB",
+                            "PB",
+                        ].includes(suffix)
+                    ) {
                         index += 2;
                     }
                 }
@@ -586,7 +664,10 @@ export function tokenize(source: string): Token[] {
                 (source[index] === "b" || source[index] === "B")
             ) {
                 index += 1; // consume 'b' or 'B'
-                while (index < length && BINARY_DIGIT_PATTERN.test(source[index])) {
+                while (
+                    index < length &&
+                    BINARY_DIGIT_PATTERN.test(source[index])
+                ) {
                     index += 1;
                 }
                 if (
@@ -608,27 +689,46 @@ export function tokenize(source: string): Token[] {
             }
 
             // Regular decimal number
-            while (index < length && DECIMAL_DIGIT_PATTERN.test(source[index])) {
+            while (
+                index < length &&
+                DECIMAL_DIGIT_PATTERN.test(source[index])
+            ) {
                 index += 1;
             }
 
             // Check for decimal point
-            if (index + 1 < length && source[index] === "." && DECIMAL_DIGIT_PATTERN.test(source[index + 1])) {
+            if (
+                index + 1 < length &&
+                source[index] === "." &&
+                DECIMAL_DIGIT_PATTERN.test(source[index + 1])
+            ) {
                 index += 2;
-                while (index < length && DECIMAL_DIGIT_PATTERN.test(source[index])) {
+                while (
+                    index < length &&
+                    DECIMAL_DIGIT_PATTERN.test(source[index])
+                ) {
                     index += 1;
                 }
             }
 
             // Check for scientific notation (e or E)
-            if (index < length && (source[index] === "e" || source[index] === "E")) {
+            if (
+                index < length &&
+                (source[index] === "e" || source[index] === "E")
+            ) {
                 index += 1;
                 // Optional sign
-                if (index < length && (source[index] === "+" || source[index] === "-")) {
+                if (
+                    index < length &&
+                    (source[index] === "+" || source[index] === "-")
+                ) {
                     index += 1;
                 }
                 // Exponent digits
-                while (index < length && DECIMAL_DIGIT_PATTERN.test(source[index])) {
+                while (
+                    index < length &&
+                    DECIMAL_DIGIT_PATTERN.test(source[index])
+                ) {
                     index += 1;
                 }
             }
@@ -641,7 +741,15 @@ export function tokenize(source: string): Token[] {
             // Check for multiplier suffixes (KB, MB, GB, TB, PB)
             if (index + 1 < length) {
                 const suffix = source.slice(index, index + 2).toUpperCase();
-                if (["KB", "MB", "GB", "TB", "PB"].includes(suffix)) {
+                if (
+                    [
+                        "KB",
+                        "MB",
+                        "GB",
+                        "TB",
+                        "PB",
+                    ].includes(suffix)
+                ) {
                     index += 2;
                 }
             }
@@ -659,7 +767,11 @@ export function tokenize(source: string): Token[] {
         if (char === "-" && source.slice(index, index + 3) === "--%") {
             // Consume everything until end of line as the stop parsing argument
             let endIndex = index + 3;
-            while (endIndex < length && source[endIndex] !== "\n" && source[endIndex] !== "\r") {
+            while (
+                endIndex < length &&
+                source[endIndex] !== "\n" &&
+                source[endIndex] !== "\r"
+            ) {
                 endIndex += 1;
             }
             push({
@@ -673,7 +785,10 @@ export function tokenize(source: string): Token[] {
         }
 
         const startCodePoint = readCodePoint(index);
-        if (startCodePoint && UNICODE_IDENTIFIER_START_PATTERN.test(startCodePoint.text)) {
+        if (
+            startCodePoint &&
+            UNICODE_IDENTIFIER_START_PATTERN.test(startCodePoint.text)
+        ) {
             index += startCodePoint.width;
             while (index < length) {
                 const peek = readCodePoint(index);
@@ -694,16 +809,19 @@ export function tokenize(source: string): Token[] {
             continue;
         }
 
-        if (
-            startCodePoint &&
-            startCodePoint.text === "-"
-        ) {
+        if (startCodePoint && startCodePoint.text === "-") {
             const afterDash = readCodePoint(index + startCodePoint.width);
-            if (afterDash && UNICODE_IDENTIFIER_AFTER_DASH_PATTERN.test(afterDash.text)) {
+            if (
+                afterDash &&
+                UNICODE_IDENTIFIER_AFTER_DASH_PATTERN.test(afterDash.text)
+            ) {
                 index += startCodePoint.width;
                 while (index < length) {
                     const peek = readCodePoint(index);
-                    if (!peek || !UNICODE_IDENTIFIER_CHAR_PATTERN.test(peek.text)) {
+                    if (
+                        !peek ||
+                        !UNICODE_IDENTIFIER_CHAR_PATTERN.test(peek.text)
+                    ) {
                         break;
                     }
                     index += peek.width;
@@ -733,6 +851,11 @@ export function tokenize(source: string): Token[] {
  * Normalizes a here-string by removing the opening and closing delimiters.
  *
  * PowerShell here-strings have the format:
+ *
+ * @param node - The here-string AST node
+ *
+ * @returns The normalized content without delimiters
+ *
  * @"
  * content
  * "@
@@ -745,9 +868,6 @@ export function tokenize(source: string): Token[] {
  *
  * This function extracts just the content between the delimiters.
  * If the here-string is too short (malformed), returns it as-is.
- *
- * @param node - The here-string AST node
- * @returns The normalized content without delimiters
  */
 export function normalizeHereString(node: HereStringNode): string {
     const lines = node.value.split(/\r?\n/);

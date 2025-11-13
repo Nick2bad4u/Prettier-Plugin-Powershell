@@ -140,7 +140,8 @@ export function isNodeType<
 
 /**
  * Creates a deep clone of an AST node, including nested arrays and objects.
- * This ensures that modifications to the cloned node don't affect the original.
+ * This ensures that modifications to the cloned node don't affect the
+ * original.
  */
 export function cloneNode<T extends BaseNode>(node: T): T {
     const cloned = {
@@ -200,7 +201,9 @@ export function isPipelineNode(node: BaseNode): node is PipelineNode {
 /**
  * Type guard to check if a node is a FunctionDeclarationNode.
  */
-export function isFunctionDeclarationNode(node: BaseNode): node is FunctionDeclarationNode {
+export function isFunctionDeclarationNode(
+    node: BaseNode
+): node is FunctionDeclarationNode {
     return node.type === "FunctionDeclaration";
 }
 

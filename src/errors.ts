@@ -1,5 +1,6 @@
 /**
- * Custom error class for PowerShell parsing errors with source location information.
+ * Custom error class for PowerShell parsing errors with source location
+ * information.
  */
 export class PowerShellParseError extends Error {
     constructor(
@@ -140,10 +141,12 @@ export const ANTI_PATTERNS: AntiPatternSpec[] = [
         pattern: /\$\?/g,
         type: "best-practice" as WarningType,
         message: "Consider using $? in combination with proper error handling",
-        suggestion: "Use try/catch blocks or -ErrorAction for better error control.",
+        suggestion:
+            "Use try/catch blocks or -ErrorAction for better error control.",
     },
     {
-        pattern: /Get-\w+\s*\|\s*Where-Object.*\|\s*Select-Object\s+-First\s+1/gi,
+        pattern:
+            /Get-\w+\s*\|\s*Where-Object.*\|\s*Select-Object\s+-First\s+1/gi,
         type: "performance" as WarningType,
         message: "Use -First parameter on cmdlet instead of Select-Object",
         suggestion:
@@ -152,7 +155,8 @@ export const ANTI_PATTERNS: AntiPatternSpec[] = [
     {
         pattern: /foreach\s*\(\s*\$\w+\s+in\s+Get-/gi,
         type: "performance" as WarningType,
-        message: "Consider using ForEach-Object in pipeline for memory efficiency",
+        message:
+            "Consider using ForEach-Object in pipeline for memory efficiency",
         suggestion: "Get-X | ForEach-Object { } processes items one at a time.",
     },
 ];

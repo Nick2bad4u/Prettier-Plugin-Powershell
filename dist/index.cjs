@@ -658,7 +658,13 @@ function tokenize(source) {
         }
         if (index + 1 < length) {
           const suffix = source.slice(index, index + 2).toUpperCase();
-          if (["KB", "MB", "GB", "TB", "PB"].includes(suffix)) {
+          if ([
+            "KB",
+            "MB",
+            "GB",
+            "TB",
+            "PB"
+          ].includes(suffix)) {
             index += 2;
           }
         }
@@ -709,7 +715,13 @@ function tokenize(source) {
       }
       if (index + 1 < length) {
         const suffix = source.slice(index, index + 2).toUpperCase();
-        if (["KB", "MB", "GB", "TB", "PB"].includes(suffix)) {
+        if ([
+          "KB",
+          "MB",
+          "GB",
+          "TB",
+          "PB"
+        ].includes(suffix)) {
           index += 2;
         }
       }
@@ -1162,9 +1174,9 @@ var Parser = class _Parser {
     return false;
   }
   /**
-   * Checks if there's a pipeline continuation (|) after newlines.
-   * This handles multi-line pipelines where the pipe operator appears
-   * on a subsequent line.
+   * Checks if there's a pipeline continuation (|) after newlines. This
+   * handles multi-line pipelines where the pipe operator appears on a
+   * subsequent line.
    */
   isPipelineContinuationAfterNewline() {
     let offset = 1;
@@ -1590,7 +1602,9 @@ function splitHashtableEntries(tokens) {
         if (segment.length > 0) {
           segment.push(...state.pendingComments);
         } else if (segments2.length > 0) {
-          segments2[segments2.length - 1].push(...state.pendingComments);
+          segments2[segments2.length - 1].push(
+            ...state.pendingComments
+          );
         }
         state.pendingComments = [];
       }
@@ -2321,14 +2335,22 @@ function printHashtableEntry(node, options) {
     const commentDocs = node.leadingComments.map(
       (comment) => printComment(comment)
     );
-    entryDoc = [join(hardline, commentDocs), hardline, entryDoc];
+    entryDoc = [
+      join(hardline, commentDocs),
+      hardline,
+      entryDoc
+    ];
   }
   if (node.trailingComments && node.trailingComments.length > 0) {
     for (const comment of node.trailingComments) {
       if (comment.inline) {
         entryDoc = [entryDoc, lineSuffix([" ", printComment(comment)])];
       } else {
-        entryDoc = [entryDoc, hardline, printComment(comment)];
+        entryDoc = [
+          entryDoc,
+          hardline,
+          printComment(comment)
+        ];
       }
     }
   }

@@ -205,41 +205,37 @@ describe("Advanced PowerShell Features", () => {
 
         it("formats workflow blocks", async () => {
             const input = `workflow Test-Workflow { Write-Output "In workflow" }`;
-            const result = await formatAndAssert(
-                input,
-                baseConfig,
-                { id: "advanced-features.result", skipParse: true }
-            );
+            const result = await formatAndAssert(input, baseConfig, {
+                id: "advanced-features.result",
+                skipParse: true,
+            });
             expect(result).toContain("workflow");
         });
 
         it("formats parallel blocks in workflows", async () => {
             const input = `workflow Test { parallel { Get-Process; Get-Service } }`;
-            const result = await formatAndAssert(
-                input,
-                baseConfig,
-                { id: "advanced-features.result", skipParse: true }
-            );
+            const result = await formatAndAssert(input, baseConfig, {
+                id: "advanced-features.result",
+                skipParse: true,
+            });
             expect(result).toContain("parallel");
         });
 
         it("formats sequence blocks", async () => {
             const input = `workflow Test { sequence { $a = 1; $b = 2 } }`;
-            const result = await formatAndAssert(
-                input,
-                baseConfig,
-                { id: "advanced-features.result", skipParse: true }
-            );
+            const result = await formatAndAssert(input, baseConfig, {
+                id: "advanced-features.result",
+                skipParse: true,
+            });
             expect(result).toContain("sequence");
         });
 
         it("formats inlinescript blocks", async () => {
             const input = `workflow Test { inlinescript { Get-Date } }`;
-            const result = await formatAndAssert(
-                input,
-                baseConfig,
-                { id: "advanced-features.result", skipParse: true }
-            );
+            const result = await formatAndAssert(input, baseConfig, {
+                id: "advanced-features.result",
+                skipParse: true,
+            });
             expect(result).toContain("inlinescript");
         });
     });

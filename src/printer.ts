@@ -39,6 +39,7 @@ const {
  * into formatted output using Prettier's document builders.
  *
  * The printer handles:
+ *
  * - Indentation and spacing
  * - Line wrapping and breaking
  * - Operator formatting
@@ -63,10 +64,12 @@ export const powerShellPrinter: Printer<ScriptNode> = {
 };
 
 /**
- * Main routing function that dispatches AST nodes to their specific print functions.
+ * Main routing function that dispatches AST nodes to their specific print
+ * functions.
  *
  * @param node - The AST node to print
  * @param options - Resolved printer options
+ *
  * @returns A Prettier Doc representing the formatted output
  */
 function printNode(
@@ -313,8 +316,8 @@ function printPipeline(node: PipelineNode, options: ResolvedOptions): Doc {
 
 /**
  * Heuristic to detect if text appears to be comment prose rather than code.
- * Uses a minimum length threshold to avoid false positives
- * with short variable names or keywords that might not have typical syntax markers.
+ * Uses a minimum length threshold to avoid false positives with short variable
+ * names or keywords that might not have typical syntax markers.
  */
 function looksLikeCommentText(text: string): boolean {
     const trimmed = text.trim();
@@ -630,8 +633,8 @@ const NO_SPACE_AFTER = new Set([
     "*>&2",
 ]);
 /**
- * Minimum character length for text to be considered comment prose.
- * Used to avoid false positives with short variable names or keywords.
+ * Minimum character length for text to be considered comment prose. Used to
+ * avoid false positives with short variable names or keywords.
  */
 const MINIMUM_COMMENT_LENGTH = 10;
 const SYMBOL_NO_GAP = new Set([
@@ -861,7 +864,11 @@ function printHashtableEntry(
         const commentDocs = node.leadingComments.map((comment) =>
             printComment(comment)
         );
-        entryDoc = [join(hardline, commentDocs), hardline, entryDoc];
+        entryDoc = [
+            join(hardline, commentDocs),
+            hardline,
+            entryDoc,
+        ];
     }
 
     // Add trailing comments
@@ -870,7 +877,11 @@ function printHashtableEntry(
             if (comment.inline) {
                 entryDoc = [entryDoc, lineSuffix([" ", printComment(comment)])];
             } else {
-                entryDoc = [entryDoc, hardline, printComment(comment)];
+                entryDoc = [
+                    entryDoc,
+                    hardline,
+                    printComment(comment),
+                ];
             }
         }
     }

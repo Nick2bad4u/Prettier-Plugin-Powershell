@@ -115,7 +115,9 @@ class Parser {
                     const previousNode = body[body.length - 1];
                     let lookaheadOffset = 0;
                     let nextToken: Token | undefined;
-                    while ((nextToken = this.peek(lookaheadOffset)) !== undefined) {
+                    while (
+                        (nextToken = this.peek(lookaheadOffset)) !== undefined
+                    ) {
                         if (nextToken.type === "newline") {
                             lookaheadOffset += 1;
                             continue;
@@ -357,10 +359,7 @@ class Parser {
         if (token.type === "newline") {
             return structureDepth === 0 ? "newline" : null;
         }
-        if (
-            structureDepth === 0 &&
-            token.type === "punctuation"
-        ) {
+        if (structureDepth === 0 && token.type === "punctuation") {
             if (token.value === ";") {
                 return "semicolon";
             }
@@ -504,9 +503,9 @@ class Parser {
     }
 
     /**
-     * Checks if there's a pipeline continuation (|) after newlines.
-     * This handles multi-line pipelines where the pipe operator appears
-     * on a subsequent line.
+     * Checks if there's a pipeline continuation (|) after newlines. This
+     * handles multi-line pipelines where the pipe operator appears on a
+     * subsequent line.
      */
     private isPipelineContinuationAfterNewline(): boolean {
         let offset = 1;
@@ -1097,7 +1096,9 @@ function splitHashtableEntries(tokens: Token[]): Token[][] {
                 if (segment.length > 0) {
                     segment.push(...state.pendingComments);
                 } else if (segments.length > 0) {
-                    segments[segments.length - 1].push(...state.pendingComments);
+                    segments[segments.length - 1].push(
+                        ...state.pendingComments
+                    );
                 }
                 state.pendingComments = [];
             }
@@ -1133,7 +1134,11 @@ function buildHashtableEntry(
                 trailingComments.push(token);
             }
         } else {
-            if (token.type === "operator" && token.value === "=" && !foundEquals) {
+            if (
+                token.type === "operator" &&
+                token.value === "=" &&
+                !foundEquals
+            ) {
                 equalsIndex = otherTokens.length;
                 foundEquals = true;
             }
@@ -1143,7 +1148,8 @@ function buildHashtableEntry(
 
     const keyTokens =
         equalsIndex === -1 ? otherTokens : otherTokens.slice(0, equalsIndex);
-    const valueTokens = equalsIndex === -1 ? [] : otherTokens.slice(equalsIndex + 1);
+    const valueTokens =
+        equalsIndex === -1 ? [] : otherTokens.slice(equalsIndex + 1);
     const keyExpression = buildExpressionFromTokens(keyTokens, source);
     const valueExpression =
         valueTokens.length > 0
@@ -1184,7 +1190,8 @@ function buildHashtableEntry(
         let referenceEnd =
             valueTokens[valueTokens.length - 1]?.end ??
             keyTokens[keyTokens.length - 1]?.end ??
-            tokens[0]?.start ?? 0;
+            tokens[0]?.start ??
+            0;
 
         for (const token of trailingComments) {
             const inline =
@@ -1315,14 +1322,15 @@ function hasTopLevelComma(tokens: Token[]): boolean {
 /**
  * Parses PowerShell source code into an Abstract Syntax Tree (AST).
  *
- * This is the main entry point for parsing. It tokenizes the source,
- * creates a parser instance, and builds the AST representing the script structure.
+ * This is the main entry point for parsing. It tokenizes the source, creates a
+ * parser instance, and builds the AST representing the script structure.
  *
  * The parser is designed to be resilient and will attempt to parse even
  * malformed code to provide the best formatting experience possible.
  *
  * @param source - The PowerShell source code to parse
  * @param options - Parser options (currently used for resolving configuration)
+ *
  * @returns A ScriptNode representing the root of the AST
  */
 export function parsePowerShell(
@@ -1338,11 +1346,12 @@ export function parsePowerShell(
 /**
  * Parses PowerShell source with custom terminator tokens.
  *
- * This is used internally for parsing sub-sections of scripts where
- * certain tokens should stop parsing (e.g., closing braces, specific keywords).
+ * This is used internally for parsing sub-sections of scripts where certain
+ * tokens should stop parsing (e.g., closing braces, specific keywords).
  *
  * @param source - The PowerShell source code to parse
  * @param terminators - Set of token values that should stop parsing
+ *
  * @returns A ScriptNode representing the parsed section
  */
 export function parseScriptWithTerminators(

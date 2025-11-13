@@ -137,13 +137,18 @@ describe("PowerShell parser property-based tests", () => {
                     const hasTryCatch =
                         /\btry\b/i.test(script) && /\bcatch\b/i.test(script);
                     // Known issue: formatter doesn't correctly handle $_ edge cases
-                    const hasUnderscoreVariable = /\$_[a-zA-Z0-9\s]/.test(script);
+                    const hasUnderscoreVariable = /\$_[a-zA-Z0-9\s]/.test(
+                        script
+                    );
                     const formatted = await formatAndAssert(
                         script,
                         prettierConfig,
                         {
                             id: "parser.property.formatted",
-                            skipParse: hasTryCatch || !isValidPowerShell || hasUnderscoreVariable,
+                            skipParse:
+                                hasTryCatch ||
+                                !isValidPowerShell ||
+                                hasUnderscoreVariable,
                         }
                     );
                     const formattedTwice = await formatAndAssert(
@@ -151,7 +156,10 @@ describe("PowerShell parser property-based tests", () => {
                         prettierConfig,
                         {
                             id: "parser.property.formattedTwice",
-                            skipParse: hasTryCatch || !isValidPowerShell || hasUnderscoreVariable,
+                            skipParse:
+                                hasTryCatch ||
+                                !isValidPowerShell ||
+                                hasUnderscoreVariable,
                         }
                     );
                     // formatAndAssert already asserted parse when applicable

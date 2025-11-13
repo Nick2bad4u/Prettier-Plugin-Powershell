@@ -154,11 +154,15 @@ describe("Additional regression fixtures", () => {
             let firstPass: string;
             const idBase = `weird-fixtures.${fixture.name}`;
             if (fixture.expectIdempotent === false) {
-                firstPass = await formatAndAssert(input, {
-                    ...baseConfig,
-                    filepath: filePath,
-                },
-                fixture.skipParse ? `${idBase}.first|skipParse` : `${idBase}.first`
+                firstPass = await formatAndAssert(
+                    input,
+                    {
+                        ...baseConfig,
+                        filepath: filePath,
+                    },
+                    fixture.skipParse
+                        ? `${idBase}.first|skipParse`
+                        : `${idBase}.first`
                 );
 
                 const secondPass = await formatAndAssert(
@@ -186,9 +190,7 @@ describe("Additional regression fixtures", () => {
                         ...baseConfig,
                         filepath: filePath,
                     },
-                    fixture.skipParse
-                        ? `${idBase}|skipParse`
-                        : `${idBase}`
+                    fixture.skipParse ? `${idBase}|skipParse` : `${idBase}`
                 );
             }
             fixture.assertFormatted?.(firstPass);

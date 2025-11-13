@@ -24,14 +24,14 @@ function Test-PowerShellScript {
     $messages = $errors | ForEach-Object { $_.ToString() }
     $joined = [string]::Join([Environment]::NewLine, $messages)
     return @{
-      Success = $false
+      Success    = $false
       Identifier = $Identifier
-      Error = "PowerShellParserError ($Identifier)`n$joined"
+      Error      = "PowerShellParserError ($Identifier)`n$joined"
     }
   }
 
   return @{
-    Success = $true
+    Success    = $true
     Identifier = $Identifier
   }
 }
@@ -49,7 +49,7 @@ if ($StreamMode) {
       $bytesRead = $stdin.Read($lengthBytes, 0, 4)
       if ($bytesRead -eq 0) { break }
       if ($bytesRead -ne 4) {
-        Write-Error "Invalid length prefix"
+        Write-Error 'Invalid length prefix'
         exit 10
       }
 
@@ -63,7 +63,7 @@ if ($StreamMode) {
       $idLengthBytes = New-Object byte[] 4
       $bytesRead = $stdin.Read($idLengthBytes, 0, 4)
       if ($bytesRead -ne 4) {
-        Write-Error "Invalid identifier length prefix"
+        Write-Error 'Invalid identifier length prefix'
         exit 12
       }
 
@@ -77,7 +77,7 @@ if ($StreamMode) {
       $idBytes = New-Object byte[] $idLength
       $bytesRead = $stdin.Read($idBytes, 0, $idLength)
       if ($bytesRead -ne $idLength) {
-        Write-Error "Failed to read identifier"
+        Write-Error 'Failed to read identifier'
         exit 14
       }
       $identifier = $utf8.GetString($idBytes)
@@ -87,7 +87,7 @@ if ($StreamMode) {
       $contentBytes = New-Object byte[] $contentLength
       $bytesRead = $stdin.Read($contentBytes, 0, $contentLength)
       if ($bytesRead -ne $contentLength) {
-        Write-Error "Failed to read script content"
+        Write-Error 'Failed to read script content'
         exit 15
       }
       $content = $utf8.GetString($contentBytes)
@@ -98,7 +98,8 @@ if ($StreamMode) {
       # Send response
       if ($result.Success) {
         $responseBytes = $utf8.GetBytes("OK`n")
-      } else {
+      }
+      else {
         $responseBytes = $utf8.GetBytes("ERROR`n$($result.Error)`n")
       }
 
@@ -113,11 +114,12 @@ if ($StreamMode) {
     $stdin.Dispose()
     $stdout.Dispose()
   }
-} else {
+}
+else {
   # Legacy single-script mode (for backward compatibility)
   $identifier = $args[0]
   if (-not $identifier) {
-    Write-Error "Identifier is required in single-script mode"
+    Write-Error 'Identifier is required in single-script mode'
     exit 1
   }
 

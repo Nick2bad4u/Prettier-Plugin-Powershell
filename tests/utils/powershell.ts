@@ -70,9 +70,19 @@ function initPersistentProcess(): void {
     try {
         persistentProcess = spawn(
             "pwsh",
-            ["-NoLogo", "-NoProfile", "-File", validateScriptPath, "-StreamMode"],
+            [
+                "-NoLogo",
+                "-NoProfile",
+                "-File",
+                validateScriptPath,
+                "-StreamMode",
+            ],
             {
-                stdio: ["pipe", "pipe", "pipe"],
+                stdio: [
+                    "pipe",
+                    "pipe",
+                    "pipe",
+                ],
             }
         );
     } catch (error) {
@@ -84,7 +94,11 @@ function initPersistentProcess(): void {
         );
     }
 
-    if (!persistentProcess.stdin || !persistentProcess.stdout || !persistentProcess.stderr) {
+    if (
+        !persistentProcess.stdin ||
+        !persistentProcess.stdout ||
+        !persistentProcess.stderr
+    ) {
         throw new Error("Failed to access PowerShell process stdio");
     }
 
@@ -94,7 +108,9 @@ function initPersistentProcess(): void {
         }
         // Reject all pending validations
         for (const pending of pendingValidations.values()) {
-            pending.reject(new Error(`PowerShell process error: ${error.message}`));
+            pending.reject(
+                new Error(`PowerShell process error: ${error.message}`)
+            );
         }
         pendingValidations.clear();
         persistentProcess = null;
@@ -106,7 +122,11 @@ function initPersistentProcess(): void {
         }
         // Reject all pending validations
         for (const pending of pendingValidations.values()) {
-            pending.reject(new Error(`PowerShell process exited unexpectedly with code ${code}`));
+            pending.reject(
+                new Error(
+                    `PowerShell process exited unexpectedly with code ${code}`
+                )
+            );
         }
         pendingValidations.clear();
         persistentProcess = null;
@@ -153,7 +173,10 @@ function initPersistentProcess(): void {
     // Log stderr for debugging
     if (shouldTrace) {
         persistentProcess.stderr.on("data", (chunk: Buffer) => {
-            console.error("[powershell-syntax] stderr:", chunk.toString("utf8"));
+            console.error(
+                "[powershell-syntax] stderr:",
+                chunk.toString("utf8")
+            );
         });
     }
 

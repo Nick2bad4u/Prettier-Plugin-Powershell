@@ -40,11 +40,10 @@ describe("PowerShell Version Compatibility", () => {
 
         it("formats using module (PS 5.0+)", async () => {
             const input = `using module MyModule`;
-            const result = await formatAndAssert(
-                input,
-                baseConfig,
-                { id: "version-compat", skipParse: true }
-            );
+            const result = await formatAndAssert(input, baseConfig, {
+                id: "version-compat",
+                skipParse: true,
+            });
             expect(result).toContain("using module");
         });
     });

@@ -42,11 +42,10 @@ describe("Weird PowerShell file property tests", () => {
             "weirdFiles.original"
         );
 
-        const formatted = await formatAndAssert(
-            script,
-            prettierConfig,
-            { id: "weirdFiles.formatted", skipParse: !isValidPowerShell }
-        );
+        const formatted = await formatAndAssert(script, prettierConfig, {
+            id: "weirdFiles.formatted",
+            skipParse: !isValidPowerShell,
+        });
         const formattedAst = parsePowerShell(formatted, {
             tabWidth: 2,
         } as never);
