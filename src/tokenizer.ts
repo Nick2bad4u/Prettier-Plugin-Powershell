@@ -152,7 +152,7 @@ const PUNCTUATION = new Set([
 // These are defined at module level to avoid recreation in the tokenize loop
 const WHITESPACE_PATTERN = /[\s\u00A0\u200B\u2060\uFEFF]/;
 const IDENTIFIER_START_PATTERN = /[A-Za-z_]/;
-const UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}_:\-]$/u;
+const UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}_:-]$/u;
 const HEX_DIGIT_PATTERN = /[0-9A-Fa-f]/;
 const BINARY_DIGIT_PATTERN = /[01]/;
 const DECIMAL_DIGIT_PATTERN = /[0-9]/;

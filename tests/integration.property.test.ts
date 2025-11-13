@@ -61,11 +61,11 @@ describe("Integration property tests", () => {
                                     },
                                     "integration.property.formatted"
                                 );
-                                assertPowerShellParses(
+                                await assertPowerShellParses(
                                     formatted,
                                     "integration.crossModule.formatted"
                                 );
-                                assertPowerShellParses(
+                                await assertPowerShellParses(
                                     formatted,
                                     "integration.roundTrip.formatted"
                                 );
@@ -151,7 +151,7 @@ describe("Integration property tests", () => {
                                     },
                                     "integration.property.formatted"
                                 );
-                                assertPowerShellParses(
+                                await assertPowerShellParses(
                                     formatted,
                                     "integration.optionCombos.formatted"
                                 );
@@ -182,7 +182,7 @@ describe("Integration property tests", () => {
                                     },
                                     "integration.property.formatted2"
                                 );
-                                assertPowerShellParses(
+                                await assertPowerShellParses(
                                     formatted2,
                                     "integration.optionCombos.formatted2"
                                 );
@@ -356,7 +356,7 @@ describe("Integration property tests", () => {
                                     },
                                     "integration.property.formatted"
                                 );
-                                assertPowerShellParses(
+                                await assertPowerShellParses(
                                     formatted,
                                     "integration.concatenated.formatted"
                                 );
@@ -432,7 +432,7 @@ describe("Integration property tests", () => {
                                     },
                                     "integration.property.finalFormat|skipParse"
                                 );
-                                assertPowerShellParses(
+                                await assertPowerShellParses(
                                     finalFormat,
                                     "integration.repeatedFormatting.final"
                                 );
@@ -550,7 +550,7 @@ describe("Integration property tests", () => {
                                     },
                                     "integration.property.formatted1"
                                 );
-                                assertPowerShellParses(
+                                await assertPowerShellParses(
                                     formatted1,
                                     "integration.extensions.formatted1"
                                 );
@@ -564,7 +564,7 @@ describe("Integration property tests", () => {
                                     },
                                     "integration.property.formatted2"
                                 );
-                                assertPowerShellParses(
+                                await assertPowerShellParses(
                                     formatted2,
                                     "integration.extensions.formatted2"
                                 );

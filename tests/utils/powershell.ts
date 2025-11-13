@@ -52,7 +52,7 @@ type ParseOutcome =
 
 // Persistent PowerShell process for syntax validation
 let persistentProcess: ChildProcess | null = null;
-let pendingValidations = new Map<
+const pendingValidations = new Map<
     number,
     {
         resolve: (outcome: ParseOutcome) => void;
@@ -238,7 +238,7 @@ const runPowerShellParser = async (
             persistentProcess.stdin.write(scriptBuffer);
         } catch (error) {
             pendingValidations.delete(validationId);
-            reject(error);
+            reject(error instanceof Error ? error : new Error(String(error)));
         }
     });
 };

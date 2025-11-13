@@ -176,7 +176,7 @@ describe("Additional regression fixtures", () => {
                         : "weird-fixtures.secondPass"
                 );
                 if (!fixture.skipParse) {
-                    assertPowerShellParses(
+                    await assertPowerShellParses(
                         secondPass,
                         `weird-fixtures.secondPass.${fixture.name}`
                     );
@@ -196,7 +196,7 @@ describe("Additional regression fixtures", () => {
             fixture.assertFormatted?.(firstPass);
 
             if (!fixture.skipParse) {
-                assertPowerShellParses(firstPass, idBase);
+                await assertPowerShellParses(firstPass, idBase);
             }
         });
     }

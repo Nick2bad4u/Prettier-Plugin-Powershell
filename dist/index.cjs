@@ -301,7 +301,7 @@ var PUNCTUATION = /* @__PURE__ */ new Set([
 ]);
 var WHITESPACE_PATTERN = /[\s\u00A0\u200B\u2060\uFEFF]/;
 var IDENTIFIER_START_PATTERN = /[A-Za-z_]/;
-var UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}_:\-]$/u;
+var UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}_:-]$/u;
 var HEX_DIGIT_PATTERN = /[0-9A-Fa-f]/;
 var BINARY_DIGIT_PATTERN = /[01]/;
 var DECIMAL_DIGIT_PATTERN = /[0-9]/;

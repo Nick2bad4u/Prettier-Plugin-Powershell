@@ -107,7 +107,7 @@ describe("Printer property-based tests", () => {
                             },
                             "printer.property.formatted"
                         );
-                        assertPowerShellParses(
+                        await assertPowerShellParses(
                             formatted,
                             "printer.property.formattedOutput"
                         );
@@ -171,7 +171,7 @@ describe("Printer property-based tests", () => {
                             },
                             "printer.property.formatted"
                         );
-                        assertPowerShellParses(
+                        await assertPowerShellParses(
                             formatted,
                             "printer.property.semantic"
                         );
@@ -225,7 +225,7 @@ describe("Printer property-based tests", () => {
                                 },
                                 "printer.property.formatted"
                             );
-                            assertPowerShellParses(
+                            await assertPowerShellParses(
                                 formatted,
                                 "printer.property.indentSize"
                             );
@@ -276,7 +276,7 @@ describe("Printer property-based tests", () => {
                                 },
                                 "printer.property.formatted"
                             );
-                            assertPowerShellParses(
+                            await assertPowerShellParses(
                                 formatted,
                                 "printer.property.braceStyle"
                             );
@@ -323,7 +323,7 @@ describe("Printer property-based tests", () => {
                                 },
                                 "printer.property.formatted"
                             );
-                            assertPowerShellParses(
+                            await assertPowerShellParses(
                                 formatted,
                                 "printer.property.keywordCase"
                             );
@@ -370,7 +370,7 @@ describe("Printer property-based tests", () => {
                         },
                         "printer.property.formatted"
                     );
-                    assertPowerShellParses(
+                    await assertPowerShellParses(
                         formatted,
                         "printer.property.emptyScript"
                     );
@@ -403,7 +403,7 @@ describe("Printer property-based tests", () => {
                             },
                             "printer.property.formatted"
                         );
-                        assertPowerShellParses(
+                        await assertPowerShellParses(
                             formatted,
                             "printer.property.comment"
                         );
@@ -441,7 +441,7 @@ describe("Printer property-based tests", () => {
                                 },
                                 "printer.property.formatted"
                             );
-                            assertPowerShellParses(
+                            await assertPowerShellParses(
                                 formatted,
                                 "printer.property.commentOnly"
                             );
@@ -485,7 +485,7 @@ describe("Printer property-based tests", () => {
                             },
                             "printer.property.formatted"
                         );
-                        assertPowerShellParses(
+                        await assertPowerShellParses(
                             formatted,
                             "printer.property.lineEndings"
                         );
