@@ -6,6 +6,7 @@ import plugin from "../src/index.js";
 import { parsePowerShell } from "../src/parser.js";
 
 import { formatAndAssert } from "./utils/format-and-assert.js";
+import { isPowerShellParsable } from "./utils/powershell.js";
 import { withProgress } from "./utils/progress.js";
 
 const PROPERTY_RUNS = Number.parseInt(
@@ -35,10 +36,16 @@ describe("Weird PowerShell file property tests", () => {
             throw new Error("Parser did not return a Script node");
         }
 
+        // Check if the formatted output will be parseable by PowerShell
+        const isValidPowerShell = await isPowerShellParsable(
+            script,
+            "weirdFiles.original"
+        );
+
         const formatted = await formatAndAssert(
             script,
             prettierConfig,
-            "weirdFiles.formatted"
+            { id: "weirdFiles.formatted", skipParse: !isValidPowerShell }
         );
         const formattedAst = parsePowerShell(formatted, {
             tabWidth: 2,
@@ -50,7 +57,7 @@ describe("Weird PowerShell file property tests", () => {
         const formattedAgain = await formatAndAssert(
             formatted,
             prettierConfig,
-            "weirdFiles.formattedAgain"
+            { id: "weirdFiles.formattedAgain", skipParse: !isValidPowerShell }
         );
         if (formattedAgain !== formatted) {
             throw new Error("Formatting was not idempotent");

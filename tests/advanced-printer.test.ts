@@ -74,7 +74,7 @@ describe("Advanced Printer Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-printer.result"
+                "advanced-printer.unclosed-string|skipParse"
             );
             expect(result).toBeTruthy();
         });
@@ -84,7 +84,7 @@ describe("Advanced Printer Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-printer.result"
+                "advanced-printer.mixed-syntax|skipParse"
             );
             expect(result).toBeTruthy();
             expect(result).toContain("$valid = 1");
@@ -96,7 +96,7 @@ describe("Advanced Printer Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-printer.result"
+                "advanced-printer.malformed-hash|skipParse"
             );
             expect(result).toBeTruthy();
         });

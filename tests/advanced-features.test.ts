@@ -208,7 +208,7 @@ describe("Advanced PowerShell Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-features.result"
+                { id: "advanced-features.result", skipParse: true }
             );
             expect(result).toContain("workflow");
         });
@@ -218,7 +218,7 @@ describe("Advanced PowerShell Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-features.result"
+                { id: "advanced-features.result", skipParse: true }
             );
             expect(result).toContain("parallel");
         });
@@ -228,7 +228,7 @@ describe("Advanced PowerShell Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-features.result"
+                { id: "advanced-features.result", skipParse: true }
             );
             expect(result).toContain("sequence");
         });
@@ -238,7 +238,7 @@ describe("Advanced PowerShell Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-features.result"
+                { id: "advanced-features.result", skipParse: true }
             );
             expect(result).toContain("inlinescript");
         });

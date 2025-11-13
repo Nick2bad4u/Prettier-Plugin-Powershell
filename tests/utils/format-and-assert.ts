@@ -28,7 +28,7 @@ export async function formatAndAssert(
     }
 
     if (!skipParse) {
-        assertPowerShellParses(formatted, id ?? "formatAndAssert");
+        await assertPowerShellParses(formatted, id ?? "formatAndAssert");
     }
 
     return formatted;

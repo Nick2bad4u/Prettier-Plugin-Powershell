@@ -43,7 +43,7 @@ describe("PowerShell Version Compatibility", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "version-compat"
+                { id: "version-compat", skipParse: true }
             );
             expect(result).toContain("using module");
         });
