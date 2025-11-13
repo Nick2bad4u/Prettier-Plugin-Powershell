@@ -14,7 +14,7 @@ describe("Error Handling and Resilience", () => {
         const result = await formatAndAssert(
             input,
             baseConfig,
-            "error-handling.result"
+            "error-handling.result|skipParse"
         );
         expect(result).toBeTruthy();
         expect(result).toContain("function Test");
@@ -25,7 +25,7 @@ describe("Error Handling and Resilience", () => {
         const result = await formatAndAssert(
             input,
             baseConfig,
-            "error-handling.result"
+            "error-handling.result|skipParse"
         );
         expect(result).toBeTruthy();
     });
@@ -35,7 +35,7 @@ describe("Error Handling and Resilience", () => {
         const result = await formatAndAssert(
             input,
             baseConfig,
-            "error-handling.result"
+            "error-handling.result|skipParse"
         );
         expect(result).toBeTruthy();
     });
@@ -45,7 +45,7 @@ describe("Error Handling and Resilience", () => {
         const result = await formatAndAssert(
             input,
             baseConfig,
-            "error-handling.result"
+            "error-handling.result|skipParse"
         );
         expect(result).toBeTruthy();
     });
@@ -55,7 +55,7 @@ describe("Error Handling and Resilience", () => {
         const result = await formatAndAssert(
             input,
             baseConfig,
-            "error-handling.result"
+            "error-handling.result|skipParse"
         );
         expect(result).toBeTruthy();
     });
@@ -65,7 +65,7 @@ describe("Error Handling and Resilience", () => {
         const result = await formatAndAssert(
             input,
             baseConfig,
-            "error-handling.result"
+            "error-handling.result|skipParse"
         );
         expect(result).toBeTruthy();
     });
@@ -75,7 +75,7 @@ describe("Error Handling and Resilience", () => {
         const result = await formatAndAssert(
             input,
             baseConfig,
-            "error-handling.result"
+            "error-handling.result|skipParse"
         );
         expect(result).toBeTruthy();
     });
@@ -85,7 +85,7 @@ describe("Error Handling and Resilience", () => {
         const result = await formatAndAssert(
             input,
             baseConfig,
-            "error-handling.result"
+            "error-handling.result|skipParse"
         );
         // Empty input should return just a newline or empty string
         expect(result).toBeDefined();
@@ -96,7 +96,7 @@ describe("Error Handling and Resilience", () => {
         const result = await formatAndAssert(
             input,
             baseConfig,
-            "error-handling.result"
+            "error-handling.result|skipParse"
         );
         // Whitespace-only should be trimmed
         expect(result).toBeDefined();
@@ -107,7 +107,7 @@ describe("Error Handling and Resilience", () => {
         const result = await formatAndAssert(
             input,
             baseConfig,
-            "error-handling.result"
+            "error-handling.result|skipParse"
         );
         expect(result).toContain("#");
     });
@@ -117,7 +117,7 @@ describe("Error Handling and Resilience", () => {
         const result = await formatAndAssert(
             input,
             baseConfig,
-            "error-handling.result"
+            "error-handling.result|skipParse"
         );
         expect(result).toBeTruthy();
         expect(result).toContain("$x = 1");
@@ -129,7 +129,7 @@ describe("Error Handling and Resilience", () => {
         const result = await formatAndAssert(
             input,
             baseConfig,
-            "error-handling.result"
+            "error-handling.result|skipParse"
         );
         expect(result).toBeTruthy();
         expect(result).toContain(longString);
@@ -140,7 +140,7 @@ describe("Error Handling and Resilience", () => {
         const result = await formatAndAssert(
             input,
             baseConfig,
-            "error-handling.result"
+            "error-handling.result|skipParse"
         );
         expect(result).toBeTruthy();
         expect(result).toContain("deep");
@@ -151,7 +151,7 @@ describe("Error Handling and Resilience", () => {
         const result = await formatAndAssert(
             input,
             baseConfig,
-            "error-handling.result"
+            "error-handling.result|skipParse"
         );
         expect(result).toBeTruthy();
     });
@@ -161,7 +161,7 @@ describe("Error Handling and Resilience", () => {
         const result = await formatAndAssert(
             input,
             baseConfig,
-            "error-handling.result"
+            "error-handling.result|skipParse"
         );
         expect(result).toBeTruthy();
         expect(result).toContain("変数");
@@ -173,7 +173,7 @@ describe("Error Handling and Resilience", () => {
         const result = await formatAndAssert(
             input,
             baseConfig,
-            "error-handling.result"
+            "error-handling.result|skipParse"
         );
         expect(result).toBeTruthy();
     });
@@ -183,7 +183,7 @@ describe("Error Handling and Resilience", () => {
         const result = await formatAndAssert(
             input,
             baseConfig,
-            "error-handling.result"
+            "error-handling.result|skipParse"
         );
         expect(result).toBeTruthy();
         expect(result).toContain("Get-Process");

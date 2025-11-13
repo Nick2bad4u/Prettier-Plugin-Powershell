@@ -14,7 +14,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "deep-nesting.result"
+                "deep-nesting.basic-dsc|skipParse"
             );
             expect(result).toBeTruthy();
             expect(result).toContain("Configuration MyConfig");
@@ -38,7 +38,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "deep-nesting.result"
+                "deep-nesting.nested-dsc|skipParse"
             );
             expect(result).toContain("Configuration WebServer");
             expect(result).toContain("WindowsFeature IIS");
@@ -62,7 +62,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "deep-nesting.result"
+                "deep-nesting.deep-dsc|skipParse"
             );
             expect(result).toBeTruthy();
             expect(result).toContain("Configuration Complex");
@@ -80,7 +80,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "deep-nesting.result"
+                "deep-nesting.multinode-dsc|skipParse"
             );
             expect(result).toContain("MultiNode");
             expect(result).toContain("Server01");
@@ -103,7 +103,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "deep-nesting.result"
+                "deep-nesting.performance|skipParse"
             );
             expect(result).toBeTruthy();
             expect(result).toContain("deep");

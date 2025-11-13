@@ -8,7 +8,7 @@ const maxChecksEnv = process.env.POWERSHELL_MAX_SYNTAX_CHECKS;
 const defaultMaxChecks = shouldVerify
     ? maxChecksEnv !== undefined
         ? Number.parseInt(maxChecksEnv, 10)
-        : 2
+        : -1
     : 0;
 
 let checksRemaining = Number.isNaN(defaultMaxChecks)

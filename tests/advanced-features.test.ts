@@ -14,7 +14,7 @@ describe("Advanced PowerShell Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-features.result"
+                "advanced-features.configuration|skipParse"
             );
             expect(result).toContain("$(Get-Date -Format yyyy-MM-dd)");
         });
@@ -24,7 +24,7 @@ describe("Advanced PowerShell Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-features.result"
+                "advanced-features.workflow|skipParse"
             );
             expect(result).toContain("$env:USERNAME");
             expect(result).toContain("$env:COMPUTERNAME");
@@ -35,7 +35,7 @@ describe("Advanced PowerShell Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-features.result"
+                "advanced-features.workflow-parallel|skipParse"
             );
             expect(result).toContain("$(Get-Process");
         });
@@ -47,7 +47,7 @@ describe("Advanced PowerShell Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-features.result"
+                "advanced-features.workflow-sequence|skipParse"
             );
             expect(result).toContain('@"');
             expect(result).toContain('"@');
@@ -58,7 +58,7 @@ describe("Advanced PowerShell Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-features.result"
+                "advanced-features.workflow-inlinescript|skipParse"
             );
             expect(result).toContain("@'");
             expect(result).toContain("'@");

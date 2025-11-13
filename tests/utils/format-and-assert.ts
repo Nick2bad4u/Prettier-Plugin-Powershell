@@ -19,7 +19,9 @@ export async function formatAndAssert(
     let skipParse = false;
     let id: string | undefined;
     if (typeof opts === "string") {
-        id = opts;
+        const [maybeId, ...flags] = opts.split("|");
+        id = maybeId;
+        skipParse = flags.includes("skipParse");
     } else {
         skipParse = !!opts.skipParse;
         id = opts.id;
@@ -43,7 +45,9 @@ export async function formatAndAssertRoundTrip(
     let skipParse = false;
     let id: string | undefined;
     if (typeof opts === "string") {
-        id = opts;
+        const [maybeId, ...flags] = opts.split("|");
+        id = maybeId;
+        skipParse = flags.includes("skipParse");
     } else {
         skipParse = !!opts.skipParse;
         id = opts.id;

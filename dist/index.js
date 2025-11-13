@@ -299,7 +299,7 @@ var PUNCTUATION = /* @__PURE__ */ new Set([
 ]);
 var WHITESPACE_PATTERN = /[\s\u00A0\u200B\u2060\uFEFF]/;
 var IDENTIFIER_START_PATTERN = /[A-Za-z_]/;
-var UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}_:-]$/u;
+var UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}_:\-]$/u;
 var HEX_DIGIT_PATTERN = /[0-9A-Fa-f]/;
 var BINARY_DIGIT_PATTERN = /[01]/;
 var DECIMAL_DIGIT_PATTERN = /[0-9]/;
@@ -313,6 +313,18 @@ function tokenize(source) {
   let index = 0;
   const push = (token) => {
     tokens.push(token);
+  };
+  const readCodePoint = (position) => {
+    const codePoint = source.codePointAt(position);
+    if (codePoint === void 0) {
+      return null;
+    }
+    const text = String.fromCodePoint(codePoint);
+    return {
+      codePoint,
+      text,
+      width: text.length
+    };
   };
   const isWhitespaceCharacter = (ch) => {
     switch (ch) {
@@ -502,8 +514,15 @@ function tokenize(source) {
     }
     if (char === "@" && index + 1 < length && (UNICODE_IDENTIFIER_START_PATTERN.test(source[index + 1]) || source[index + 1] === "_")) {
       let scanIndex = index + 2;
-      while (scanIndex < length && UNICODE_IDENTIFIER_CHAR_PATTERN.test(source[scanIndex])) {
-        scanIndex += 1;
+      while (scanIndex < length) {
+        const peek = readCodePoint(scanIndex);
+        if (!peek) {
+          break;
+        }
+        if (!UNICODE_IDENTIFIER_CHAR_PATTERN.test(peek.text)) {
+          break;
+        }
+        scanIndex += peek.width;
       }
       push({
         type: "identifier",
@@ -596,9 +615,13 @@ function tokenize(source) {
         }
       }
       while (index < length) {
-        const currentChar = source[index];
+        const peek = readCodePoint(index);
+        if (!peek) {
+          break;
+        }
+        const currentChar = peek.text;
         if (UNICODE_VAR_CHAR_PATTERN.test(currentChar)) {
-          index += 1;
+          index += peek.width;
           continue;
         }
         if (currentChar === "{") {
@@ -710,10 +733,15 @@ function tokenize(source) {
       index = endIndex;
       continue;
     }
-    if (UNICODE_IDENTIFIER_START_PATTERN.test(char) || char === "-" && index + 1 < length && UNICODE_IDENTIFIER_AFTER_DASH_PATTERN.test(source[index + 1])) {
-      index += 1;
-      while (index < length && UNICODE_IDENTIFIER_CHAR_PATTERN.test(source[index])) {
-        index += 1;
+    const startCodePoint = readCodePoint(index);
+    if (startCodePoint && UNICODE_IDENTIFIER_START_PATTERN.test(startCodePoint.text)) {
+      index += startCodePoint.width;
+      while (index < length) {
+        const peek = readCodePoint(index);
+        if (!peek || !UNICODE_IDENTIFIER_CHAR_PATTERN.test(peek.text)) {
+          break;
+        }
+        index += peek.width;
       }
       const raw = source.slice(start, index);
       const lower = raw.toLowerCase();
@@ -725,6 +753,29 @@ function tokenize(source) {
         push({ type: "identifier", value: raw, start, end: index });
       }
       continue;
+    }
+    if (startCodePoint && startCodePoint.text === "-") {
+      const afterDash = readCodePoint(index + startCodePoint.width);
+      if (afterDash && UNICODE_IDENTIFIER_AFTER_DASH_PATTERN.test(afterDash.text)) {
+        index += startCodePoint.width;
+        while (index < length) {
+          const peek = readCodePoint(index);
+          if (!peek || !UNICODE_IDENTIFIER_CHAR_PATTERN.test(peek.text)) {
+            break;
+          }
+          index += peek.width;
+        }
+        const raw = source.slice(start, index);
+        const lower = raw.toLowerCase();
+        if (KEYWORDS.has(lower)) {
+          push({ type: "keyword", value: raw, start, end: index });
+        } else if (POWERSHELL_OPERATORS.has(lower)) {
+          push({ type: "operator", value: raw, start, end: index });
+        } else {
+          push({ type: "identifier", value: raw, start, end: index });
+        }
+        continue;
+      }
     }
     index += 1;
     push({ type: "unknown", value: char, start, end: index });

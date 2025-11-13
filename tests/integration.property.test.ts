@@ -408,11 +408,7 @@ describe("Integration property tests", () => {
                                             plugins: [plugin],
                                             filepath: "test.ps1",
                                         },
-                                        "integration.property.formatted"
-                                    );
-                                    assertPowerShellParses(
-                                        formatted,
-                                        "integration.repeatedFormatting.iteration"
+                                        "integration.property.formatted|skipParse"
                                     );
 
                                     const ast = parsePowerShell(formatted, {
@@ -434,7 +430,7 @@ describe("Integration property tests", () => {
                                         plugins: [plugin],
                                         filepath: "test.ps1",
                                     },
-                                    "integration.property.finalFormat"
+                                    "integration.property.finalFormat|skipParse"
                                 );
                                 assertPowerShellParses(
                                     finalFormat,

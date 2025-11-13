@@ -70,7 +70,8 @@ describe("Advanced Formatting Features", () => {
 
     describe("PowerShell Classes with Inheritance", () => {
         it("formats class with base class", async () => {
-            const input = `class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($name) { $this.Breed = $breed } }`;
+            const input = `class Animal { [string]$Name; Animal([string]$name) { $this.Name = $name } }
+class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($name) { $this.Breed = $breed } }`;
             const result = await formatAndAssert(
                 input,
                 baseConfig,

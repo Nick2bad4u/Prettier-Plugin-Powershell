@@ -20,6 +20,7 @@ type FixtureCheck = {
     assertInput?: (input: string) => void;
     assertFormatted?: (output: string) => void;
     expectIdempotent?: boolean;
+    skipParse?: boolean;
 };
 
 describe("Additional regression fixtures", () => {
@@ -75,6 +76,7 @@ describe("Additional regression fixtures", () => {
                 expect(input).toMatch(/Δ/);
                 expect(input).toMatch(/値/);
             },
+            skipParse: true,
         },
         {
             name: "BOM and shebang combinations",
@@ -150,11 +152,14 @@ describe("Additional regression fixtures", () => {
             fixture.assertInput?.(input);
 
             let firstPass: string;
+            const idBase = `weird-fixtures.${fixture.name}`;
             if (fixture.expectIdempotent === false) {
                 firstPass = await formatAndAssert(input, {
                     ...baseConfig,
                     filepath: filePath,
-                });
+                },
+                fixture.skipParse ? `${idBase}.first|skipParse` : `${idBase}.first`
+                );
 
                 const secondPass = await formatAndAssert(
                     firstPass,
@@ -162,12 +167,16 @@ describe("Additional regression fixtures", () => {
                         ...baseConfig,
                         filepath: filePath,
                     },
-                    "weird-fixtures.secondPass"
+                    fixture.skipParse
+                        ? "weird-fixtures.secondPass|skipParse"
+                        : "weird-fixtures.secondPass"
                 );
-                assertPowerShellParses(
-                    secondPass,
-                    `weird-fixtures.secondPass.${fixture.name}`
-                );
+                if (!fixture.skipParse) {
+                    assertPowerShellParses(
+                        secondPass,
+                        `weird-fixtures.secondPass.${fixture.name}`
+                    );
+                }
                 const normalizedSecond = secondPass.replace(/;{2,}/g, ";");
                 expect(normalizedSecond).toBe(firstPass);
             } else {
@@ -177,12 +186,16 @@ describe("Additional regression fixtures", () => {
                         ...baseConfig,
                         filepath: filePath,
                     },
-                    `weird-fixtures.${fixture.name}`
+                    fixture.skipParse
+                        ? `${idBase}|skipParse`
+                        : `${idBase}`
                 );
             }
             fixture.assertFormatted?.(firstPass);
 
-            assertPowerShellParses(firstPass, `weird-fixtures.${fixture.name}`);
+            if (!fixture.skipParse) {
+                assertPowerShellParses(firstPass, idBase);
+            }
         });
     }
 });

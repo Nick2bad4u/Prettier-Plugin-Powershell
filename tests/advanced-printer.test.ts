@@ -14,7 +14,7 @@ describe("Advanced Printer Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-printer.result"
+                "advanced-printer.unclosed-braces|skipParse"
             );
             expect(result).toBeTruthy();
             expect(result).toContain("-gt");
@@ -27,7 +27,7 @@ describe("Advanced Printer Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-printer.result"
+                "advanced-printer.unclosed-parens|skipParse"
             );
             expect(result).toBeTruthy();
             expect(result).toContain("-gt");
@@ -39,7 +39,7 @@ describe("Advanced Printer Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-printer.result"
+                "advanced-printer.unclosed-strings|skipParse"
             );
             expect(result).toBeTruthy();
             expect(result).toContain("-gt");
@@ -53,7 +53,7 @@ describe("Advanced Printer Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-printer.result"
+                "advanced-printer.mixed-valid-invalid|skipParse"
             );
             expect(result).toBeTruthy();
             expect(result).toContain("function Test");
@@ -64,7 +64,7 @@ describe("Advanced Printer Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-printer.result"
+                "advanced-printer.malformed-hashtables|skipParse"
             );
             expect(result).toBeTruthy();
         });

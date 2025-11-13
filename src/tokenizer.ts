@@ -104,7 +104,7 @@ const PUNCTUATION = new Set([
 // These are defined at module level to avoid recreation in the tokenize loop
 const WHITESPACE_PATTERN = /[\s\u00A0\u200B\u2060\uFEFF]/;
 const IDENTIFIER_START_PATTERN = /[A-Za-z_]/;
-const UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}_:-]$/u;
+const UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}_:\-]$/u;
 const HEX_DIGIT_PATTERN = /[0-9A-Fa-f]/;
 const BINARY_DIGIT_PATTERN = /[01]/;
 const DECIMAL_DIGIT_PATTERN = /[0-9]/;
@@ -138,6 +138,21 @@ export function tokenize(source: string): Token[] {
 
     const push = (token: Token) => {
         tokens.push(token);
+    };
+
+    const readCodePoint = (
+        position: number
+    ): { codePoint: number; text: string; width: number } | null => {
+        const codePoint = source.codePointAt(position);
+        if (codePoint === undefined) {
+            return null;
+        }
+        const text = String.fromCodePoint(codePoint);
+        return {
+            codePoint,
+            text,
+            width: text.length,
+        };
     };
 
     const isWhitespaceCharacter = (ch: string): boolean => {
@@ -371,11 +386,15 @@ export function tokenize(source: string): Token[] {
                 source[index + 1] === "_")
         ) {
             let scanIndex = index + 2;
-            while (
-                scanIndex < length &&
-                UNICODE_IDENTIFIER_CHAR_PATTERN.test(source[scanIndex])
-            ) {
-                scanIndex += 1;
+            while (scanIndex < length) {
+                const peek = readCodePoint(scanIndex);
+                if (!peek) {
+                    break;
+                }
+                if (!UNICODE_IDENTIFIER_CHAR_PATTERN.test(peek.text)) {
+                    break;
+                }
+                scanIndex += peek.width;
             }
             push({
                 type: "identifier",
@@ -489,11 +508,15 @@ export function tokenize(source: string): Token[] {
             }
 
             while (index < length) {
-                const currentChar = source[index];
+                const peek = readCodePoint(index);
+                if (!peek) {
+                    break;
+                }
+                const currentChar = peek.text;
                 // PowerShell supports Unicode variable names
                 // Match Unicode letters, numbers, underscore, colon, and hyphen
                 if (UNICODE_VAR_CHAR_PATTERN.test(currentChar)) {
-                    index += 1;
+                    index += peek.width;
                     continue;
                 }
                 if (currentChar === "{") {
@@ -649,15 +672,15 @@ export function tokenize(source: string): Token[] {
             continue;
         }
 
-        if (
-            UNICODE_IDENTIFIER_START_PATTERN.test(char) ||
-            (char === "-" &&
-                index + 1 < length &&
-                UNICODE_IDENTIFIER_AFTER_DASH_PATTERN.test(source[index + 1]))
-        ) {
-            index += 1;
-            while (index < length && UNICODE_IDENTIFIER_CHAR_PATTERN.test(source[index])) {
-                index += 1;
+        const startCodePoint = readCodePoint(index);
+        if (startCodePoint && UNICODE_IDENTIFIER_START_PATTERN.test(startCodePoint.text)) {
+            index += startCodePoint.width;
+            while (index < length) {
+                const peek = readCodePoint(index);
+                if (!peek || !UNICODE_IDENTIFIER_CHAR_PATTERN.test(peek.text)) {
+                    break;
+                }
+                index += peek.width;
             }
             const raw = source.slice(start, index);
             const lower = raw.toLowerCase();
@@ -669,6 +692,33 @@ export function tokenize(source: string): Token[] {
                 push({ type: "identifier", value: raw, start, end: index });
             }
             continue;
+        }
+
+        if (
+            startCodePoint &&
+            startCodePoint.text === "-"
+        ) {
+            const afterDash = readCodePoint(index + startCodePoint.width);
+            if (afterDash && UNICODE_IDENTIFIER_AFTER_DASH_PATTERN.test(afterDash.text)) {
+                index += startCodePoint.width;
+                while (index < length) {
+                    const peek = readCodePoint(index);
+                    if (!peek || !UNICODE_IDENTIFIER_CHAR_PATTERN.test(peek.text)) {
+                        break;
+                    }
+                    index += peek.width;
+                }
+                const raw = source.slice(start, index);
+                const lower = raw.toLowerCase();
+                if (KEYWORDS.has(lower)) {
+                    push({ type: "keyword", value: raw, start, end: index });
+                } else if (POWERSHELL_OPERATORS.has(lower)) {
+                    push({ type: "operator", value: raw, start, end: index });
+                } else {
+                    push({ type: "identifier", value: raw, start, end: index });
+                }
+                continue;
+            }
         }
 
         // fallback single character token

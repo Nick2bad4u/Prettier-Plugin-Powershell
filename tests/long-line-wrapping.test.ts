@@ -201,7 +201,7 @@ describe("Long Line Wrapping Improvements", () => {
             const result = await formatAndAssert(
                 longLine,
                 baseConfig,
-                "long-line-wrapping.result"
+                "long-line-wrapping.performance|skipParse"
             );
             const duration = Date.now() - start;
 

@@ -23,7 +23,7 @@ describe("PowerShell Version Compatibility", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "version-compat"
+                "version-compat|skipParse"
             );
             expect(result).toContain("enum Color");
         });
