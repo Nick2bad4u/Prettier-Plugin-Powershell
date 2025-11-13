@@ -50,18 +50,18 @@ describe("Weird PowerShell file property tests", () => {
             id: "weirdFiles.formatted",
             skipParse: true, // We'll validate manually below
         });
-        
+
         // Known issue: BOM followed immediately by certain syntax confuses PowerShell
-        const formattedHasBOMIssue = formatted.startsWith('\uFEFF') && 
-            formatted.length > 1 && 
+        const formattedHasBOMIssue = formatted.startsWith('\uFEFF') &&
+            formatted.length > 1 &&
             formatted[1] !== '\n' &&
             formatted[1] !== '\r';
-        
+
         // Now validate if it's parseable (unless we know it has the BOM issue)
         if (isValidPowerShell && !formattedHasBOMIssue) {
             await assertPowerShellParses(formatted, "weirdFiles.formatted");
         }
-        
+
         const formattedAst = parsePowerShell(formatted, {
             tabWidth: 2,
         } as never);
@@ -72,9 +72,9 @@ describe("Weird PowerShell file property tests", () => {
         const formattedAgain = await formatAndAssert(
             formatted,
             prettierConfig,
-            { 
-                id: "weirdFiles.formattedAgain", 
-                skipParse: !isValidPowerShell || formattedHasBOMIssue 
+            {
+                id: "weirdFiles.formattedAgain",
+                skipParse: !isValidPowerShell || formattedHasBOMIssue
             }
         );
         if (formattedAgain !== formatted) {
