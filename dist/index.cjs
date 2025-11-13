@@ -605,7 +605,7 @@ function tokenize(source) {
       index += 1;
       if (index < length) {
         const nextChar = source[index];
-        if (nextChar === "$" || nextChar === "^" || nextChar === "?" || nextChar === "_") {
+        if (nextChar === "$" || nextChar === "^" || nextChar === "?") {
           index += 1;
           push({
             type: "variable",
@@ -614,6 +614,33 @@ function tokenize(source) {
             end: index
           });
           continue;
+        }
+        if (nextChar === "_") {
+          const afterUnderscore = index + 1;
+          if (afterUnderscore < length) {
+            const peek = readCodePoint(afterUnderscore);
+            if (peek && UNICODE_VAR_CHAR_PATTERN.test(peek.text)) {
+              index += 1;
+            } else {
+              index += 1;
+              push({
+                type: "variable",
+                value: source.slice(start, index),
+                start,
+                end: index
+              });
+              continue;
+            }
+          } else {
+            index += 1;
+            push({
+              type: "variable",
+              value: source.slice(start, index),
+              start,
+              end: index
+            });
+            continue;
+          }
         }
       }
       while (index < length) {

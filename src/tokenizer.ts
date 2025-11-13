@@ -554,15 +554,11 @@ export function tokenize(source: string): Token[] {
         if (char === "$") {
             index += 1;
 
-            // Special variables: $$, $^, $?, $_
+            // Special variables: $$, $^, $?
+            // Note: $_ is special only when NOT followed by additional variable chars
             if (index < length) {
                 const nextChar = source[index];
-                if (
-                    nextChar === "$" ||
-                    nextChar === "^" ||
-                    nextChar === "?" ||
-                    nextChar === "_"
-                ) {
+                if (nextChar === "$" || nextChar === "^" || nextChar === "?") {
                     index += 1;
                     push({
                         type: "variable",
@@ -571,6 +567,39 @@ export function tokenize(source: string): Token[] {
                         end: index,
                     });
                     continue;
+                }
+                // For $_, check if followed by valid variable chars
+                if (nextChar === "_") {
+                    const afterUnderscore = index + 1;
+                    if (afterUnderscore < length) {
+                        const peek = readCodePoint(afterUnderscore);
+                        // If $_ is followed by a valid variable char, treat as regular variable
+                        // Otherwise, it's the special $_ variable
+                        if (peek && UNICODE_VAR_CHAR_PATTERN.test(peek.text)) {
+                            // Continue to regular variable parsing below
+                            index += 1; // consume the underscore
+                        } else {
+                            // It's just the special $_ variable
+                            index += 1;
+                            push({
+                                type: "variable",
+                                value: source.slice(start, index),
+                                start,
+                                end: index,
+                            });
+                            continue;
+                        }
+                    } else {
+                        // $_ at end of source
+                        index += 1;
+                        push({
+                            type: "variable",
+                            value: source.slice(start, index),
+                            start,
+                            end: index,
+                        });
+                        continue;
+                    }
                 }
             }
 
