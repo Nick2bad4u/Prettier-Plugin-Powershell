@@ -42,10 +42,14 @@ Environment variables:
 ### Known Limitations
 
 Some PowerShell edge cases are skipped from validation:
-- `workflow` blocks (not supported in PowerShell 7+)
-- Variables starting with `$_` followed by other characters (formatter tokenization issue)
-- Intentionally broken scripts in error handling tests
-- Module imports that reference non-existent modules
+- `workflow` blocks (not supported in PowerShell 7+) - **cannot fix**
+- Intentionally broken scripts in error recovery tests - **cannot fix**
+- Module imports that reference non-existent modules - **cannot fix**
+- BOM (`\uFEFF`) immediately followed by code on same line - **known PowerShell parser quirk**
+
+### Fixed Issues
+
+- ✅ **`$_` variable handling**: Fixed tokenizer to correctly handle variables starting with `$_` followed by other characters (e.g., `$_test`, `$_myVar`). The tokenizer now distinguishes between the special `$_` variable and user-defined variables that start with `$_`.
 
 ### Files Changed
 - `tests/utils/powershell.ts`: Persistent process implementation
