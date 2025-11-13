@@ -103,13 +103,59 @@ describe("Error and warning classes", () => {
             expect(context).toContain(">");
         });
 
+        it("handles out-of-range line numbers in toString", () => {
+            const error = new PowerShellParseError(
+                "Out of range",
+                "single line",
+                20,
+                5,
+                2
+            );
+
+            const str = error.toString();
+            expect(str).toContain("line 5, column 2");
+            expect(str).toContain("^");
+        });
+
         it("includes stack trace when available", () => {
             const error = new PowerShellParseError("Error", "test", 1, 1, 1);
-            // Stack trace may or may not be available depending on environment
-            if (Error.captureStackTrace) {
+            const hasCaptureStackTrace =
+                typeof Error.captureStackTrace === "function";
+            if (hasCaptureStackTrace) {
                 expect(error.stack).toBeDefined();
             }
         });
+
+            it("constructs correctly when Error.captureStackTrace is unavailable", () => {
+                const descriptor = Object.getOwnPropertyDescriptor(
+                    Error,
+                    "captureStackTrace"
+                );
+
+                Object.defineProperty(Error, "captureStackTrace", {
+                    value: undefined,
+                    configurable: true,
+                    writable: true,
+                });
+
+                try {
+                    const error = new PowerShellParseError(
+                        "Error",
+                        "test",
+                        1,
+                        1,
+                        1
+                    );
+
+                    expect(error.name).toBe("PowerShellParseError");
+                } finally {
+                    if (descriptor) {
+                        Object.defineProperty(Error, "captureStackTrace", descriptor);
+                    } else {
+                        Reflect.deleteProperty(Error, "captureStackTrace");
+                    }
+                }
+            });
     });
 
     describe("PowerShellWarning", () => {

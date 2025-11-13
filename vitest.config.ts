@@ -23,6 +23,7 @@ export default defineConfig(({ }) => {
         '**/.cache/**',
         '**/.stryker-tmp/**',
         'coverage/**',
+        'tests/**',
         'node_modules/**',
         ...coverageConfigDefaults.exclude,
       ],
