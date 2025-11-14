@@ -202,7 +202,7 @@ describe("PowerShell Keywords", () => {
 
     it("formats enum definitions", async () => {
         const input = `enum Status { Running; Stopped; Paused }`;
-            const expected = `enum Status {\n    Running\n    Stopped\n    Paused\n}\n`;
+        const expected = `enum Status {\n    Running\n    Stopped\n    Paused\n}\n`;
         const result = await formatAndAssert(
             input,
             baseConfig,
@@ -213,7 +213,7 @@ describe("PowerShell Keywords", () => {
 
     it("formats do-until loops", async () => {
         const input = `do { $x++ } until ($x -gt 10)`;
-            const expected = `do {\n    $x++\n} until ($x -gt 10)\n`;
+        const expected = `do {\n    $x++\n} until ($x -gt 10)\n`;
         const result = await formatAndAssert(
             input,
             baseConfig,
@@ -224,7 +224,7 @@ describe("PowerShell Keywords", () => {
 
     it("formats trap statements", async () => {
         const input = `trap { Write-Error $_ }`;
-            const expected = `trap {\n    Write-Error $_\n}\n`;
+        const expected = `trap {\n    Write-Error $_\n}\n`;
         const result = await formatAndAssert(
             input,
             baseConfig,
@@ -235,7 +235,7 @@ describe("PowerShell Keywords", () => {
 
     it("formats data blocks", async () => {
         const input = `data messages{ConvertFrom-StringData@"\na=1\nb=2\n"@}`;
-            const expected = `data messages {\n    ConvertFrom-StringData @"\na=1\nb=2\n"@\n}\n`;
+        const expected = `data messages {\n    ConvertFrom-StringData @"\na=1\nb=2\n"@\n}\n`;
         const result = await formatAndAssert(
             input,
             baseConfig,

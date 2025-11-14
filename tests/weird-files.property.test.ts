@@ -52,10 +52,11 @@ describe("Weird PowerShell file property tests", () => {
         });
 
         // Known issue: BOM followed immediately by certain syntax confuses PowerShell
-        const formattedHasBOMIssue = formatted.startsWith('\uFEFF') &&
+        const formattedHasBOMIssue =
+            formatted.startsWith("\uFEFF") &&
             formatted.length > 1 &&
-            formatted[1] !== '\n' &&
-            formatted[1] !== '\r';
+            formatted[1] !== "\n" &&
+            formatted[1] !== "\r";
 
         // Now validate if it's parseable (unless we know it has the BOM issue)
         if (isValidPowerShell && !formattedHasBOMIssue) {
@@ -74,7 +75,7 @@ describe("Weird PowerShell file property tests", () => {
             prettierConfig,
             {
                 id: "weirdFiles.formattedAgain",
-                skipParse: !isValidPowerShell || formattedHasBOMIssue
+                skipParse: !isValidPowerShell || formattedHasBOMIssue,
             }
         );
         if (formattedAgain !== formatted) {

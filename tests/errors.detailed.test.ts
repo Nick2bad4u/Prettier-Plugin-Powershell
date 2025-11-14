@@ -59,9 +59,14 @@ describe("Error and warning classes", () => {
         });
 
         it("gets context with default context lines", () => {
-            const source = ["line1", "line2", "line3", "line4", "line5", "line6"].join(
-                "\n"
-            );
+            const source = [
+                "line1",
+                "line2",
+                "line3",
+                "line4",
+                "line5",
+                "line6",
+            ].join("\n");
             const error = new PowerShellParseError("Error", source, 15, 3, 5);
 
             const context = error.getContext();
@@ -74,7 +79,13 @@ describe("Error and warning classes", () => {
         });
 
         it("gets context with custom context lines", () => {
-            const source = ["line1", "line2", "line3", "line4", "line5"].join("\n");
+            const source = [
+                "line1",
+                "line2",
+                "line3",
+                "line4",
+                "line5",
+            ].join("\n");
             const error = new PowerShellParseError("Error", source, 15, 3, 5);
 
             const context = error.getContext(1);
@@ -126,36 +137,40 @@ describe("Error and warning classes", () => {
             }
         });
 
-            it("constructs correctly when Error.captureStackTrace is unavailable", () => {
-                const descriptor = Object.getOwnPropertyDescriptor(
-                    Error,
-                    "captureStackTrace"
+        it("constructs correctly when Error.captureStackTrace is unavailable", () => {
+            const descriptor = Object.getOwnPropertyDescriptor(
+                Error,
+                "captureStackTrace"
+            );
+
+            Object.defineProperty(Error, "captureStackTrace", {
+                value: undefined,
+                configurable: true,
+                writable: true,
+            });
+
+            try {
+                const error = new PowerShellParseError(
+                    "Error",
+                    "test",
+                    1,
+                    1,
+                    1
                 );
 
-                Object.defineProperty(Error, "captureStackTrace", {
-                    value: undefined,
-                    configurable: true,
-                    writable: true,
-                });
-
-                try {
-                    const error = new PowerShellParseError(
-                        "Error",
-                        "test",
-                        1,
-                        1,
-                        1
+                expect(error.name).toBe("PowerShellParseError");
+            } finally {
+                if (descriptor) {
+                    Object.defineProperty(
+                        Error,
+                        "captureStackTrace",
+                        descriptor
                     );
-
-                    expect(error.name).toBe("PowerShellParseError");
-                } finally {
-                    if (descriptor) {
-                        Object.defineProperty(Error, "captureStackTrace", descriptor);
-                    } else {
-                        Reflect.deleteProperty(Error, "captureStackTrace");
-                    }
+                } else {
+                    Reflect.deleteProperty(Error, "captureStackTrace");
                 }
-            });
+            }
+        });
     });
 
     describe("PowerShellWarning", () => {
@@ -233,7 +248,13 @@ describe("Error and warning classes", () => {
             ];
 
             types.forEach((type) => {
-                const warning = new PowerShellWarning("Test warning", type, 1, 1, 1);
+                const warning = new PowerShellWarning(
+                    "Test warning",
+                    type,
+                    1,
+                    1,
+                    1
+                );
                 expect(warning.type).toBe(type);
                 expect(warning.toString()).toContain(`[${type}]`);
             });

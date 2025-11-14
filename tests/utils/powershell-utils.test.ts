@@ -4,9 +4,7 @@ import { PassThrough } from "node:stream";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-type MockResponse =
-    | { type: "OK" }
-    | { type: "ERROR"; message: string };
+type MockResponse = { type: "OK" } | { type: "ERROR"; message: string };
 
 type MockProcessHooks = {
     onMessage?: (
@@ -89,7 +87,9 @@ class MockProcess extends EventEmitter {
                 };
                 this.hooks.onMessage(this, respond);
             } else {
-                const response = this.responses.shift() ?? { type: "OK" as const };
+                const response = this.responses.shift() ?? {
+                    type: "OK" as const,
+                };
                 this.scheduleResponse(response);
             }
         }
@@ -115,8 +115,10 @@ function createSpawnMock(
     hooks?: MockProcessHooks
 ) {
     return vi.fn(() => {
-        const proc = new MockProcess(responses, hooks) as unknown as MockProcess &
-            ChildProcess;
+        const proc = new MockProcess(
+            responses,
+            hooks
+        ) as unknown as MockProcess & ChildProcess;
         onCreate?.(proc);
         return proc;
     });
@@ -342,28 +344,24 @@ describe("PowerShell syntax utilities", () => {
             POWERSHELL_VERIFY_SYNTAX: "1",
         };
 
-        const spawnMock = createSpawnMock(
-            [],
-            undefined,
-            {
-                onMessage: (proc) => {
-                    const payload = Buffer.from("OK\n", "utf8");
-                    const length = Buffer.alloc(4);
-                    length.writeInt32LE(payload.length, 0);
+        const spawnMock = createSpawnMock([], undefined, {
+            onMessage: (proc) => {
+                const payload = Buffer.from("OK\n", "utf8");
+                const length = Buffer.alloc(4);
+                length.writeInt32LE(payload.length, 0);
 
-                    // Emit length in two chunks to force the parser to wait for remaining bytes.
-                    proc.stdout.push(length.subarray(0, 2));
+                // Emit length in two chunks to force the parser to wait for remaining bytes.
+                proc.stdout.push(length.subarray(0, 2));
+                setTimeout(() => {
+                    proc.stdout.push(length.subarray(2));
+                    // Emit payload in two parts as well.
+                    proc.stdout.push(payload.subarray(0, 1));
                     setTimeout(() => {
-                        proc.stdout.push(length.subarray(2));
-                        // Emit payload in two parts as well.
-                        proc.stdout.push(payload.subarray(0, 1));
-                        setTimeout(() => {
-                            proc.stdout.push(payload.subarray(1));
-                        }, 0);
+                        proc.stdout.push(payload.subarray(1));
                     }, 0);
-                },
-            }
-        );
+                }, 0);
+            },
+        });
         vi.doMock("node:child_process", () => ({ spawn: spawnMock }));
 
         const { isPowerShellParsable } = await import("./powershell.js");
@@ -435,9 +433,11 @@ describe("PowerShell syntax utilities", () => {
     it("traces diagnostic output when POWERSHELL_SYNTAX_TRACE is enabled", async () => {
         const logs: string[] = [];
         const errors: string[] = [];
-        const logSpy = vi.spyOn(console, "log").mockImplementation((message) => {
-            logs.push(String(message));
-        });
+        const logSpy = vi
+            .spyOn(console, "log")
+            .mockImplementation((message) => {
+                logs.push(String(message));
+            });
         const errorSpy = vi
             .spyOn(console, "error")
             .mockImplementation((message) => {

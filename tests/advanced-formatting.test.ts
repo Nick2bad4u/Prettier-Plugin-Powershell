@@ -259,7 +259,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
             expect(result).toBeTruthy();
-                expect(result.toLowerCase()).toContain("dynamicparam");
+            expect(result.toLowerCase()).toContain("dynamicparam");
         });
     });
 

@@ -84,9 +84,9 @@ describe("AST utility functions", () => {
             const comment: CommentNode = {
                 type: "Comment",
                 value: "# test",
-                loc: createLocation( 0, 6 ),
+                loc: createLocation(0, 6),
                 inline: false,
-                style: "line"
+                style: "line",
             };
             expect(isNodeType(comment, "Comment")).toBe(true);
             expect(isNodeType(comment, "Script")).toBe(false);
@@ -98,9 +98,9 @@ describe("AST utility functions", () => {
             const node: CommentNode = {
                 type: "Comment",
                 value: "# test comment",
-                loc: createLocation( 0, 14 ),
+                loc: createLocation(0, 14),
                 inline: false,
-                style: "line"
+                style: "line",
             };
             const cloned = cloneNode(node);
 
@@ -228,9 +228,9 @@ describe("AST utility functions", () => {
                 const node: CommentNode = {
                     type: "Comment",
                     value: "# test",
-                    loc: createLocation( 0, 6 ),
+                    loc: createLocation(0, 6),
                     inline: false,
-                    style: "line"
+                    style: "line",
                 };
                 expect(isScriptNode(node)).toBe(false);
             });
@@ -326,8 +326,8 @@ describe("AST utility functions", () => {
                 const node: ArrayLiteralNode = {
                     type: "ArrayLiteral",
                     elements: [],
-                    loc: createLocation( 0, 2 ),
-                    kind: "implicit"
+                    loc: createLocation(0, 2),
+                    kind: "implicit",
                 };
                 expect(isArrayLiteralNode(node)).toBe(true);
             });
@@ -347,9 +347,9 @@ describe("AST utility functions", () => {
                 const node: CommentNode = {
                     type: "Comment",
                     value: "# test",
-                    loc: createLocation( 0, 6 ),
+                    loc: createLocation(0, 6),
                     inline: false,
-                    style: "line"
+                    style: "line",
                 };
                 expect(isCommentNode(node)).toBe(true);
             });

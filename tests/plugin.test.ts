@@ -21,10 +21,10 @@ describe("PowerShell Prettier plugin", () => {
             new URL("./fixtures/sample-unformatted.ps1", import.meta.url),
             "utf8"
         );
-                const expected = await readFile(
-                        new URL("./fixtures/sample-formatted.ps1", import.meta.url),
-                        "utf8"
-                );
+        const expected = await readFile(
+            new URL("./fixtures/sample-formatted.ps1", import.meta.url),
+            "utf8"
+        );
 
         const result = await formatAndAssert(
             input,
@@ -103,16 +103,16 @@ Write-Host $Name
             baseConfig,
             "plugin.result"
         );
-                const expected = [
-                    "function Foo {",
-                    "    param(",
-                    "        [string] $Name,",
-                    "        [int] $Count",
-                    "    )",
-                    "",
-                    "    Write-Host $Name",
-                    "}",
-                ].join("\n");
+        const expected = [
+            "function Foo {",
+            "    param(",
+            "        [string] $Name,",
+            "        [int] $Count",
+            "    )",
+            "",
+            "    Write-Host $Name",
+            "}",
+        ].join("\n");
 
         expect(result.trim()).toBe(expected);
     });
@@ -131,15 +131,15 @@ Write-Host $Name
             },
             "plugin.result"
         );
-                const expected = [
-                    "function Foo {",
-                    "    param(",
-                    "        [string] $Name,",
-                    "        [int] $Count",
-                    "    )",
-                    "    Write-Host $Name",
-                    "}",
-                ].join("\n");
+        const expected = [
+            "function Foo {",
+            "    param(",
+            "        [string] $Name,",
+            "        [int] $Count",
+            "    )",
+            "    Write-Host $Name",
+            "}",
+        ].join("\n");
 
         expect(result.trim()).toBe(expected);
     });
@@ -178,22 +178,22 @@ Write-Host "Hi"
             },
             "plugin.allmanResult"
         );
-                expect(defaultResult.trim()).toBe(
-                    [
-                        'function Foo {',
-                        '    Write-Host "Hi"',
-                        '}',
-                    ].join("\n")
-                );
+        expect(defaultResult.trim()).toBe(
+            [
+                "function Foo {",
+                '    Write-Host "Hi"',
+                "}",
+            ].join("\n")
+        );
 
-                expect(allmanResult.trim()).toBe(
-                        [
-                                "function Foo",
-                                "{",
-                                '    Write-Host "Hi"',
-                                "}",
-                        ].join("\n")
-                );
+        expect(allmanResult.trim()).toBe(
+            [
+                "function Foo",
+                "{",
+                '    Write-Host "Hi"',
+                "}",
+            ].join("\n")
+        );
     });
 
     it("applies trailing delimiter rules for hashtables only (arrays don't support trailing commas)", async () => {
@@ -376,25 +376,25 @@ begin {
 }
 `;
 
-                const expected = [
-                    "<#",
-                    ".SYNOPSIS",
-                    "  Example script",
-                    "#>",
-                    "",
-                    "[CmdletBinding()]",
-                    "param(",
-                    "    [Parameter(Mandatory = $true)]",
-                    "    [Alias('Name')]",
-                    "    [string] $Value",
-                    ")",
-                    "",
-                    "begin {",
-                    "    node --version 2>$null",
-                    "    # begin block",
-                    "}",
-                    "",
-                ].join("\n");
+        const expected = [
+            "<#",
+            ".SYNOPSIS",
+            "  Example script",
+            "#>",
+            "",
+            "[CmdletBinding()]",
+            "param(",
+            "    [Parameter(Mandatory = $true)]",
+            "    [Alias('Name')]",
+            "    [string] $Value",
+            ")",
+            "",
+            "begin {",
+            "    node --version 2>$null",
+            "    # begin block",
+            "}",
+            "",
+        ].join("\n");
 
         const result = await formatAndAssert(
             input,

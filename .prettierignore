@@ -1,0 +1,13 @@
+# Skip PowerShell fixture inputs so they remain intentionally unformatted
+# Tests rely on their original whitespace to validate parsing/formatting behavior.
+tests/fixtures/**
+
+# Regression inputs under tests/test_files should stay untouched
+tests/test_files/**/*.unformatted.ps1
+tests/test_files/**/*.test.ps1
+tests/test_files/**/*.test.psm1
+tests/test_files/**/*.test.psd1
+tests/test_files/weird-*.test.*
+
+# Utility scripts invoked by tests for syntax validation
+tests/utils/validate-syntax.ps1

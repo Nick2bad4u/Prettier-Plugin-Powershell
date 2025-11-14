@@ -31,10 +31,7 @@ const keywordCaseArb = fc.constantFrom<KeywordCaseOption>(
     "upper",
     "pascal"
 );
-const presetArb = fc.constantFrom<PresetOption>(
-    "none",
-    "invoke-formatter"
-);
+const presetArb = fc.constantFrom<PresetOption>("none", "invoke-formatter");
 const lineWidthArb = fc.integer({ min: 40, max: 200 });
 const blankLinesBetweenFunctionsArb = fc.integer({ min: 0, max: 3 });
 
@@ -235,9 +232,7 @@ describe("Options property-based tests", () => {
                     );
                 }
                 if (resolved.trailingComma !== "none") {
-                    throw new Error(
-                        "Default trailingComma should be none"
-                    );
+                    throw new Error("Default trailingComma should be none");
                 }
                 if (resolved.braceStyle !== "1tbs") {
                     throw new Error("Default braceStyle should be 1tbs");
