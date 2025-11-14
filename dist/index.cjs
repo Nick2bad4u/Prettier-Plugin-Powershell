@@ -118,12 +118,30 @@ var pluginOptions = {
     type: "boolean",
     default: false,
     description: "Rewrite Write-Host invocations to Write-Output to discourage host-only output."
+  },
+  powershellPreset: {
+    category: "PowerShell",
+    type: "choice",
+    default: "none",
+    description: "Apply a predefined bundle of formatting preferences (e.g. Invoke-Formatter parity).",
+    choices: [
+      {
+        value: "none",
+        description: "Do not apply a preset; rely solely on explicit options."
+      },
+      {
+        value: "invoke-formatter",
+        description: "Match the defaults used by Invoke-Formatter / PSScriptAnalyzer's CodeFormatting profile."
+      }
+    ]
   }
 };
 var defaultOptions = {
   tabWidth: 4
 };
 function resolveOptions(options) {
+  const preset = options.powershellPreset ?? "none";
+  applyPresetDefaults(options, preset);
   const indentStyle = options.powershellIndentStyle ?? "spaces";
   const rawIndentOverride = options.powershellIndentSize;
   const normalizedIndentOverride = Number(rawIndentOverride);
@@ -175,6 +193,36 @@ function resolveOptions(options) {
     rewriteAliases,
     rewriteWriteHost
   };
+}
+var PRESET_DEFAULTS = {
+  none: {},
+  "invoke-formatter": {
+    powershellIndentStyle: "spaces",
+    powershellIndentSize: 4,
+    tabWidth: 4,
+    powershellTrailingComma: "none",
+    powershellSortHashtableKeys: false,
+    powershellBlankLinesBetweenFunctions: 1,
+    powershellBlankLineAfterParam: true,
+    powershellBraceStyle: "1tbs",
+    powershellLineWidth: 120,
+    powershellPreferSingleQuote: false,
+    powershellKeywordCase: "lower",
+    powershellRewriteAliases: false,
+    powershellRewriteWriteHost: false
+  }
+};
+function applyPresetDefaults(options, preset) {
+  const overrides = PRESET_DEFAULTS[preset];
+  if (!overrides) {
+    return;
+  }
+  const target = options;
+  for (const [key, value] of Object.entries(overrides)) {
+    if (typeof target[key] === "undefined") {
+      target[key] = value;
+    }
+  }
 }
 
 // src/tokenizer.ts

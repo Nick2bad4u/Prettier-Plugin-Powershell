@@ -15,13 +15,33 @@ import {
     type ArrayLiteralNode,
     type BaseNode,
     type CommentNode,
+    type ExpressionNode,
     type FunctionDeclarationNode,
     type HashtableNode,
     type HereStringNode,
     type PipelineNode,
     type ScriptBlockNode,
     type ScriptNode,
+    type TokenRole,
 } from "../src/ast.js";
+
+function createTextExpression(
+    value: string,
+    role: TokenRole = "word"
+): ExpressionNode {
+    return {
+        type: "Expression",
+        parts: [
+            {
+                type: "Text",
+                value,
+                role,
+                loc: createLocation(0, value.length),
+            },
+        ],
+        loc: createLocation(0, value.length),
+    } satisfies ExpressionNode;
+}
 
 describe("AST utility functions", () => {
     describe("createLocation", () => {
@@ -64,7 +84,9 @@ describe("AST utility functions", () => {
             const comment: CommentNode = {
                 type: "Comment",
                 value: "# test",
-                loc: createLocation(0, 6),
+                loc: createLocation( 0, 6 ),
+                inline: false,
+                style: "line"
             };
             expect(isNodeType(comment, "Comment")).toBe(true);
             expect(isNodeType(comment, "Script")).toBe(false);
@@ -76,7 +98,9 @@ describe("AST utility functions", () => {
             const node: CommentNode = {
                 type: "Comment",
                 value: "# test comment",
-                loc: createLocation(0, 14),
+                loc: createLocation( 0, 14 ),
+                inline: false,
+                style: "line"
             };
             const cloned = cloneNode(node);
 
@@ -93,11 +117,13 @@ describe("AST utility functions", () => {
                         type: "Comment",
                         value: "# comment",
                         loc: createLocation(0, 9),
+                        inline: false,
+                        style: "line",
                     },
                 ],
                 loc: createLocation(0, 10),
             };
-            const cloned = cloneNode(node) as ScriptNode;
+            const cloned = cloneNode(node);
 
             expect(cloned).toEqual(node);
             expect(cloned).not.toBe(node);
@@ -137,16 +163,11 @@ describe("AST utility functions", () => {
         it("clones a node with elements array", () => {
             const node: ArrayLiteralNode = {
                 type: "ArrayLiteral",
-                elements: [
-                    {
-                        type: "NumberLiteral",
-                        value: "1",
-                        loc: createLocation(0, 1),
-                    },
-                ],
+                elements: [createTextExpression("1", "number")],
+                kind: "implicit",
                 loc: createLocation(0, 3),
             };
-            const cloned = cloneNode(node) as ArrayLiteralNode;
+            const cloned = cloneNode(node);
 
             expect(cloned).toEqual(node);
             expect(cloned.elements).not.toBe(node.elements);
@@ -158,22 +179,15 @@ describe("AST utility functions", () => {
                 entries: [
                     {
                         type: "HashtableEntry",
-                        key: {
-                            type: "StringLiteral",
-                            value: "key",
-                            loc: createLocation(0, 3),
-                        },
-                        value: {
-                            type: "StringLiteral",
-                            value: "value",
-                            loc: createLocation(7, 12),
-                        },
+                        key: "key",
+                        rawKey: createTextExpression("key"),
+                        value: createTextExpression("value", "string"),
                         loc: createLocation(0, 12),
                     },
                 ],
                 loc: createLocation(0, 14),
             };
-            const cloned = cloneNode(node) as HashtableNode;
+            const cloned = cloneNode(node);
 
             expect(cloned).toEqual(node);
             expect(cloned.entries).not.toBe(node.entries);
@@ -214,7 +228,9 @@ describe("AST utility functions", () => {
                 const node: CommentNode = {
                     type: "Comment",
                     value: "# test",
-                    loc: createLocation(0, 6),
+                    loc: createLocation( 0, 6 ),
+                    inline: false,
+                    style: "line"
                 };
                 expect(isScriptNode(node)).toBe(false);
             });
@@ -224,7 +240,7 @@ describe("AST utility functions", () => {
             it("returns true for Pipeline nodes", () => {
                 const node: PipelineNode = {
                     type: "Pipeline",
-                    commands: [],
+                    segments: [],
                     loc: createLocation(0, 10),
                 };
                 expect(isPipelineNode(node)).toBe(true);
@@ -244,8 +260,7 @@ describe("AST utility functions", () => {
             it("returns true for FunctionDeclaration nodes", () => {
                 const node: FunctionDeclarationNode = {
                     type: "FunctionDeclaration",
-                    name: "Test-Function",
-                    parameters: [],
+                    header: createTextExpression("function Test-Function"),
                     body: {
                         type: "ScriptBlock",
                         body: [],
@@ -311,7 +326,8 @@ describe("AST utility functions", () => {
                 const node: ArrayLiteralNode = {
                     type: "ArrayLiteral",
                     elements: [],
-                    loc: createLocation(0, 2),
+                    loc: createLocation( 0, 2 ),
+                    kind: "implicit"
                 };
                 expect(isArrayLiteralNode(node)).toBe(true);
             });
@@ -331,7 +347,9 @@ describe("AST utility functions", () => {
                 const node: CommentNode = {
                     type: "Comment",
                     value: "# test",
-                    loc: createLocation(0, 6),
+                    loc: createLocation( 0, 6 ),
+                    inline: false,
+                    style: "line"
                 };
                 expect(isCommentNode(node)).toBe(true);
             });

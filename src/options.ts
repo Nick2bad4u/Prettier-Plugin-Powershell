@@ -4,6 +4,7 @@ export type TrailingCommaOption = "none" | "multiline" | "all";
 export type IndentStyleOption = "spaces" | "tabs";
 export type BraceStyleOption = "1tbs" | "allman";
 export type KeywordCaseOption = "preserve" | "lower" | "upper" | "pascal";
+export type PresetOption = "none" | "invoke-formatter";
 
 export interface PluginConfiguration {
     powershellIndentStyle: IndentStyleOption;
@@ -18,6 +19,7 @@ export interface PluginConfiguration {
     powershellKeywordCase: KeywordCaseOption;
     powershellRewriteAliases: boolean;
     powershellRewriteWriteHost: boolean;
+    powershellPreset: PresetOption;
 }
 
 export const pluginOptions: SupportOptions = {
@@ -147,6 +149,24 @@ export const pluginOptions: SupportOptions = {
         description:
             "Rewrite Write-Host invocations to Write-Output to discourage host-only output.",
     },
+    powershellPreset: {
+        category: "PowerShell",
+        type: "choice",
+        default: "none",
+        description:
+            "Apply a predefined bundle of formatting preferences (e.g. Invoke-Formatter parity).",
+        choices: [
+            {
+                value: "none",
+                description: "Do not apply a preset; rely solely on explicit options.",
+            },
+            {
+                value: "invoke-formatter",
+                description:
+                    "Match the defaults used by Invoke-Formatter / PSScriptAnalyzer's CodeFormatting profile.",
+            },
+        ],
+    },
 };
 
 export const defaultOptions = {
@@ -176,6 +196,10 @@ export interface ResolvedOptions {
  * PowerShell-specific settings and Prettier's core settings.
  */
 export function resolveOptions(options: ParserOptions): ResolvedOptions {
+    const preset =
+        (options.powershellPreset as PresetOption | undefined) ?? "none";
+    applyPresetDefaults(options, preset);
+
     const indentStyle =
         (options.powershellIndentStyle as IndentStyleOption | undefined) ??
         "spaces";
@@ -248,4 +272,41 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
         rewriteAliases,
         rewriteWriteHost,
     } satisfies ResolvedOptions;
+}
+
+type PresetDefaults = Partial<Record<keyof PluginConfiguration | "tabWidth", unknown>>;
+
+const PRESET_DEFAULTS: Record<PresetOption, PresetDefaults> = {
+    none: {},
+    "invoke-formatter": {
+        powershellIndentStyle: "spaces",
+        powershellIndentSize: 4,
+        tabWidth: 4,
+        powershellTrailingComma: "none",
+        powershellSortHashtableKeys: false,
+        powershellBlankLinesBetweenFunctions: 1,
+        powershellBlankLineAfterParam: true,
+        powershellBraceStyle: "1tbs",
+        powershellLineWidth: 120,
+        powershellPreferSingleQuote: false,
+        powershellKeywordCase: "lower",
+        powershellRewriteAliases: false,
+        powershellRewriteWriteHost: false,
+    },
+};
+
+function applyPresetDefaults(
+    options: ParserOptions,
+    preset: PresetOption
+): void {
+    const overrides = PRESET_DEFAULTS[preset];
+    if (!overrides) {
+        return;
+    }
+    const target = options as Record<string, unknown>;
+    for (const [key, value] of Object.entries(overrides)) {
+        if (typeof target[key] === "undefined") {
+            target[key] = value;
+        }
+    }
 }

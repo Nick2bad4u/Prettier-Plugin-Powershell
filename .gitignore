@@ -185,3 +185,4 @@ todo.md
 
 # GitHub sample cache
 tests/fixtures/github-cache/
+tsup.config.bundled_*.mjs

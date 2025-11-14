@@ -162,7 +162,7 @@ Some options are more computationally expensive:
 **Fast Options:**
 ```json
 {
-  "powershellIndentSize": 2,
+  "powershellIndentSize": 4,
   "powershellIndentStyle": "spaces",
   "powershellBraceStyle": "1tbs"
 }
@@ -180,13 +180,13 @@ Some options are more computationally expensive:
 
 ```json
 {
-  "powershellIndentSize": 2,
-  "powershellTrailingComma": "multiline",
+  "powershellIndentSize": 4,
+  "powershellTrailingComma": "none",
   "powershellSortHashtableKeys": false,
   "powershellBlankLinesBetweenFunctions": 1,
-  "powershellBlankLineAfterParam": false,
+  "powershellBlankLineAfterParam": true,
   "powershellBraceStyle": "1tbs",
-  "powershellLineWidth": 80,
+  "powershellLineWidth": 120,
   "powershellPreferSingleQuote": false,
   "powershellKeywordCase": "lower"
 }

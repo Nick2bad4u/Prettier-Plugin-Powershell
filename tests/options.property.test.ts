@@ -7,6 +7,7 @@ import {
     type BraceStyleOption,
     type IndentStyleOption,
     type KeywordCaseOption,
+    type PresetOption,
     type TrailingCommaOption,
 } from "../src/options.js";
 
@@ -30,6 +31,10 @@ const keywordCaseArb = fc.constantFrom<KeywordCaseOption>(
     "upper",
     "pascal"
 );
+const presetArb = fc.constantFrom<PresetOption>(
+    "none",
+    "invoke-formatter"
+);
 const lineWidthArb = fc.integer({ min: 40, max: 200 });
 const blankLinesBetweenFunctionsArb = fc.integer({ min: 0, max: 3 });
 
@@ -52,6 +57,7 @@ const parserOptionsArb = fc.record({
     powershellRewriteAliases: fc.option(fc.boolean(), { nil: undefined }),
     powershellRewriteWriteHost: fc.option(fc.boolean(), { nil: undefined }),
     tabWidth: fc.option(fc.integer({ min: 1, max: 8 }), { nil: undefined }),
+    powershellPreset: fc.option(presetArb, { nil: undefined }),
 }) as unknown as fc.Arbitrary<ParserOptions>;
 
 describe("Options property-based tests", () => {
@@ -250,6 +256,47 @@ describe("Options property-based tests", () => {
             }),
             { numRuns: PROPERTY_RUNS }
         );
+    });
+
+    it("applies the invoke-formatter preset when requested", () => {
+        const resolved = resolveOptions({
+            powershellPreset: "invoke-formatter",
+        } as unknown as ParserOptions);
+
+        if (resolved.indentStyle !== "spaces") {
+            throw new Error("Preset should force spaces indentation");
+        }
+        if (resolved.indentSize !== 4) {
+            throw new Error("Preset should default to 4-space indentation");
+        }
+        if (resolved.trailingComma !== "none") {
+            throw new Error("Preset should default trailingComma to none");
+        }
+        if (resolved.braceStyle !== "1tbs") {
+            throw new Error("Preset should default braceStyle to 1tbs");
+        }
+        if (resolved.keywordCase !== "lower") {
+            throw new Error("Preset should default keywordCase to lower");
+        }
+    });
+
+    it("lets explicit options override preset defaults", () => {
+        const resolved = resolveOptions({
+            powershellPreset: "invoke-formatter",
+            powershellKeywordCase: "upper",
+            powershellIndentSize: 2,
+        } as unknown as ParserOptions);
+
+        if (resolved.keywordCase !== "upper") {
+            throw new Error(
+                `Explicit keywordCase should override preset; got ${resolved.keywordCase}`
+            );
+        }
+        if (resolved.indentSize !== 2) {
+            throw new Error(
+                `Explicit indentSize should override preset; got ${resolved.indentSize}`
+            );
+        }
     });
 
     it("resolveOptions clamps invalid numeric values", () => {

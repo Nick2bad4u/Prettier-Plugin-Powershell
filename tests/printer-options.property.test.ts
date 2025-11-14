@@ -510,7 +510,7 @@ ${formatted}`
                         powershellLineWidth: 40,
                     });
 
-                    const multilineMarker = '\n    \"';
+                    const multilineMarker = '\n    "';
 
                     if (wide.includes(multilineMarker)) {
                         throw new Error(

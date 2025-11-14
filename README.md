@@ -106,6 +106,41 @@ const formatted = await prettier.format(source, {
 | `powershellKeywordCase` | `'preserve' \| 'lower' \| 'upper' \| 'pascal'` | `'lower'` | Normalise PowerShell keyword casing (defaults to lowercase to match `Invoke-Formatter`). |
 | `powershellRewriteAliases` | `boolean` | `false` | Expand cmdlet aliases such as `ls`, `%`, `?`, `gci`. |
 | `powershellRewriteWriteHost` | `boolean` | `false` | Rewrite `Write-Host` invocations to `Write-Output`. |
+| `powershellPreset` | `'none' \| 'invoke-formatter'` | `'none'` | Apply a bundle of defaults (e.g. `invoke-formatter` mirrors the settings PowerShell’s built-in formatter uses). |
+
+### Invoke-Formatter parity preset
+
+Set `"powershellPreset": "invoke-formatter"` to mirror the behavior of `Invoke-Formatter`/PSScriptAnalyzer’s `CodeFormatting` profile. The preset only fills in values that you haven’t provided yourself—any explicit option in your Prettier config still wins.
+
+```jsonc
+{
+  "plugins": ["prettier-plugin-powershell"],
+  "powershellPreset": "invoke-formatter",
+  // overrides remain opt-in
+  "powershellRewriteAliases": true
+}
+```
+
+### Per-directory overrides (keyword casing, presets, etc.)
+
+Prettier supports [`overrides`](https://prettier.io/docs/en/options.html#overrides), so you can scope keyword casing/presets to specific folders without extra tooling:
+
+```jsonc
+{
+  "plugins": ["prettier-plugin-powershell"],
+  "powershellPreset": "invoke-formatter",
+  "overrides": [
+    {
+      "files": "legacy/**/*.ps1",
+      "options": {
+        "powershellKeywordCase": "preserve"
+      }
+    }
+  ]
+}
+```
+
+Combined with the preset, this makes it easy to keep your primary scripts aligned with PowerShell’s formatter while letting legacy or third-party snippets retain their original casing.
 
 ## Example formatting
 

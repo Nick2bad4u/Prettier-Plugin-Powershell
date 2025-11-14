@@ -14,6 +14,7 @@ This guide provides examples for each formatting option available in the prettie
 - [Line Width](#line-width)
 - [Prefer Single Quote](#prefer-single-quote)
 - [Keyword Case](#keyword-case)
+- [Presets](#presets)
 
 ---
 
@@ -57,26 +58,26 @@ Number of indentation characters for each level.
 
 **Option:** `powershellIndentSize`
 **Type:** `number`
-**Default:** `2`
+**Default:** `4`
 **Range:** `1-8`
 
-### Example with 2 spaces (default)
-
-```powershell
-function Test {
-  if ($true) {
-    Write-Output "nested"
-  }
-}
-```
-
-### Example with 4 spaces
+### Example with 4 spaces (default)
 
 ```powershell
 function Test {
     if ($true) {
         Write-Output "nested"
     }
+}
+```
+
+### Example with 2 spaces
+
+```powershell
+function Test {
+  if ($true) {
+    Write-Output "nested"
+  }
 }
 ```
 
@@ -88,9 +89,9 @@ Control trailing commas for array and hashtable literals.
 
 **Option:** `powershellTrailingComma`
 **Type:** `"none" | "multiline" | "all"`
-**Default:** `"multiline"`
+**Default:** `"none"`
 
-### Example with "none"
+### Example with "none" (default)
 
 ```powershell
 $array = @(
@@ -105,7 +106,7 @@ $hash = @{
 }
 ```
 
-### Example with "multiline" (default)
+### Example with "multiline"
 
 ```powershell
 $array = @(
@@ -202,23 +203,23 @@ Add a blank line after param blocks.
 
 **Option:** `powershellBlankLineAfterParam`
 **Type:** `boolean`
-**Default:** `false`
+**Default:** `true`
 
-### Example with false (default)
+### Example with true (default)
 
 ```powershell
 function Test-Function {
   param([string]$Name)
+
   Write-Output "Hello, $Name"
 }
 ```
 
-### Example with true
+### Example with false
 
 ```powershell
 function Test-Function {
   param([string]$Name)
-
   Write-Output "Hello, $Name"
 }
 ```
@@ -269,9 +270,9 @@ Maximum line length before wrapping.
 
 **Option:** `powershellLineWidth`
 **Type:** `number`
-**Default:** `80`
+**Default:** `120`
 
-### Example with 80 (default)
+### Example with 120 (default)
 
 ```powershell
 # Long line gets wrapped
@@ -280,11 +281,13 @@ Get-Process | Where-Object { $_.CPU -gt 10 } |
   Sort-Object CPU -Descending
 ```
 
-### Example with 120
+### Example with 80
 
 ```powershell
-# Longer lines allowed before wrapping
-Get-Process | Where-Object { $_.CPU -gt 10 } | Select-Object Name, CPU | Sort-Object CPU -Descending
+# Stricter wrapping threshold
+Get-Process | Where-Object { $_.CPU -gt 10 } |
+  Select-Object Name, CPU |
+  Sort-Object CPU -Descending
 ```
 
 ---
@@ -370,6 +373,27 @@ Function Test-Function {
 
 ---
 
+## Presets
+
+Bundle related settings together instead of specifying every dial individually.
+
+**Option:** `powershellPreset`
+**Type:** `"none" | "invoke-formatter"`
+**Default:** `"none"`
+
+### Example with `"invoke-formatter"`
+
+```json
+{
+  "plugins": ["prettier-plugin-powershell"],
+  "powershellPreset": "invoke-formatter"
+}
+```
+
+The preset mirrors PowerShell's built-in `Invoke-Formatter` (PSScriptAnalyzer's `CodeFormatting` profile): four-space indentation, inline braces, `none` trailing commas, lowercase keywords, and the default blank-line heuristics. Any explicit option you pass still wins, so you can layer overrides on top of the preset when needed. Combine the preset with Prettier's `overrides` to scope different casing or brace styles to selected folders.
+
+---
+
 ## Configuration File Example
 
 Here's a complete `.prettierrc` configuration file with all PowerShell options:
@@ -377,16 +401,19 @@ Here's a complete `.prettierrc` configuration file with all PowerShell options:
 ```json
 {
   "plugins": ["prettier-plugin-powershell"],
+  "powershellPreset": "invoke-formatter",
   "powershellIndentStyle": "spaces",
-  "powershellIndentSize": 2,
-  "powershellTrailingComma": "multiline",
+  "powershellIndentSize": 4,
+  "powershellTrailingComma": "none",
   "powershellSortHashtableKeys": false,
   "powershellBlankLinesBetweenFunctions": 1,
-  "powershellBlankLineAfterParam": false,
+  "powershellBlankLineAfterParam": true,
   "powershellBraceStyle": "1tbs",
-  "powershellLineWidth": 80,
+  "powershellLineWidth": 120,
   "powershellPreferSingleQuote": false,
-  "powershellKeywordCase": "lower"
+  "powershellKeywordCase": "lower",
+  "powershellRewriteAliases": false,
+  "powershellRewriteWriteHost": false
 }
 ```
 
@@ -405,6 +432,9 @@ prettier --parser powershell --powershell-sort-hashtable-keys true script.ps1
 
 # Format with Allman brace style
 prettier --parser powershell --powershell-brace-style allman script.ps1
+
+# Format using the Invoke-Formatter preset
+prettier --parser powershell --powershell-preset invoke-formatter script.ps1
 ```
 
 ---
