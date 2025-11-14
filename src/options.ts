@@ -34,14 +34,14 @@ export const pluginOptions: SupportOptions = {
     powershellIndentSize: {
         category: "PowerShell",
         type: "int",
-        default: 2,
+        default: 4,
         description: "Number of indentation characters for each level.",
         range: { start: 1, end: 8, step: 1 },
     },
     powershellTrailingComma: {
         category: "PowerShell",
         type: "choice",
-        default: "multiline",
+        default: "none",
         description:
             "Control trailing commas for array and hashtable literals.",
         choices: [
@@ -118,8 +118,9 @@ export const pluginOptions: SupportOptions = {
     powershellKeywordCase: {
         category: "PowerShell",
         type: "choice",
-        default: "preserve",
-        description: "Normalise the casing of PowerShell keywords.",
+        default: "lower",
+        description:
+            "Normalise the casing of PowerShell keywords (defaults to lowercase to match PSScriptAnalyzer).",
         choices: [
             {
                 value: "preserve",
@@ -149,7 +150,7 @@ export const pluginOptions: SupportOptions = {
 };
 
 export const defaultOptions = {
-    tabWidth: 2,
+    tabWidth: 4,
 };
 
 export interface ResolvedOptions {
@@ -187,7 +188,7 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
             ? Math.floor(normalizedIndentOverride)
             : Number.isFinite(normalizedTabWidth) && normalizedTabWidth > 0
               ? Math.floor(normalizedTabWidth)
-              : 2;
+                            : 4;
 
     if (indentStyle === "tabs") {
         options.useTabs = true;
@@ -198,7 +199,7 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
 
     const trailingComma =
         (options.powershellTrailingComma as TrailingCommaOption | undefined) ??
-        "multiline";
+        "none";
     const sortHashtableKeys = Boolean(options.powershellSortHashtableKeys);
     const rawBlankLines = Number(
         options.powershellBlankLinesBetweenFunctions ?? 1
@@ -225,7 +226,7 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
     const preferSingleQuote = options.powershellPreferSingleQuote === true;
     const keywordCase =
         (options.powershellKeywordCase as KeywordCaseOption | undefined) ??
-        "preserve";
+        "lower";
     const rewriteAliases = options.powershellRewriteAliases === true;
     const rewriteWriteHost = options.powershellRewriteWriteHost === true;
 

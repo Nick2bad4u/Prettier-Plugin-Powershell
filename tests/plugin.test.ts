@@ -21,25 +21,10 @@ describe("PowerShell Prettier plugin", () => {
             new URL("./fixtures/sample-unformatted.ps1", import.meta.url),
             "utf8"
         );
-        const expected = `function Get-Widget {
-  param(
-    [string] $Name,
-    [int] $Count
-  )
-
-  $items = Get-Item
-    | Where-Object {
-      $_.Name -eq $Name
-    }
-    | Select-Object Name, Length
-  $hash = @{ b = 2; a = 1 }
-  $lines = @"
-line1
- line2
-"@
-  return $items
-}
-`;
+                const expected = await readFile(
+                        new URL("./fixtures/sample-formatted.ps1", import.meta.url),
+                        "utf8"
+                );
 
         const result = await formatAndAssert(
             input,
@@ -78,19 +63,19 @@ Write-Host "Hello"
             input,
             {
                 ...baseConfig,
-                powershellIndentSize: 4,
+                powershellIndentSize: 6,
             },
             "plugin.result"
         );
         const lines = normalize(result).trimEnd().split("\n");
         expect(lines[0]).toBe("function Test {");
-        expect(lines[1]).toMatch(/^ {4}param\($/);
-        expect(lines[2]).toMatch(/^ {8}\[string\] \$Name$/);
-        expect(lines[3]).toBe("    )");
+        expect(lines[1]).toMatch(/^ {6}param\($/);
+        expect(lines[2]).toMatch(/^ {12}\[string\] \$Name$/);
+        expect(lines[3]).toBe("      )");
         expect(lines[4]).toBe("");
-        expect(lines[5]).toBe("    if ($true) {");
-        expect(lines[6]).toBe('        Write-Host "Hello"');
-        expect(lines[7]).toBe("    }");
+        expect(lines[5]).toBe("      if ($true) {");
+        expect(lines[6]).toBe('            Write-Host "Hello"');
+        expect(lines[7]).toBe("      }");
         expect(lines[8]).toBe("}");
     });
 
@@ -118,14 +103,16 @@ Write-Host $Name
             baseConfig,
             "plugin.result"
         );
-        const expected = `function Foo {
-  param(
-    [string] $Name,
-    [int] $Count
-  )
-
-  Write-Host $Name
-}`;
+                const expected = [
+                    "function Foo {",
+                    "    param(",
+                    "        [string] $Name,",
+                    "        [int] $Count",
+                    "    )",
+                    "",
+                    "    Write-Host $Name",
+                    "}",
+                ].join("\n");
 
         expect(result.trim()).toBe(expected);
     });
@@ -144,13 +131,15 @@ Write-Host $Name
             },
             "plugin.result"
         );
-        const expected = `function Foo {
-  param(
-    [string] $Name,
-    [int] $Count
-  )
-  Write-Host $Name
-}`;
+                const expected = [
+                    "function Foo {",
+                    "    param(",
+                    "        [string] $Name,",
+                    "        [int] $Count",
+                    "    )",
+                    "    Write-Host $Name",
+                    "}",
+                ].join("\n");
 
         expect(result.trim()).toBe(expected);
     });
@@ -168,7 +157,7 @@ return $here
             baseConfig,
             "plugin.result"
         );
-        expect(result).toContain(`\n  return $here\n`);
+        expect(result).toContain(`\n    return $here\n`);
     });
 
     it("places opening braces according to the configured brace style", async () => {
@@ -189,14 +178,22 @@ Write-Host "Hi"
             },
             "plugin.allmanResult"
         );
-        expect(defaultResult.trim()).toBe(`function Foo {
-  Write-Host "Hi"
-}`);
+                expect(defaultResult.trim()).toBe(
+                    [
+                        'function Foo {',
+                        '    Write-Host "Hi"',
+                        '}',
+                    ].join("\n")
+                );
 
-        expect(allmanResult.trim()).toBe(`function Foo
-{
-  Write-Host "Hi"
-}`);
+                expect(allmanResult.trim()).toBe(
+                        [
+                                "function Foo",
+                                "{",
+                                '    Write-Host "Hi"',
+                                "}",
+                        ].join("\n")
+                );
     });
 
     it("applies trailing delimiter rules for hashtables only (arrays don't support trailing commas)", async () => {
@@ -312,7 +309,24 @@ $value`;
         ).toBe(true);
     });
 
-    it("normalises keyword casing when requested", async () => {
+    it("normalises keyword casing by default", async () => {
+        const input = `FUNCTION Foo {
+IF ($true) {
+Write-Output "hi"
+}
+}`;
+
+        const result = await formatAndAssert(
+            input,
+            baseConfig,
+            "plugin.result"
+        );
+        const lines = result.split("\n");
+        expect(lines[0]).toBe("function Foo {");
+        expect(lines[1].trim()).toBe("if ($true) {");
+    });
+
+    it("preserves keyword casing when configured", async () => {
         const input = `FUNCTION Foo {
 IF ($true) {
 Write-Output "hi"
@@ -323,13 +337,13 @@ Write-Output "hi"
             input,
             {
                 ...baseConfig,
-                powershellKeywordCase: "lower",
+                powershellKeywordCase: "preserve",
             },
             "plugin.result"
         );
         const lines = result.split("\n");
-        expect(lines[0]).toBe("function Foo {");
-        expect(lines[1].trim()).toBe("if ($true) {");
+        expect(lines[0]).toBe("FUNCTION Foo {");
+        expect(lines[1].trim()).toBe("IF ($true) {");
     });
 
     it("normalises whitespace and removes trailing semicolons", async () => {
@@ -362,23 +376,25 @@ begin {
 }
 `;
 
-        const expected = `<#
-.SYNOPSIS
-  Example script
-#>
-
-[CmdletBinding()]
-param(
-  [Parameter(Mandatory = $true)]
-  [Alias('Name')]
-  [string] $Value
-)
-
-begin {
-  node --version 2>$null
-  # begin block
-}
-`;
+                const expected = [
+                    "<#",
+                    ".SYNOPSIS",
+                    "  Example script",
+                    "#>",
+                    "",
+                    "[CmdletBinding()]",
+                    "param(",
+                    "    [Parameter(Mandatory = $true)]",
+                    "    [Alias('Name')]",
+                    "    [string] $Value",
+                    ")",
+                    "",
+                    "begin {",
+                    "    node --version 2>$null",
+                    "    # begin block",
+                    "}",
+                    "",
+                ].join("\n");
 
         const result = await formatAndAssert(
             input,

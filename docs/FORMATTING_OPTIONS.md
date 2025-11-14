@@ -326,24 +326,24 @@ Control the casing of PowerShell keywords.
 
 **Option:** `powershellKeywordCase`
 **Type:** `"preserve" | "lower" | "upper" | "pascal"`
-**Default:** `"preserve"`
+**Default:** `"lower"`
 
-### Example with "preserve" (default)
+### Example with "lower" (default)
 
 ```powershell
-Function Test-Function {
-  IF ($condition) {
+function Test-Function {
+  if ($condition) {
     Write-Output "test"
   }
 }
 ```
 
-### Example with "lower"
+### Example with "preserve"
 
 ```powershell
-function Test-Function {
-  if ($condition) {
-    write-output "test"
+Function Test-Function {
+  IF ($condition) {
+    Write-Output "test"
   }
 }
 ```
@@ -386,7 +386,7 @@ Here's a complete `.prettierrc` configuration file with all PowerShell options:
   "powershellBraceStyle": "1tbs",
   "powershellLineWidth": 80,
   "powershellPreferSingleQuote": false,
-  "powershellKeywordCase": "preserve"
+  "powershellKeywordCase": "lower"
 }
 ```
 

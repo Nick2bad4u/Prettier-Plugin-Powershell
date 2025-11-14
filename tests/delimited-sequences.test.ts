@@ -31,15 +31,18 @@ describe("Delimited sequence handling", () => {
             baseConfig,
             "delimited-sequences.result"
         );
-        expect(result).toBe(`function Test {
-  param(
-    [int] $A,
-    [string] $B
-  )
-
-  Write-Output $A
-}
-`);
+                const expected = [
+                    "function Test {",
+                    "    param(",
+                    "        [int] $A,",
+                    "        [string] $B",
+                    "    )",
+                    "",
+                    "    Write-Output $A",
+                    "}",
+                    "",
+                ].join("\n");
+                expect(result).toBe(expected);
     });
 
     it("preserves hashtable comments and delimiters", async () => {
@@ -53,12 +56,15 @@ describe("Delimited sequence handling", () => {
             baseConfig,
             "delimited-sequences.result"
         );
-        expect(result).toBe(`@{
-  Name = "Value"
-  # trailing
-  Count = 2
-  Other = 3;
-}
-`);
+                const expected = [
+                    "@{",
+                    '    Name = "Value"',
+                    "    # trailing",
+                    "    Count = 2",
+                    "    Other = 3",
+                    "}",
+                    "",
+                ].join("\n");
+                expect(result).toBe(expected);
     });
 });

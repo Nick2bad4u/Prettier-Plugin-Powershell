@@ -23,7 +23,7 @@ describe("Statement terminator handling", () => {
 
         const expected = joinLines(
             "$scriptBlock = {",
-            '  Write-Output "Hello"',
+            '    Write-Output "Hello"',
             "}",
             'Write-Output "After"',
             ""
@@ -48,7 +48,7 @@ describe("Statement terminator handling", () => {
         expect(result).toContain("# trailing comment");
         const expected = joinLines(
             "$scriptBlock = {",
-            '  Write-Output "Hello"',
+            '    Write-Output "Hello"',
             "} # trailing comment",
             'Write-Output "After"',
             ""

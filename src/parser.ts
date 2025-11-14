@@ -1029,7 +1029,7 @@ function splitHashtableEntries(tokens: Token[]): Token[][] {
         pendingComments: Token[];
     };
 
-    const segments = splitTopLevelTokens<HashtableSplitState>(tokens, {
+    const rawSegments = splitTopLevelTokens<HashtableSplitState>(tokens, {
         delimiterValues: [";"],
         createInitialState: () => ({
             hasEquals: false,
@@ -1108,7 +1108,77 @@ function splitHashtableEntries(tokens: Token[]): Token[][] {
         },
     });
 
+    const segments: Token[][] = [];
+    for (const segment of rawSegments) {
+        if (segments.length > 0) {
+            const continuation = extractElseContinuation(segment);
+            if (continuation) {
+                segments[segments.length - 1].push(
+                    ...continuation.elseTokens
+                );
+                if (continuation.remainingTokens.length > 0) {
+                    segments.push(continuation.remainingTokens);
+                }
+                continue;
+            }
+        }
+        segments.push(segment);
+    }
+
     return segments;
+}
+
+function extractElseContinuation(tokens: Token[]):
+    | { elseTokens: Token[]; remainingTokens: Token[] }
+    | null {
+    let index = 0;
+    const prefix: Token[] = [];
+    while (
+        index < tokens.length &&
+        (tokens[index].type === "newline" ||
+            tokens[index].type === "comment" ||
+            tokens[index].type === "block-comment")
+    ) {
+        prefix.push(tokens[index]);
+        index += 1;
+    }
+
+    const keywordToken = tokens[index];
+    if (!keywordToken || keywordToken.type !== "keyword") {
+        return null;
+    }
+    const keyword = keywordToken.value.toLowerCase();
+    if (keyword !== "else" && keyword !== "elseif") {
+        return null;
+    }
+
+    const captured: Token[] = [...prefix];
+    const stack: string[] = [];
+    for (; index < tokens.length; index += 1) {
+        const token = tokens[index];
+        captured.push(token);
+        if (token.type === "punctuation" && token.value === "{") {
+            stack.push("{");
+        } else if (token.type === "punctuation" && token.value === "}") {
+            if (stack.length === 0) {
+                continue;
+            }
+            stack.pop();
+            if (stack.length === 0) {
+                index += 1;
+                break;
+            }
+        }
+    }
+
+    if (stack.length > 0) {
+        return null;
+    }
+
+    return {
+        elseTokens: captured,
+        remainingTokens: tokens.slice(index),
+    };
 }
 
 function buildHashtableEntry(

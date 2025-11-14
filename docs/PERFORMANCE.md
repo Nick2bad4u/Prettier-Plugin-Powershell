@@ -188,7 +188,7 @@ Some options are more computationally expensive:
   "powershellBraceStyle": "1tbs",
   "powershellLineWidth": 80,
   "powershellPreferSingleQuote": false,
-  "powershellKeywordCase": "preserve"
+  "powershellKeywordCase": "lower"
 }
 ```
 

@@ -304,8 +304,8 @@ describe("resolveOptions advanced coverage", () => {
             Number.NaN as unknown as number;
 
         const defaulted = resolveOptions(options);
-        expect(defaulted.indentSize).toBe(2);
-        expect(options.tabWidth).toBe(2);
+        expect(defaulted.indentSize).toBe(4);
+        expect(options.tabWidth).toBe(4);
         expect(defaulted.blankLinesBetweenFunctions).toBe(1);
     });
     // Do not rewrite regex-like patterns containing nested quotes/brackets
@@ -871,7 +871,12 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
             "advanced-coverage.result"
         );
         expect(result.trim()).toBe(
-            "param(\n  [string] $Name,\n  [int] $Age\n)"
+            [
+                "param(",
+                "    [string] $Name,",
+                "    [int] $Age",
+                ")",
+            ].join("\n")
         );
     });
 

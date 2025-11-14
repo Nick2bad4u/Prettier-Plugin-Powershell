@@ -223,16 +223,21 @@ describe("Options property-based tests", () => {
                 if (resolved.indentStyle !== "spaces") {
                     throw new Error("Default indentStyle should be spaces");
                 }
-                if (resolved.trailingComma !== "multiline") {
+                if (resolved.indentSize !== 4) {
                     throw new Error(
-                        "Default trailingComma should be multiline"
+                        `Default indentSize should be 4, got ${resolved.indentSize}`
+                    );
+                }
+                if (resolved.trailingComma !== "none") {
+                    throw new Error(
+                        "Default trailingComma should be none"
                     );
                 }
                 if (resolved.braceStyle !== "1tbs") {
                     throw new Error("Default braceStyle should be 1tbs");
                 }
-                if (resolved.keywordCase !== "preserve") {
-                    throw new Error("Default keywordCase should be preserve");
+                if (resolved.keywordCase !== "lower") {
+                    throw new Error("Default keywordCase should be lower");
                 }
                 if (resolved.lineWidth !== 120) {
                     throw new Error("Default lineWidth should be 120");
@@ -263,8 +268,8 @@ describe("Options property-based tests", () => {
 
                     // Should clamp or use default
                     if (invalidIndentSize < 1) {
-                        // Negative or zero should use default (2)
-                        if (resolved.indentSize !== 2) {
+                        // Negative or zero should use default (4)
+                        if (resolved.indentSize !== 4) {
                             throw new Error(
                                 `Expected default indent size for negative value, got ${resolved.indentSize}`
                             );

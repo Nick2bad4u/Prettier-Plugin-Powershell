@@ -95,15 +95,15 @@ const formatted = await prettier.format(source, {
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
 | `powershellIndentStyle` | `"spaces" \| "tabs"` | `"spaces"` | Render indentation with spaces or tabs. |
-| `powershellIndentSize` | `number` | `2` | Overrides Prettier’s `tabWidth` specifically for PowerShell files. |
-| `powershellTrailingComma` | `"none" \| "multiline" \| "all"` | `"multiline"` | When to emit trailing delimiters for arrays (`@(...)`) and hashtables (`@{...}`). |
+| `powershellIndentSize` | `number` | `4` | Overrides Prettier’s `tabWidth` specifically for PowerShell files. |
+| `powershellTrailingComma` | `"none" \| "multiline" \| "all"` | `"none"` | When to emit trailing delimiters for arrays (`@(...)`) and hashtables (`@{...}`). |
 | `powershellSortHashtableKeys` | `boolean` | `false` | Sort hashtable keys alphabetically before printing. |
 | `powershellBlankLinesBetweenFunctions` | `number` | `1` | Minimum blank lines preserved between function declarations (clamped between 0 and 3). |
 | `powershellBlankLineAfterParam` | `boolean` | `true` | Insert a blank line after `param (...)` blocks within functions/script blocks. |
 | `powershellBraceStyle` | `'1tbs' \| 'allman'` | `'1tbs'` | Choose inline braces or newline-aligned Allman style. |
 | `powershellLineWidth` | `number` | `120` | Maximum print width for wrapping pipelines, hashtables, and arrays. |
 | `powershellPreferSingleQuote` | `boolean` | `false` | Prefer single-quoted strings when interpolation is not required. |
-| `powershellKeywordCase` | `'preserve' \| 'lower' \| 'upper' \| 'pascal'` | `'preserve'` | Normalise PowerShell keyword casing. |
+| `powershellKeywordCase` | `'preserve' \| 'lower' \| 'upper' \| 'pascal'` | `'lower'` | Normalise PowerShell keyword casing (defaults to lowercase to match `Invoke-Formatter`). |
 | `powershellRewriteAliases` | `boolean` | `false` | Expand cmdlet aliases such as `ls`, `%`, `?`, `gci`. |
 | `powershellRewriteWriteHost` | `boolean` | `false` | Rewrite `Write-Host` invocations to `Write-Output`. |
 
@@ -126,17 +126,17 @@ Output with default settings:
 
 ```powershell
 function Get-Widget {
-  param(
-    [string] $Name,
-    [int] $Count
-  )
+    param(
+        [string] $Name,
+        [int] $Count
+    )
 
-  $items = Get-Item
-    | Where-Object {
-      $_.Name -eq $Name
-    }
-    | Select-Object Name, Length
-  $hash = @{ b = 2; a = 1 }
+    $items = Get-Item
+        | Where-Object {
+            $_.Name -eq $Name
+        }
+        | Select-Object Name, Length
+    $hash = @{ b = 2; a = 1 }
 }
 ```
 

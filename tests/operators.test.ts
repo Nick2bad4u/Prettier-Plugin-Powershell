@@ -32,7 +32,7 @@ describe("PowerShell Operators", () => {
 
     it("formats comparison operators", async () => {
         const input = `if ($x -eq 5 -and $y -ne 10) { $true }`;
-        const expected = `if ($x -eq 5 -and $y -ne 10) {\n  $true\n}\n`;
+        const expected = `if ($x -eq 5 -and $y -ne 10) {\n    $true\n}\n`;
         const result = await formatAndAssert(
             input,
             baseConfig,
@@ -109,7 +109,7 @@ describe("PowerShell Operators", () => {
 
     it("formats -like and -match operators", async () => {
         const input = `if ($name -like "*test*" -and $path -match "^C:") { $true }`;
-        const expected = `if ($name -like "*test*" -and $path -match "^C:") {\n  $true\n}\n`;
+        const expected = `if ($name -like "*test*" -and $path -match "^C:") {\n    $true\n}\n`;
         const result = await formatAndAssert(
             input,
             baseConfig,
@@ -120,7 +120,7 @@ describe("PowerShell Operators", () => {
 
     it("formats -contains and -in operators", async () => {
         const input = `if ($list -contains $item -or $value -in $array) { $true }`;
-        const expected = `if ($list -contains $item -or $value -in $array) {\n  $true\n}\n`;
+        const expected = `if ($list -contains $item -or $value -in $array) {\n    $true\n}\n`;
         const result = await formatAndAssert(
             input,
             baseConfig,
@@ -142,7 +142,7 @@ describe("PowerShell Operators", () => {
 
     it("formats case-sensitive comparison operators", async () => {
         const input = `if ($str -ceq "Test" -or $str -clike "*ABC*") { $true }`;
-        const expected = `if ($str -ceq "Test" -or $str -clike "*ABC*") {\n  $true\n}\n`;
+        const expected = `if ($str -ceq "Test" -or $str -clike "*ABC*") {\n    $true\n}\n`;
         const result = await formatAndAssert(
             input,
             baseConfig,
@@ -175,7 +175,7 @@ describe("PowerShell Operators", () => {
 
     it("formats complex operator combinations", async () => {
         const input = `if (($x -gt 5 -and $y -lt 10) -or ($z -eq 0 -and $? -ne $false)) { Write-Output "pass" 2>&1 }`;
-        const expected = `if (($x -gt 5 -and $y -lt 10) -or ($z -eq 0 -and $? -ne $false)) {\n  Write-Output "pass" 2>&1\n}\n`;
+        const expected = `if (($x -gt 5 -and $y -lt 10) -or ($z -eq 0 -and $? -ne $false)) {\n    Write-Output "pass" 2>&1\n}\n`;
         const result = await formatAndAssert(
             input,
             baseConfig,
@@ -202,7 +202,7 @@ describe("PowerShell Keywords", () => {
 
     it("formats enum definitions", async () => {
         const input = `enum Status { Running; Stopped; Paused }`;
-        const expected = `enum Status {\n  Running\n  Stopped\n  Paused\n}\n`;
+            const expected = `enum Status {\n    Running\n    Stopped\n    Paused\n}\n`;
         const result = await formatAndAssert(
             input,
             baseConfig,
@@ -213,7 +213,7 @@ describe("PowerShell Keywords", () => {
 
     it("formats do-until loops", async () => {
         const input = `do { $x++ } until ($x -gt 10)`;
-        const expected = `do {\n  $x++\n} until ($x -gt 10)\n`;
+            const expected = `do {\n    $x++\n} until ($x -gt 10)\n`;
         const result = await formatAndAssert(
             input,
             baseConfig,
@@ -224,7 +224,7 @@ describe("PowerShell Keywords", () => {
 
     it("formats trap statements", async () => {
         const input = `trap { Write-Error $_ }`;
-        const expected = `trap {\n  Write-Error $_\n}\n`;
+            const expected = `trap {\n    Write-Error $_\n}\n`;
         const result = await formatAndAssert(
             input,
             baseConfig,
@@ -235,7 +235,7 @@ describe("PowerShell Keywords", () => {
 
     it("formats data blocks", async () => {
         const input = `data messages{ConvertFrom-StringData@"\na=1\nb=2\n"@}`;
-        const expected = `data messages {\n  ConvertFrom-StringData @"\na=1\nb=2\n"@\n}\n`;
+            const expected = `data messages {\n    ConvertFrom-StringData @"\na=1\nb=2\n"@\n}\n`;
         const result = await formatAndAssert(
             input,
             baseConfig,

@@ -15,14 +15,14 @@ var pluginOptions = {
   powershellIndentSize: {
     category: "PowerShell",
     type: "int",
-    default: 2,
+    default: 4,
     description: "Number of indentation characters for each level.",
     range: { start: 1, end: 8, step: 1 }
   },
   powershellTrailingComma: {
     category: "PowerShell",
     type: "choice",
-    default: "multiline",
+    default: "none",
     description: "Control trailing commas for array and hashtable literals.",
     choices: [
       {
@@ -90,8 +90,8 @@ var pluginOptions = {
   powershellKeywordCase: {
     category: "PowerShell",
     type: "choice",
-    default: "preserve",
-    description: "Normalise the casing of PowerShell keywords.",
+    default: "lower",
+    description: "Normalise the casing of PowerShell keywords (defaults to lowercase to match PSScriptAnalyzer).",
     choices: [
       {
         value: "preserve",
@@ -119,21 +119,21 @@ var pluginOptions = {
   }
 };
 var defaultOptions = {
-  tabWidth: 2
+  tabWidth: 4
 };
 function resolveOptions(options) {
   const indentStyle = options.powershellIndentStyle ?? "spaces";
   const rawIndentOverride = options.powershellIndentSize;
   const normalizedIndentOverride = Number(rawIndentOverride);
   const normalizedTabWidth = Number(options.tabWidth);
-  const indentSize = Number.isFinite(normalizedIndentOverride) && normalizedIndentOverride > 0 ? Math.floor(normalizedIndentOverride) : Number.isFinite(normalizedTabWidth) && normalizedTabWidth > 0 ? Math.floor(normalizedTabWidth) : 2;
+  const indentSize = Number.isFinite(normalizedIndentOverride) && normalizedIndentOverride > 0 ? Math.floor(normalizedIndentOverride) : Number.isFinite(normalizedTabWidth) && normalizedTabWidth > 0 ? Math.floor(normalizedTabWidth) : 4;
   if (indentStyle === "tabs") {
     options.useTabs = true;
   } else {
     options.useTabs = false;
   }
   options.tabWidth = indentSize;
-  const trailingComma = options.powershellTrailingComma ?? "multiline";
+  const trailingComma = options.powershellTrailingComma ?? "none";
   const sortHashtableKeys = Boolean(options.powershellSortHashtableKeys);
   const rawBlankLines = Number(
     options.powershellBlankLinesBetweenFunctions ?? 1
@@ -153,7 +153,7 @@ function resolveOptions(options) {
     Math.min(200, Number(options.powershellLineWidth ?? 120))
   );
   const preferSingleQuote = options.powershellPreferSingleQuote === true;
-  const keywordCase = options.powershellKeywordCase ?? "preserve";
+  const keywordCase = options.powershellKeywordCase ?? "lower";
   const rewriteAliases = options.powershellRewriteAliases === true;
   const rewriteWriteHost = options.powershellRewriteWriteHost === true;
   if (!options.printWidth || options.printWidth > lineWidth) {
@@ -492,6 +492,10 @@ function tokenize(source) {
         } else if (current === "`") {
           escaped = true;
         } else if (current === char) {
+          if (index + 1 < length && source[index + 1] === char) {
+            index += 2;
+            continue;
+          }
           index += 1;
           break;
         }
@@ -1569,7 +1573,7 @@ function splitTopLevelTokens(tokens, options = {}) {
   return result;
 }
 function splitHashtableEntries(tokens) {
-  const segments = splitTopLevelTokens(tokens, {
+  const rawSegments = splitTopLevelTokens(tokens, {
     delimiterValues: [";"],
     createInitialState: () => ({
       hasEquals: false,
@@ -1638,7 +1642,64 @@ function splitHashtableEntries(tokens) {
       return segment;
     }
   });
+  const segments = [];
+  for (const segment of rawSegments) {
+    if (segments.length > 0) {
+      const continuation = extractElseContinuation(segment);
+      if (continuation) {
+        segments[segments.length - 1].push(
+          ...continuation.elseTokens
+        );
+        if (continuation.remainingTokens.length > 0) {
+          segments.push(continuation.remainingTokens);
+        }
+        continue;
+      }
+    }
+    segments.push(segment);
+  }
   return segments;
+}
+function extractElseContinuation(tokens) {
+  let index = 0;
+  const prefix = [];
+  while (index < tokens.length && (tokens[index].type === "newline" || tokens[index].type === "comment" || tokens[index].type === "block-comment")) {
+    prefix.push(tokens[index]);
+    index += 1;
+  }
+  const keywordToken = tokens[index];
+  if (!keywordToken || keywordToken.type !== "keyword") {
+    return null;
+  }
+  const keyword = keywordToken.value.toLowerCase();
+  if (keyword !== "else" && keyword !== "elseif") {
+    return null;
+  }
+  const captured = [...prefix];
+  const stack = [];
+  for (; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    captured.push(token);
+    if (token.type === "punctuation" && token.value === "{") {
+      stack.push("{");
+    } else if (token.type === "punctuation" && token.value === "}") {
+      if (stack.length === 0) {
+        continue;
+      }
+      stack.pop();
+      if (stack.length === 0) {
+        index += 1;
+        break;
+      }
+    }
+  }
+  if (stack.length > 0) {
+    return null;
+  }
+  return {
+    elseTokens: captured,
+    remainingTokens: tokens.slice(index)
+  };
 }
 function buildHashtableEntry(tokens, source = "") {
   const leadingComments = [];
@@ -2311,6 +2372,22 @@ function printArray(node, options) {
     { id: groupId }
   );
 }
+function isSimpleExpression(node) {
+  if (node.parts.length !== 1) {
+    return false;
+  }
+  const [part] = node.parts;
+  if (!part) {
+    return true;
+  }
+  if (part.type !== "Text") {
+    return false;
+  }
+  if (part.role === "keyword") {
+    return false;
+  }
+  return !/\r|\n/.test(part.value);
+}
 function printHashtable(node, options) {
   const entries = options.sortHashtableKeys ? [...node.entries].sort(
     (a, b) => a.key.localeCompare(b.key, void 0, { sensitivity: "base" })
@@ -2319,16 +2396,22 @@ function printHashtable(node, options) {
     return "@{}";
   }
   const groupId = Symbol("hashtable");
-  const entryDocs = entries.map((entry, index) => {
+  const contentDocs = [];
+  entries.forEach((entry, index) => {
     const entryDoc = printHashtableEntry(entry, options);
     const isLast = index === entries.length - 1;
     const separator = isLast ? trailingCommaDoc(options, groupId, true, ";") : ifBreak("", ";", { groupId });
-    return [entryDoc, separator];
+    contentDocs.push(entryDoc, separator);
+    if (!isLast) {
+      contentDocs.push(
+        isSimpleExpression(entry.value) ? line : hardline
+      );
+    }
   });
   return group(
     [
       "@{",
-      indent([line, join(line, entryDocs)]),
+      indent([line, ...contentDocs]),
       line,
       "}"
     ],

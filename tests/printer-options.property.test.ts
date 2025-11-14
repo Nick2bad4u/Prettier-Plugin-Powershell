@@ -510,12 +510,14 @@ ${formatted}`
                         powershellLineWidth: 40,
                     });
 
-                    if (wide.includes('\n  "')) {
+                    const multilineMarker = '\n    \"';
+
+                    if (wide.includes(multilineMarker)) {
                         throw new Error(
                             `Expected wide formatting to remain inline.\n${wide}`
                         );
                     }
-                    if (!narrow.includes('\n  "')) {
+                    if (!narrow.includes(multilineMarker)) {
                         throw new Error(
                             `Expected narrow formatting to introduce line breaks.\n${narrow}`
                         );

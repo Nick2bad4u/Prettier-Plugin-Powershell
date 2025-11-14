@@ -792,6 +792,23 @@ function printArray(node: ArrayLiteralNode, options: ResolvedOptions): Doc {
     );
 }
 
+function isSimpleExpression(node: ExpressionNode): boolean {
+    if (node.parts.length !== 1) {
+        return false;
+    }
+    const [part] = node.parts;
+    if (!part) {
+        return true;
+    }
+    if (part.type !== "Text") {
+        return false;
+    }
+    if (part.role === "keyword") {
+        return false;
+    }
+    return !/\r|\n/.test(part.value);
+}
+
 function printHashtable(node: HashtableNode, options: ResolvedOptions): Doc {
     const entries = options.sortHashtableKeys
         ? [...node.entries].sort((a, b) =>
@@ -802,22 +819,27 @@ function printHashtable(node: HashtableNode, options: ResolvedOptions): Doc {
     if (entries.length === 0) {
         return "@{}";
     }
-
     const groupId = Symbol("hashtable");
+    const contentDocs: Doc[] = [];
 
-    const entryDocs = entries.map((entry, index) => {
+    entries.forEach((entry, index) => {
         const entryDoc = printHashtableEntry(entry, options);
         const isLast = index === entries.length - 1;
         const separator = isLast
             ? trailingCommaDoc(options, groupId, true, ";")
             : ifBreak("", ";", { groupId });
-        return [entryDoc, separator];
+        contentDocs.push(entryDoc, separator);
+        if (!isLast) {
+            contentDocs.push(
+                isSimpleExpression(entry.value) ? line : hardline
+            );
+        }
     });
 
     return group(
         [
             "@{",
-            indent([line, join(line, entryDocs)]),
+            indent([line, ...contentDocs]),
             line,
             "}",
         ],

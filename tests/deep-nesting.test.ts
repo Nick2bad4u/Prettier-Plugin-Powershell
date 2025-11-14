@@ -17,7 +17,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 "deep-nesting.basic-dsc|skipParse"
             );
             expect(result).toBeTruthy();
-            expect(result).toContain("Configuration MyConfig");
+            expect(result.toLowerCase()).toContain("configuration myconfig");
             expect(result).toContain("Node localhost");
         });
 
@@ -40,7 +40,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 baseConfig,
                 "deep-nesting.nested-dsc|skipParse"
             );
-            expect(result).toContain("Configuration WebServer");
+            expect(result.toLowerCase()).toContain("configuration webserver");
             expect(result).toContain("WindowsFeature IIS");
             expect(result).toContain("WindowsFeature ASP");
         });
@@ -65,7 +65,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 "deep-nesting.deep-dsc|skipParse"
             );
             expect(result).toBeTruthy();
-            expect(result).toContain("Configuration Complex");
+            expect(result.toLowerCase()).toContain("configuration complex");
         });
 
         it("handles multiple nodes in DSC", async () => {

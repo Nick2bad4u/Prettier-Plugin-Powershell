@@ -411,6 +411,10 @@ export function tokenize(source: string): Token[] {
                 } else if (current === "`") {
                     escaped = true;
                 } else if (current === char) {
+                    if (index + 1 < length && source[index + 1] === char) {
+                        index += 2;
+                        continue;
+                    }
                     index += 1;
                     break;
                 }
