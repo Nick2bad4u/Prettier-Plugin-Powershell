@@ -1113,9 +1113,7 @@ function splitHashtableEntries(tokens: Token[]): Token[][] {
         if (segments.length > 0) {
             const continuation = extractElseContinuation(segment);
             if (continuation) {
-                segments[segments.length - 1].push(
-                    ...continuation.elseTokens
-                );
+                segments[segments.length - 1].push(...continuation.elseTokens);
                 if (continuation.remainingTokens.length > 0) {
                     segments.push(continuation.remainingTokens);
                 }
@@ -1128,9 +1126,9 @@ function splitHashtableEntries(tokens: Token[]): Token[][] {
     return segments;
 }
 
-function extractElseContinuation(tokens: Token[]):
-    | { elseTokens: Token[]; remainingTokens: Token[] }
-    | null {
+function extractElseContinuation(
+    tokens: Token[]
+): { elseTokens: Token[]; remainingTokens: Token[] } | null {
     let index = 0;
     const prefix: Token[] = [];
     while (

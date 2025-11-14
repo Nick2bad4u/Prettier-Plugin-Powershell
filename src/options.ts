@@ -158,7 +158,8 @@ export const pluginOptions: SupportOptions = {
         choices: [
             {
                 value: "none",
-                description: "Do not apply a preset; rely solely on explicit options.",
+                description:
+                    "Do not apply a preset; rely solely on explicit options.",
             },
             {
                 value: "invoke-formatter",
@@ -212,7 +213,7 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
             ? Math.floor(normalizedIndentOverride)
             : Number.isFinite(normalizedTabWidth) && normalizedTabWidth > 0
               ? Math.floor(normalizedTabWidth)
-                            : 4;
+              : 4;
 
     if (indentStyle === "tabs") {
         options.useTabs = true;
@@ -274,7 +275,9 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
     } satisfies ResolvedOptions;
 }
 
-type PresetDefaults = Partial<Record<keyof PluginConfiguration | "tabWidth", unknown>>;
+type PresetDefaults = Partial<
+    Record<keyof PluginConfiguration | "tabWidth", unknown>
+>;
 
 const PRESET_DEFAULTS: Record<PresetOption, PresetDefaults> = {
     none: {},

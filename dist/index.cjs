@@ -1697,9 +1697,7 @@ function splitHashtableEntries(tokens) {
     if (segments.length > 0) {
       const continuation = extractElseContinuation(segment);
       if (continuation) {
-        segments[segments.length - 1].push(
-          ...continuation.elseTokens
-        );
+        segments[segments.length - 1].push(...continuation.elseTokens);
         if (continuation.remainingTokens.length > 0) {
           segments.push(continuation.remainingTokens);
         }
@@ -2453,9 +2451,7 @@ function printHashtable(node, options) {
     const separator = isLast ? trailingCommaDoc(options, groupId, true, ";") : ifBreak("", ";", { groupId });
     contentDocs.push(entryDoc, separator);
     if (!isLast) {
-      contentDocs.push(
-        isSimpleExpression(entry.value) ? line : hardline
-      );
+      contentDocs.push(isSimpleExpression(entry.value) ? line : hardline);
     }
   });
   return group(

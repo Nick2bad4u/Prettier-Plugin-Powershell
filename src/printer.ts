@@ -830,9 +830,7 @@ function printHashtable(node: HashtableNode, options: ResolvedOptions): Doc {
             : ifBreak("", ";", { groupId });
         contentDocs.push(entryDoc, separator);
         if (!isLast) {
-            contentDocs.push(
-                isSimpleExpression(entry.value) ? line : hardline
-            );
+            contentDocs.push(isSimpleExpression(entry.value) ? line : hardline);
         }
     });
 

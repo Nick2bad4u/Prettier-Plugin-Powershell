@@ -148,10 +148,17 @@ content
     it("generates valid pipeline expressions", () => {
         fc.assert(
             fc.property(
-                fc.array(fc.constantFrom("Get-Item", "Select-Object", "Where-Object"), {
-                    minLength: 1,
-                    maxLength: 3,
-                }),
+                fc.array(
+                    fc.constantFrom(
+                        "Get-Item",
+                        "Select-Object",
+                        "Where-Object"
+                    ),
+                    {
+                        minLength: 1,
+                        maxLength: 3,
+                    }
+                ),
                 (commands) => {
                     const script = commands.join(" | ");
                     const ast = parsePowerShell(script, {} as never);
