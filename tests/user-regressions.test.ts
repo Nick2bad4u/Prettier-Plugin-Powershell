@@ -70,6 +70,46 @@ describe("ps-color-scripts regressions", () => {
         );
     });
 
+    it("preserves static method invocations used for synchronization", async () => {
+        await assertFormatting(
+            "./test_files/Test-File-12.unformatted.ps1",
+            "./test_files/Test-File-12.ps1",
+            "user-regressions.test-file-12"
+        );
+    });
+
+    it("normalizes additional monitor helper variations", async () => {
+        await assertFormatting(
+            "./test_files/Test-File-13.unformatted.ps1",
+            "./test_files/Test-File-13.ps1",
+            "user-regressions.test-file-13"
+        );
+    });
+
+    it("keeps batched static calls stable", async () => {
+        await assertFormatting(
+            "./test_files/Test-File-14.unformatted.ps1",
+            "./test_files/Test-File-14.ps1",
+            "user-regressions.test-file-14"
+        );
+    });
+
+    it("handles keyword-like static method names without misformatting", async () => {
+        await assertFormatting(
+            "./test_files/Test-File-15.unformatted.ps1",
+            "./test_files/Test-File-15.ps1",
+            "user-regressions.test-file-15"
+        );
+    });
+
+    it("handles static calls inside pipelines and chained expressions", async () => {
+        await assertFormatting(
+            "./test_files/Test-File-16.unformatted.ps1",
+            "./test_files/Test-File-16.ps1",
+            "user-regressions.test-file-16"
+        );
+    });
+
     it("never corrupts escaped apostrophes in PSD1 metadata", async () => {
         const expected = await readFixture("./test_files/Test-File-9.psd1");
         const result = await formatAndAssert(

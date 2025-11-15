@@ -383,7 +383,20 @@ function printExpression(node: ExpressionNode, options: ResolvedOptions): Doc {
     let previous: ExpressionPartNode | null = null;
 
     for (let index = 0; index < normalizedParts.length; index += 1) {
-        const part = normalizedParts[index];
+        let part = normalizedParts[index];
+
+        if (
+            part.type === "Text" &&
+            part.role === "keyword" &&
+            previous &&
+            previous.type === "Text" &&
+            (previous.value === "." || previous.value === "::")
+        ) {
+            part = {
+                ...part,
+                role: "word",
+            };
+        }
 
         if (part.type === "Parenthesis" && isParamKeyword(previous)) {
             docs.push(printParamParenthesis(part, options));
@@ -406,12 +419,11 @@ function printExpression(node: ExpressionNode, options: ResolvedOptions): Doc {
         }
 
         if (previous) {
-            // Special case: word followed by parenthesis could be method call or cmdlet
-            // Check if the word comes after . or :: (method call - no space)
+            // Special case: identifier followed by parenthesis could be method call or cmdlet
+            // Check if the identifier comes after . or :: (method call - no space)
             if (
                 part.type === "Parenthesis" &&
                 previous.type === "Text" &&
-                previous.role === "word" &&
                 index >= 2
             ) {
                 const beforeWord = normalizedParts[index - 2];
