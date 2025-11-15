@@ -1064,6 +1064,43 @@ describe("printer internal helpers", () => {
         expect(doc).toBe("()");
     });
 
+    it("printParamParenthesis attaches inline comments from explicit comment expressions", () => {
+        const paramExpression = makeExpressionNode([
+            makeTextNode("[string]$Name", "word"),
+        ]);
+        const commentExpression = makeExpressionNode([
+            makeTextNode("# explicit comment", "unknown"),
+        ]);
+
+        const node = makeParenthesisNode([
+            paramExpression,
+            commentExpression,
+        ]);
+
+        const doc = printParamParenthesis(node, resolvedOptions);
+        expect(containsFragment(doc, "# explicit comment")).toBe(true);
+    });
+
+    it("printParamParenthesis synthesizes comment markers for prose-like comment expressions", () => {
+        const paramExpression = makeExpressionNode([
+            makeTextNode("[int]$Count", "word"),
+        ]);
+        const proseComment = "This parameter controls retries";
+        const commentExpression = makeExpressionNode([
+            makeTextNode(proseComment, "unknown"),
+        ]);
+
+        const node = makeParenthesisNode([
+            paramExpression,
+            commentExpression,
+        ]);
+
+        const doc = printParamParenthesis(node, resolvedOptions);
+        expect(
+            containsFragment(doc, `# ${proseComment}`)
+        ).toBe(true);
+    });
+
     it("printParenthesis forces multiline output when newline metadata is present", () => {
         const node = makeParenthesisNode(
             [
@@ -1125,6 +1162,69 @@ describe("printer internal helpers", () => {
             createOptions({ powershellTrailingComma: "multiline" })
         );
         expect(trailingCommaDoc(multiComma, groupId, true, ";")).not.toBe("");
+    });
+
+    it("printHashtable consults simple-expression heuristic for separator choice", () => {
+        const loc = { start: 0, end: 0 };
+
+        const simpleValue = makeExpressionNode([
+            makeTextNode("42", "number"),
+        ]);
+        const keywordValue = makeExpressionNode([
+            makeTextNode("if", "keyword"),
+        ]);
+        const multiPartValue = makeExpressionNode([
+            makeTextNode("part1", "word"),
+            makeTextNode("part2", "word"),
+        ]);
+
+        const entries: HashtableEntryNode[] = [
+            {
+                type: "HashtableEntry",
+                key: "Simple",
+                rawKey: makeExpressionNode([
+                    makeTextNode("Simple", "word"),
+                ]),
+                value: simpleValue,
+                loc,
+            },
+            {
+                type: "HashtableEntry",
+                key: "Keyword",
+                rawKey: makeExpressionNode([
+                    makeTextNode("Keyword", "word"),
+                ]),
+                value: keywordValue,
+                loc,
+            },
+            {
+                type: "HashtableEntry",
+                key: "Multi",
+                rawKey: makeExpressionNode([
+                    makeTextNode("Multi", "word"),
+                ]),
+                value: multiPartValue,
+                loc,
+            },
+            {
+                type: "HashtableEntry",
+                key: "Last",
+                rawKey: makeExpressionNode([
+                    makeTextNode("Last", "word"),
+                ]),
+                value: simpleValue,
+                loc,
+            },
+        ];
+
+        const hashtableNode: HashtableNode = {
+            type: "Hashtable",
+            entries,
+            loc,
+        };
+
+        const doc = __printerTestUtils.printNode(hashtableNode, resolvedOptions);
+        expect(doc).toBeDefined();
     });
 
     it("printPipeline handles empty and populated pipelines", () => {
@@ -1498,6 +1598,17 @@ describe("parser internal helpers", () => {
         );
     });
 
+    it("attaches dangling trailing comments to the previous hashtable entry", () => {
+        const tokens = tokensFrom("Key = 1; # trailing comment");
+        const entries = parserUtils.splitHashtableEntries(tokens);
+
+        expect(entries).toHaveLength(1);
+        const trailingComment = entries[0]?.find(
+            (token) => token.type === "comment" && token.value.includes("trailing")
+        );
+        expect(trailingComment).toBeDefined();
+    });
+
     it("splitHashtableEntries maintains stack across nested hashtables", () => {
         const tokens = tokenize("@{ outer = @{ inner = @(1, 2) } ; tail = 3 }");
         const { contentTokens } = parserUtils.collectStructureTokens(tokens, 0);
@@ -1719,6 +1830,31 @@ describe("parser internal helpers", () => {
         const emptyEntry = parserUtils.buildHashtableEntry([]);
         expect(emptyEntry.loc.start).toBe(0);
         expect(emptyEntry.loc.end).toBe(0);
+    });
+
+    it("treats trailing comments with missing coordinates as non-inline", () => {
+        const tokens: Token[] = [
+            { type: "identifier", value: "Key", start: 0, end: 3 },
+            { type: "operator", value: "=", start: 4, end: 5 },
+            { type: "number", value: "1", start: 6, end: 7 },
+            {
+                type: "comment",
+                value: "# trailing",
+                // Deliberately pass an undefined start to exercise defensive spacing logic
+                start: undefined as unknown as number,
+                end: 18,
+            },
+        ];
+
+        const entry = parserUtils.buildHashtableEntry(
+            tokens,
+            "Key = 1 # trailing"
+        );
+
+        expect(entry.trailingComments).toBeDefined();
+        const comment = entry.trailingComments?.[0];
+        expect(comment).toBeDefined();
+        expect(comment?.inline).toBe(false);
     });
 
     it("resolveStructureEnd respects closing, content, and fallback positions", () => {

@@ -44,4 +44,5 @@ const plugin: Plugin = {
     defaultOptions,
 };
 
+/* c8 ignore next */
 export default plugin;

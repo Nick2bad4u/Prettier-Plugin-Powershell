@@ -2,46 +2,50 @@
 
 This guide helps you optimize the performance of prettier-plugin-powershell for your use case.
 
+> Unless stated otherwise, CLI commands assume Prettier can resolve the plugin via your configuration or `--plugin=prettier-plugin-powershell`.
+
 ## Benchmarking
 
 ### Current Performance Baseline
 
-Based on our benchmarks (run `npm run benchmark`):
+Based on `npm run benchmark` (captured November 15, 2025 on Node.js 20.11):
 
-- **Small files (7.5 KB)**: ~3ms
-- **Medium files (37.7 KB)**: ~10ms
-- **Large files (75.5 KB)**: ~13ms
-- **Extra large files (151.2 KB)**: ~22ms
-- **Throughput**: ~6.8 MB/sec
+- **Small files (≈7.4 KB)**: ~3.3 ms
+- **Medium files (≈37.1 KB)**: ~10.4 ms
+- **Large files (≈74.3 KB)**: ~10.8 ms
+- **Extra large files (≈148.9 KB)**: ~21 ms
+- **Throughput**: ~7.1 MB/sec across the largest batch (200 synthetic functions)
 
 ### Running Benchmarks
+
+All CLI snippets assume Prettier can resolve the plugin via your configuration or via `--plugin=prettier-plugin-powershell` (shown below).
 
 ```bash
 # Run the built-in benchmark
 npm run benchmark
 
-# Benchmark specific files
-time prettier --parser powershell large-script.ps1
+# Benchmark a single file
+time prettier --plugin=prettier-plugin-powershell --parser powershell large-script.ps1
 
 # Profile with Node.js
-node --prof $(which prettier) --parser powershell script.ps1
+node --prof $(which prettier) --parser powershell --plugin=prettier-plugin-powershell script.ps1
 node --prof-process isolate-*.log > profile.txt
 ```
 
----
-
 ## Optimization Strategies
 
-### 1. File Organization
+### 1\. File Organization
 
 **Split Large Files**
 
 Instead of one 1000-line file:
+
 ```powershell
 # ❌ monolith.ps1 (1000 lines)
 ```
 
 Use multiple focused modules:
+
 ```powershell
 # ✅ functions/user.psm1 (200 lines)
 # ✅ functions/database.psm1 (150 lines)
@@ -49,11 +53,12 @@ Use multiple focused modules:
 ```
 
 **Benefits:**
+
 - Faster individual file formatting
 - Better caching
 - Parallel processing possible
 
-### 2. Editor Integration
+### 2\. Editor Integration
 
 **VS Code Settings**
 
@@ -81,6 +86,7 @@ Optimize formatting in VS Code:
 **Exclude Unnecessary Files**
 
 `.prettierignore`:
+
 ```
 # Don't format generated files
 *.generated.ps1
@@ -95,7 +101,7 @@ third-party/
 *.min.ps1
 ```
 
-### 3. CI/CD Optimization
+### 3\. CI/CD Optimization
 
 **Format Only Changed Files**
 
@@ -121,14 +127,14 @@ prettier --cache --cache-location=.cache/.prettier-cache "**/*.ps1"
 **Parallel Processing**
 
 ```bash
-# Format multiple files in parallel (Prettier 3+)
-prettier --write --parallel "**/*.ps1"
+# Format multiple files in parallel with xargs (4 workers)
+find . -name "*.ps1" -print0 | xargs -0 -P 4 -n 1 prettier --write
 
-# Or use GNU parallel
+# Or use GNU parallel if available
 find . -name "*.ps1" | parallel prettier --write {}
 ```
 
-### 4. Node.js Optimization
+### 4\. Node.js Optimization
 
 **Memory Configuration**
 
@@ -151,7 +157,7 @@ nvm install --lts
 nvm use --lts
 ```
 
----
+--------------------------------------------------------------------------------
 
 ## Configuration Optimization
 
@@ -160,6 +166,7 @@ nvm use --lts
 Some options are more computationally expensive:
 
 **Fast Options:**
+
 ```json
 {
   "powershellIndentSize": 4,
@@ -169,6 +176,7 @@ Some options are more computationally expensive:
 ```
 
 **Slower Options:**
+
 ```json
 {
   // Sorting requires extra processing
@@ -192,35 +200,39 @@ Some options are more computationally expensive:
 }
 ```
 
----
+--------------------------------------------------------------------------------
 
 ## Profiling and Monitoring
 
 ### Profile Formatting Time
 
 ```javascript
-// profile.js
-const prettier = require('prettier');
-const fs = require('fs');
+// profile.mjs
+import { readFileSync } from 'node:fs';
+import prettier from 'prettier';
+import plugin from 'prettier-plugin-powershell';
 
-const source = fs.readFileSync('script.ps1', 'utf8');
+const source = readFileSync('script.ps1', 'utf8');
 
 console.time('format');
-prettier.format(source, {
+await prettier.format(source, {
   parser: 'powershell',
-  plugins: ['./dist/index.cjs']
+  plugins: [plugin],
+  filepath: 'script.ps1'
 });
 console.timeEnd('format');
 ```
 
+> Save as `profile.mjs` (or any ESM file) and run with `node profile.mjs` on Node.js 18+ (top-level `await` is supported).
+
 ### Monitor Memory Usage
 
 ```bash
-# Monitor memory during formatting
-/usr/bin/time -v prettier --write "**/*.ps1"
+# Monitor memory during formatting (POSIX)
+/usr/bin/time -v prettier --plugin=prettier-plugin-powershell --write "**/*.ps1"
 
-# Or on Windows with PowerShell
-Measure-Command { npx prettier --write "**/*.ps1" }
+# Windows PowerShell
+Measure-Command { npx prettier --plugin prettier-plugin-powershell --write "**/*.ps1" }
 ```
 
 ### Identify Slow Files
@@ -228,12 +240,12 @@ Measure-Command { npx prettier --write "**/*.ps1" }
 ```bash
 # Find files that take >1 second to format
 for file in **/*.ps1; do
-  time=$(time prettier --write "$file" 2>&1 | grep real)
+  time=$(time prettier --plugin=prettier-plugin-powershell --write "$file" 2>&1 | grep real)
   echo "$time $file"
 done | sort -rn | head -10
 ```
 
----
+--------------------------------------------------------------------------------
 
 ## Caching Strategies
 
@@ -268,13 +280,14 @@ prettier --cache --cache-strategy metadata "**/*.ps1" # Use file metadata
 }
 ```
 
----
+--------------------------------------------------------------------------------
 
 ## Large Codebase Strategies
 
 ### Incremental Adoption
 
 **Phase 1: New Files Only**
+
 ```bash
 # Format only new files created this month
 git ls-files --others --exclude-standard '*.ps1' |
@@ -282,6 +295,7 @@ git ls-files --others --exclude-standard '*.ps1' |
 ```
 
 **Phase 2: Modified Files**
+
 ```bash
 # Format files modified recently
 git diff --name-only HEAD~10 |
@@ -290,6 +304,7 @@ git diff --name-only HEAD~10 |
 ```
 
 **Phase 3: Full Codebase**
+
 ```bash
 # Format everything (do once, then maintain)
 prettier --write "**/*.{ps1,psm1,psd1}"
@@ -305,7 +320,7 @@ for dir in src/{module1,module2,module3}; do
 done
 ```
 
----
+--------------------------------------------------------------------------------
 
 ## Performance Monitoring
 
@@ -335,65 +350,76 @@ jobs:
   perf:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.1.6
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v4.0.4
+        with:
+          node-version: '20'
       - run: npm ci
       - name: Benchmark
         run: |
           npm run benchmark > benchmark.txt
           # Fail if throughput drops below threshold
-          throughput=$(grep "throughput" benchmark.txt | awk '{print $2}')
+          throughput=$(grep -i "throughput" benchmark.txt | awk '{print $2}')
           if (( $(echo "$throughput < 6000" | bc -l) )); then
             echo "Performance regression detected!"
             exit 1
           fi
 ```
 
----
+--------------------------------------------------------------------------------
 
 ## Troubleshooting Performance Issues
 
 ### Slow Formatting
 
 1. **Check file size**: Files >500KB may be slow
-   ```bash
-   find . -name "*.ps1" -size +500k
-   ```
+
+  ```bash
+  find . -name "*.ps1" -size +500k
+  ```
 
 2. **Profile the specific file**:
-   ```bash
-   node --prof $(which prettier) --write slow-file.ps1
-   node --prof-process isolate-*.log
-   ```
+
+  ```bash
+  node --prof $(which prettier) --plugin=prettier-plugin-powershell --write slow-file.ps1
+  node --prof-process isolate-*.log
+  ```
 
 3. **Check for pathological cases**:
-   - Extremely deep nesting (>50 levels)
-   - Very long lines (>1000 characters)
-   - Thousands of hashtable entries
+
+  - Extremely deep nesting (>50 levels)
+  - Very long lines (>1000 characters)
+  - Thousands of hashtable entries
 
 ### High Memory Usage
 
 1. **Process files in batches**:
-   ```bash
-   ls *.ps1 | xargs -n 10 prettier --write
-   ```
+
+  ```bash
+  ls *.ps1 | xargs -n 10 prettier --write
+  ```
 
 2. **Increase Node.js heap**:
-   ```bash
-   NODE_OPTIONS="--max-old-space-size=8192" prettier --write "**/*.ps1"
-   ```
+
+  ```bash
+  NODE_OPTIONS="--max-old-space-size=8192" prettier --write "**/*.ps1"
+  ```
 
 3. **Monitor with heapdump**:
-   ```javascript
-   const heapdump = require('heapdump');
-   // Take snapshot before/after formatting
-   heapdump.writeSnapshot('./before.heapsnapshot');
-   ```
 
----
+  ```javascript
+  const heapdump = await import('heapdump');
+  const api = heapdump.default ?? heapdump;
+  // Take snapshot before/after formatting
+  await api.writeSnapshot('./before.heapsnapshot');
+  ```
+
+--------------------------------------------------------------------------------
 
 ## Best Practices Summary
 
 ✅ **Do:**
+
 - Use caching (`--cache`)
 - Format only changed files in CI
 - Process files in parallel when possible
@@ -402,13 +428,14 @@ jobs:
 - Use latest Node.js LTS
 
 ❌ **Don't:**
+
 - Format all files on every commit
 - Keep formatting 1000+ line files regularly
 - Use slow options unless needed
 - Format generated/vendor code
 - Ignore performance budgets
 
----
+--------------------------------------------------------------------------------
 
 ## Performance Checklist
 
@@ -423,30 +450,32 @@ jobs:
 - [ ] Optimized editor integration
 - [ ] Set performance budgets in CI
 
----
+--------------------------------------------------------------------------------
 
 ## Expected Performance by File Size
 
-| File Size | Format Time | Notes |
-|-----------|-------------|-------|
-| < 10 KB   | < 5ms       | Instant |
-| 10-50 KB  | 5-15ms      | Very fast |
-| 50-100 KB | 15-30ms     | Fast |
-| 100-200 KB| 30-60ms     | Acceptable |
-| 200-500 KB| 60-150ms    | Consider splitting |
-| > 500 KB  | > 150ms     | Should split |
+File Size  | Format Time | Notes
+---------- | ----------- | ------------------
+< 10 KB    | < 5ms       | Instant
+10-50 KB   | 5-15ms      | Very fast
+50-100 KB  | 15-30ms     | Fast
+100-200 KB | 30-60ms     | Acceptable
+200-500 KB | 60-150ms    | Consider splitting
+> 500 KB   | > 150ms     | Should split
 
 If your performance is significantly worse than these benchmarks, check for:
+
 - Old Node.js version
 - Insufficient memory
 - Slow disk I/O
 - Pathological code patterns
 
----
+--------------------------------------------------------------------------------
 
 ## Support
 
 For performance issues not covered here:
+
 1. Run `npm run benchmark` and share results
 2. Profile with `node --prof`
 3. Create an issue with profiling data

@@ -1,7 +1,7 @@
 {
     "name": "prettier-plugin-powershell",
     "$schema": "https://www.schemastore.org/package.json",
-    "version": "2.0.9",
+    "version": "2.0.10",
     "description": "Prettier plugin for formatting PowerShell source files with idiomatic defaults.",
     "keywords": [
         "prettier",
@@ -65,7 +65,7 @@
         "@types/node": "^24.10.1",
         "@typescript-eslint/eslint-plugin": "^8.46.4",
         "@typescript-eslint/parser": "^8.46.4",
-        "@vitest/coverage-v8": "^4.0.8",
+        "@vitest/coverage-v8": "^4.0.9",
         "eslint": "^9.39.1",
         "eslint-config-prettier": "^10.1.8",
         "eslint-import-resolver-typescript": "^4.4.4",
@@ -82,7 +82,7 @@
         "prettier-plugin-sql": "^0.19.2",
         "prettier-plugin-tailwindcss": "^0.7.1",
         "typescript-eslint": "^8.46.4",
-        "vitest": "^4.0.8"
+        "vitest": "^4.0.9"
     },
     "engines": {
         "node": ">=18.12.0"

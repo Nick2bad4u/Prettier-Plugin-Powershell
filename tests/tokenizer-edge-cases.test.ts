@@ -143,4 +143,33 @@ describe("Tokenizer edge cases", () => {
         expect(numbers).toContain("99l");
         expect(numbers).toContain("5mb");
     });
+
+    it("tokenizes merging redirection without explicit stream number", () => {
+        const script = `Write-Output hi >&3`;
+        const tokens = tokenize(script);
+
+        const mergeRedirection = tokens.find(
+            (t) => t.type === "operator" && t.value === ">&3"
+        );
+
+        expect(mergeRedirection).toBeDefined();
+    });
+
+    it("treats bare $_ at end of input as the special pipeline variable", () => {
+        const script = `$_`;
+        const tokens = tokenize(script);
+
+        const variables = tokens.filter((t) => t.type === "variable");
+        expect(variables).toHaveLength(1);
+        expect(variables[0]?.value).toBe("$_");
+    });
+
+    it("treats $_ followed by identifier characters as a regular variable name", () => {
+        const script = `$_foo`;
+        const tokens = tokenize(script);
+
+        const variables = tokens.filter((t) => t.type === "variable");
+        expect(variables).toHaveLength(1);
+        expect(variables[0]?.value).toBe("$_foo");
+    });
 });

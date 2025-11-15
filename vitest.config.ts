@@ -41,7 +41,7 @@ export default defineConfig(({ }) => {
     poolOptions: {
       threads: {
         isolate: true,
-        maxThreads: Math.max(1, Number(process.env['MAX_THREADS'] ?? (process.env['CI'] ? '1' : '4'))), // Scaled down for smaller project
+        maxThreads: Math.max(16, Number(process.env['MAX_THREADS'] ?? (process.env['CI'] ? '1' : '4'))), // Scaled down for smaller project
         minThreads: 1,
         singleThread: Boolean(process.env['CI']),
         useAtomics: true,
