@@ -19,6 +19,9 @@ const countOccurrences = (text: string, needle: string) =>
 const readFixture = (relativePath: string) =>
     readFile(new URL(relativePath, import.meta.url), "utf8");
 
+const normalizeNewlines = (text: string): string =>
+    text.replace(/\r\n/g, "\n");
+
 describe("ps-color-scripts regressions", () => {
     async function assertFormatting(
         inputFixture: string,
@@ -38,7 +41,7 @@ describe("ps-color-scripts regressions", () => {
             },
             snapshotKey
         );
-        expect(result).toBe(expected);
+        expect(normalizeNewlines(result)).toBe(normalizeNewlines(expected));
     }
 
     it("normalizes Invoke-ColorScriptCacheOperation indentation and semicolons", async () => {
@@ -67,6 +70,62 @@ describe("ps-color-scripts regressions", () => {
             "./test_files/Test-File-10.unformatted.ps1",
             "./test_files/Test-File-10.ps1",
             "user-regressions.test-file-10"
+        );
+    });
+
+    it("preserves static method invocations used for synchronization", async () => {
+        await assertFormatting(
+            "./test_files/Test-File-12.unformatted.ps1",
+            "./test_files/Test-File-12.ps1",
+            "user-regressions.test-file-12"
+        );
+    });
+
+    it("normalizes additional monitor helper variations", async () => {
+        await assertFormatting(
+            "./test_files/Test-File-13.unformatted.ps1",
+            "./test_files/Test-File-13.ps1",
+            "user-regressions.test-file-13"
+        );
+    });
+
+    it("keeps batched static calls stable", async () => {
+        await assertFormatting(
+            "./test_files/Test-File-14.unformatted.ps1",
+            "./test_files/Test-File-14.ps1",
+            "user-regressions.test-file-14"
+        );
+    });
+
+    it("handles keyword-like static method names without misformatting", async () => {
+        await assertFormatting(
+            "./test_files/Test-File-15.unformatted.ps1",
+            "./test_files/Test-File-15.ps1",
+            "user-regressions.test-file-15"
+        );
+    });
+
+    it("handles static calls inside pipelines and chained expressions", async () => {
+        await assertFormatting(
+            "./test_files/Test-File-16.unformatted.ps1",
+            "./test_files/Test-File-16.ps1",
+            "user-regressions.test-file-16"
+        );
+    });
+
+    it("preserves inline color comments in ANSI palette loop script (Test-File-17)", async () => {
+        await assertFormatting(
+            "./test_files/Test-File-17.unformatted.ps1",
+            "./test_files/Test-File-17..ps1",
+            "user-regressions.test-file-17"
+        );
+    });
+
+    it("preserves inline color comments in ANSI palette header script (Test-File-18)", async () => {
+        await assertFormatting(
+            "./test_files/Test-File-18.unformatted.ps1",
+            "./test_files/Test-File-18..ps1",
+            "user-regressions.test-file-18"
         );
     });
 

@@ -27,7 +27,13 @@ Example:
 const formatted = await formatAndAssertRoundTrip(script, baseConfig, { id: 'test.id' });
 ```
 
-This helper formats the script twice and verifies the formatted output is idempotent (formatting the formatted output yields the same text). It asserts parser success for each formatted pass unless skipParse is set.
+Options (third argument):
+
+- id (string): an id used to label the assertion logs.
+- skipParse (boolean): if true, skip the parser assertion step on both passes.
+- expectIdempotent (boolean, default `true`): when set to `false`, skip the strict "first pass === second pass" check while still running formatting and parse assertions.
+
+This helper formats the script twice and, by default, verifies the formatted output is idempotent (formatting the formatted output yields the same text). It asserts parser success for each formatted pass unless `skipParse` is set.
 
 ## Notes
 

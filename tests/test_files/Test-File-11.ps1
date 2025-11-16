@@ -1,8 +1,8 @@
 function Invoke-ColorScriptCacheOperation {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)][string]$ScriptName,
-        [Parameter(Mandatory)][string]$ScriptPath
+        [Parameter(Mandatory)] [string] $ScriptName,
+        [Parameter(Mandatory)] [string] $ScriptPath
     )
 
     $resultRecord = $null
@@ -17,13 +17,16 @@ function Invoke-ColorScriptCacheOperation {
         if (-not $script:CacheDir) {
             Initialize-CacheDirectory
         }
-        $cacheResult = [pscustomobject]@{
+        $cacheResult = [pscustomobject] @{
             ScriptName = $ScriptName
-            CacheFile  = Join-Path -Path $script:CacheDir -ChildPath ("{0}.cache" -f $ScriptName)
-            Success    = $false
-            ExitCode   = $null
-            StdOut     = ''
-            StdErr     = $_.Exception.Message
+            CacheFile =
+                Join-Path -Path $script:CacheDir -ChildPath (
+                    '{0}.cache' -f $ScriptName
+                )
+            Success = $false
+            ExitCode = $null
+            StdOut = ''
+            StdErr = $_.Exception.Message
         }
     }
 
@@ -51,22 +54,26 @@ function Invoke-ColorScriptCacheOperation {
         $cacheExists = $false
     }
 
-    $resultRecord = [pscustomobject]@{
-        Name        = if ($cacheResult.ScriptName) { $cacheResult.ScriptName } else { $ScriptName }
-        ScriptPath  = $ScriptPath
-        CacheFile   = $cacheResult.CacheFile
-        Status      = $status
-        Message     = $message
+    $resultRecord = [pscustomobject] @{
+        Name = if ($cacheResult.ScriptName) {
+            $cacheResult.ScriptName
+        } else {
+            $ScriptName
+        }
+        ScriptPath = $ScriptPath
+        CacheFile = $cacheResult.CacheFile
+        Status = $status
+        Message = $message
         CacheExists = $cacheExists
-        ExitCode    = $cacheResult.ExitCode
-        StdOut      = $cacheResult.StdOut
-        StdErr      = $cacheResult.StdErr
+        ExitCode = $cacheResult.ExitCode
+        StdOut = $cacheResult.StdOut
+        StdErr = $cacheResult.StdErr
     }
 
-    return [pscustomobject]@{
-        Result  = $resultRecord
+    return [pscustomobject] @{
+        Result = $resultRecord
         Updated = $updated
-        Failed  = $failed
+        Failed = $failed
         Warning = $warningMessage
     }
 }

@@ -1521,9 +1521,13 @@ function createTextNode(token) {
   if ((role === "unknown" || role === "word") && FALLBACK_OPERATOR_TOKENS.has(token.value)) {
     role = "operator";
   }
+  let value = token.value;
+  if (token.type === "comment") {
+    value = `#${value}`;
+  }
   return {
     type: "Text",
-    value: token.value,
+    value,
     role,
     loc: { start: token.start, end: token.end }
   };
@@ -2121,7 +2125,13 @@ function printExpression(node, options) {
   }
   let previous = null;
   for (let index = 0; index < normalizedParts.length; index += 1) {
-    const part = normalizedParts[index];
+    let part = normalizedParts[index];
+    if (part.type === "Text" && part.role === "keyword" && previous && previous.type === "Text" && (previous.value === "." || previous.value === "::")) {
+      part = {
+        ...part,
+        role: "word"
+      };
+    }
     if (part.type === "Parenthesis" && isParamKeyword(previous)) {
       docs.push(printParamParenthesis(part, options));
       previous = part;
@@ -2133,7 +2143,7 @@ function printExpression(node, options) {
       continue;
     }
     if (previous) {
-      if (part.type === "Parenthesis" && previous.type === "Text" && previous.role === "word" && index >= 2) {
+      if (part.type === "Parenthesis" && previous.type === "Text" && index >= 2) {
         const beforeWord = normalizedParts[index - 2];
         if (beforeWord && beforeWord.type === "Text" && (beforeWord.value === "." || beforeWord.value === "::")) {
           docs.push(printNode(part, options));
@@ -2400,9 +2410,23 @@ function printArray(node, options) {
     return [open, close];
   }
   const groupId = Symbol("array");
-  const elementDocs = node.elements.map(
-    (element) => printExpression(element, options)
-  );
+  const elementDocs = [];
+  for (let index = 0; index < node.elements.length; index += 1) {
+    const element = node.elements[index];
+    if (isCommentExpression(element)) {
+      continue;
+    }
+    let printed = printExpression(element, options);
+    const nextElement = node.elements[index + 1];
+    if (nextElement && isCommentExpression(nextElement)) {
+      const commentText = extractCommentText(nextElement);
+      if (commentText) {
+        printed = [printed, lineSuffix([" ", commentText])];
+        index += 1;
+      }
+    }
+    elementDocs.push(printed);
+  }
   const shouldBreak = elementDocs.length > 1;
   const separator = [",", line];
   return group(

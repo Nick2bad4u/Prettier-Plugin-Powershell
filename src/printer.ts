@@ -383,7 +383,20 @@ function printExpression(node: ExpressionNode, options: ResolvedOptions): Doc {
     let previous: ExpressionPartNode | null = null;
 
     for (let index = 0; index < normalizedParts.length; index += 1) {
-        const part = normalizedParts[index];
+        let part = normalizedParts[index];
+
+        if (
+            part.type === "Text" &&
+            part.role === "keyword" &&
+            previous &&
+            previous.type === "Text" &&
+            (previous.value === "." || previous.value === "::")
+        ) {
+            part = {
+                ...part,
+                role: "word",
+            };
+        }
 
         if (part.type === "Parenthesis" && isParamKeyword(previous)) {
             docs.push(printParamParenthesis(part, options));
@@ -406,12 +419,11 @@ function printExpression(node: ExpressionNode, options: ResolvedOptions): Doc {
         }
 
         if (previous) {
-            // Special case: word followed by parenthesis could be method call or cmdlet
-            // Check if the word comes after . or :: (method call - no space)
+            // Special case: identifier followed by parenthesis could be method call or cmdlet
+            // Check if the identifier comes after . or :: (method call - no space)
             if (
                 part.type === "Parenthesis" &&
                 previous.type === "Text" &&
-                previous.role === "word" &&
                 index >= 2
             ) {
                 const beforeWord = normalizedParts[index - 2];
@@ -771,9 +783,37 @@ function printArray(node: ArrayLiteralNode, options: ResolvedOptions): Doc {
         return [open, close];
     }
     const groupId = Symbol("array");
-    const elementDocs = node.elements.map((element) =>
-        printExpression(element, options)
-    );
+
+    // Build element docs while treating comment-only expressions as trailing
+    // comments on the previous element. This preserves inline comment intent
+    // for constructs like:
+    //   "#000000", # Black
+    // which would otherwise be parsed as two separate elements.
+    const elementDocs: Doc[] = [];
+
+    for (let index = 0; index < node.elements.length; index += 1) {
+        const element = node.elements[index];
+
+        // Skip standalone comment expressions here; they will be attached to
+        // the previous real element when encountered as `nextElement` below.
+        if (isCommentExpression(element)) {
+            continue;
+        }
+
+        let printed = printExpression(element, options);
+
+        const nextElement = node.elements[index + 1];
+        if (nextElement && isCommentExpression(nextElement)) {
+            const commentText = extractCommentText(nextElement);
+            if (commentText) {
+                printed = [printed, lineSuffix([" ", commentText])];
+                index += 1; // Consume the comment element
+            }
+        }
+
+        elementDocs.push(printed);
+    }
+
     const shouldBreak = elementDocs.length > 1;
     const separator: Doc = [",", line];
     // PowerShell does NOT support trailing commas in arrays, so never add them

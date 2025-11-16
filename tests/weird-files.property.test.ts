@@ -144,6 +144,11 @@ describe("Weird PowerShell file property tests", () => {
             "啡",
             "ø",
             "ç",
+            "א", // Hebrew letter
+            "א̇", // Hebrew letter with combining dot above
+            "́", // combining acute accent alone
+            "‎", // right-to-left mark (RLM)
+            "‏", // right-to-left mark (another representation)
         ] as const;
 
         const unicodeString = fc

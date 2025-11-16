@@ -118,6 +118,17 @@ describe("Additional regression fixtures", () => {
             },
         },
         {
+            name: "multilingual comments and strings",
+            file: "./fixtures/multilingual-comments.ps1",
+            assertInput: (input) => {
+                expect(input).toContain("English: This function prints greetings in many languages.");
+                expect(input).toContain("日本語");
+                expect(input).toContain("Русский");
+                expect(input).toContain("العربية");
+                expect(input).toContain("हिन्दी");
+            },
+        },
+        {
             name: "string interpolation edge cases",
             file: "./fixtures/string-interpolation-complex.ps1",
             assertInput: (input) => {
@@ -139,6 +150,17 @@ describe("Additional regression fixtures", () => {
             assertInput: (input) => {
                 expect(input).toContain("class");
                 expect(input).toContain("static");
+            },
+        },
+        {
+            name: "rtl markers and zero-width characters",
+            file: "./fixtures/rtl-and-zero-width.ps1",
+            assertInput: (input) => {
+                // RLM and zero-width space are present in the comments
+                expect(input).toMatch(/English.*Arabic/);
+                expect(input).toMatch(/zero.*width/);
+                // Non-breaking spaces (NBSP) around the arrow
+                expect(input).toMatch(/Prefix\s*\S*->\S*\s*\$Text/);
             },
         },
     ];

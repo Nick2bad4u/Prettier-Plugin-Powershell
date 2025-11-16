@@ -422,4 +422,28 @@ describe("Options property-based tests", () => {
             { numRuns: PROPERTY_RUNS }
         );
     });
+
+    it("treats unknown preset values as no preset", () => {
+        const options = {
+            powershellPreset: "unknown-preset-value",
+        } as unknown as ParserOptions;
+
+        const resolved = resolveOptions(options);
+
+        if (resolved.indentStyle !== "spaces") {
+            throw new Error(
+                `Unknown preset should not change default indentStyle; got ${resolved.indentStyle}`
+            );
+        }
+        if (resolved.indentSize !== 4) {
+            throw new Error(
+                `Unknown preset should not change default indentSize; got ${resolved.indentSize}`
+            );
+        }
+        if (resolved.keywordCase !== "lower") {
+            throw new Error(
+                `Unknown preset should not change default keywordCase; got ${resolved.keywordCase}`
+            );
+        }
+    });
 });

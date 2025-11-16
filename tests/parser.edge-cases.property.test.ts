@@ -139,7 +139,9 @@ describe("Parser edge case property tests", () => {
                         "Write-Output 'test' # comment",
                         "Write-Output `\n# comment\n'test'",
                         "# comment1\n# comment2\nWrite-Output 'test'",
-                        "$x = 1\n# between lines\n$y = 2"
+                        "$x = 1\n# between lines\n$y = 2",
+                        "# /** TSDoc-style summary */\n# @param foo description\nWrite-Output 'test'",
+                        "#region Section\n# /// JSDoc-style tag inside region\n#endregion\nWrite-Output 'test'"
                     ),
                     (script) => {
                         const ast = parsePowerShell(
@@ -179,7 +181,8 @@ describe("Parser edge case property tests", () => {
                     fc.constantFrom(
                         "<# block #>\nWrite-Output 'test'",
                         "Write-Output <# block #> 'test'",
-                        "<# line1\nline2 #>\nWrite-Output 'test'"
+                        "<# line1\nline2 #>\nWrite-Output 'test'",
+                        "<#\n/**\n * Block TSDoc-style summary\n * @param bar description\n * @returns result\n */\n#>\nWrite-Output 'test'"
                     ),
                     (script) => {
                         const ast = parsePowerShell(
@@ -236,7 +239,8 @@ describe("Parser edge case property tests", () => {
                         '@"\n"@',
                         "@'\n'@",
                         '@"\n$variable\n"@',
-                        "@'\n$variable\n'@"
+                        "@'\n$variable\n'@",
+                        "@'\n/**\n * Here-string docs\n * @param baz description\n */\n'@"
                     ),
                     (hereString) => {
                         const script = `$x = ${hereString}`;

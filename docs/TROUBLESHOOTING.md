@@ -2,6 +2,8 @@
 
 This guide helps you resolve common issues when using prettier-plugin-powershell.
 
+> All CLI examples assume Prettier can resolve the plugin (either via your `.prettierrc` or by passing `--plugin=prettier-plugin-powershell`).
+
 ## Table of Contents
 
 - [Installation Issues](#installation-issues)
@@ -11,7 +13,7 @@ This guide helps you resolve common issues when using prettier-plugin-powershell
 - [Known Limitations](#known-limitations)
 - [Getting Help](#getting-help)
 
----
+--------------------------------------------------------------------------------
 
 ## Installation Issues
 
@@ -20,37 +22,42 @@ This guide helps you resolve common issues when using prettier-plugin-powershell
 **Problem:** Prettier doesn't recognize the PowerShell plugin.
 
 **Solution:**
+
 1. Ensure the plugin is installed:
-   ```bash
-   npm install --save-dev prettier-plugin-powershell
-   ```
+
+  ```bash
+  npm install --save-dev prettier-plugin-powershell
+  ```
 
 2. Verify the plugin is listed in your `package.json`:
-   ```json
-   {
-     "devDependencies": {
-       "prettier-plugin-powershell": "^2.0.0"
-     }
-   }
-   ```
+
+  ```json
+  {
+    "devDependencies": {
+         "prettier-plugin-powershell": "^2.0.9"
+    }
+  }
+  ```
 
 3. If using Prettier v3+, explicitly list the plugin in your config:
-   ```json
-   {
-     "plugins": ["prettier-plugin-powershell"]
-   }
-   ```
+
+  ```json
+  {
+    "plugins": ["prettier-plugin-powershell"]
+  }
+  ```
 
 ### Version Conflicts
 
 **Problem:** Prettier version incompatibility errors.
 
 **Solution:**
+
 - This plugin requires Prettier 3.0.0 or higher
 - Check your Prettier version: `npx prettier --version`
 - Update if needed: `npm install --save-dev prettier@latest`
 
----
+--------------------------------------------------------------------------------
 
 ## Formatting Issues
 
@@ -59,36 +66,43 @@ This guide helps you resolve common issues when using prettier-plugin-powershell
 **Problem:** PowerShell files are ignored by Prettier.
 
 **Solution:**
+
 1. Ensure the file has a `.ps1`, `.psm1`, or `.psd1` extension
 2. Check that the file is not excluded in `.prettierignore`
 3. Explicitly specify the parser:
-   ```bash
-   prettier --parser powershell script.ps1
-   ```
+
+  ```bash
+  prettier --plugin=prettier-plugin-powershell --parser powershell script.ps1
+  ```
 
 ### Incorrect Formatting
 
 **Problem:** Code is formatted incorrectly or breaks after formatting.
 
 **Solution:**
+
 1. **Check for syntax errors**: The formatter works best with valid PowerShell
 2. **Report edge cases**: If the formatter breaks valid code, please report it
 3. **Use `--%` stop-parsing token** for native commands:
-   ```powershell
-   cmd.exe --% /c dir /s
-   ```
+
+  ```powershell
+  cmd.exe --% /c dir /s
+  ```
 
 ### Comments Being Lost
 
 **Problem:** Comments disappear after formatting.
 
 **Solution:**
+
 - **Block comments should be properly closed**:
+
   ```powershell
   <# This is correct #>
 
   # Not this: <# Missing closing
   ```
+
 - Inline comments are preserved on the same line
 - File an issue if you find comments being removed incorrectly
 
@@ -97,16 +111,19 @@ This guide helps you resolve common issues when using prettier-plugin-powershell
 **Problem:** Hashtable keys aren't aligned as expected.
 
 **Solution:**
+
 - Enable key sorting if needed:
+
   ```json
   {
     "powershellSortHashtableKeys": true
   }
   ```
+
 - Alignment depends on the `powershellTrailingComma` option
 - Very long keys may prevent alignment
 
----
+--------------------------------------------------------------------------------
 
 ## Performance Issues
 
@@ -115,35 +132,40 @@ This guide helps you resolve common issues when using prettier-plugin-powershell
 **Problem:** Formatting takes too long on files over 100KB.
 
 **Solution:**
+
 1. **Profile the performance**:
-   ```bash
-   npm run benchmark
-   ```
+
+  ```bash
+  npm run benchmark
+  ```
 
 2. **Split large files** into modules if possible
 
 3. **Use caching** in your editor/CI:
-   ```bash
-   prettier --cache script.ps1
-   ```
 
-4. **Expected performance**: ~6.8 MB/sec on typical hardware
+  ```bash
+  prettier --cache --write script.ps1
+  ```
+
+4. **Expected performance**: ~7.1 MB/sec on typical hardware (per `npm run benchmark` on November 15, 2025)
 
 ### High Memory Usage
 
 **Problem:** Node.js process uses excessive memory.
 
 **Solution:**
+
 1. Increase Node.js memory limit:
-   ```bash
-   export NODE_OPTIONS="--max-old-space-size=4096"
-   ```
+
+  ```bash
+  export NODE_OPTIONS="--max-old-space-size=4096"
+  ```
 
 2. Format files individually instead of all at once
 
 3. Check for memory leaks with `--trace-gc`
 
----
+--------------------------------------------------------------------------------
 
 ## Integration Issues
 
@@ -152,17 +174,19 @@ This guide helps you resolve common issues when using prettier-plugin-powershell
 **Problem:** Formatter doesn't work in VS Code.
 
 **Solution:**
+
 1. Install the Prettier extension: `esbenp.prettier-vscode`
 
 2. Set PowerShell as a supported language:
-   ```json
-   {
-     "[powershell]": {
-       "editor.defaultFormatter": "esbenp.prettier-vscode",
-       "editor.formatOnSave": true
-     }
-   }
-   ```
+
+  ```json
+  {
+    "[powershell]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true
+    }
+  }
+  ```
 
 3. Reload VS Code after installing the plugin
 
@@ -171,16 +195,18 @@ This guide helps you resolve common issues when using prettier-plugin-powershell
 **Problem:** Pre-commit hook fails with the formatter.
 
 **Solution:**
+
 1. Use `lint-staged` for efficient formatting:
-   ```json
-   {
-     "lint-staged": {
-       "*.{ps1,psm1,psd1}": [
-         "prettier --write"
-       ]
-     }
-   }
-   ```
+
+  ```json
+  {
+    "lint-staged": {
+      "*.{ps1,psm1,psd1}": [
+        "prettier --write"
+      ]
+    }
+  }
+  ```
 
 2. Ensure the plugin is in `devDependencies`, not `dependencies`
 
@@ -191,14 +217,17 @@ This guide helps you resolve common issues when using prettier-plugin-powershell
 **Problem:** Formatter fails in CI pipeline.
 
 **Solution:**
+
 1. **Check for platform differences**: Ensure line endings are consistent
 2. **Use `--check` for validation**:
-   ```bash
-   prettier --check "**/*.ps1"
-   ```
+
+  ```bash
+  prettier --check "**/*.ps1"
+  ```
+
 3. **Cache node_modules** to speed up CI
 
----
+--------------------------------------------------------------------------------
 
 ## Known Limitations
 
@@ -226,7 +255,7 @@ Features not yet implemented:
 2. **Cross-file analysis**: Each file is formatted independently
 3. **Auto-fix for common issues**: No automatic code improvements (yet)
 
----
+--------------------------------------------------------------------------------
 
 ## Debugging
 
@@ -244,24 +273,25 @@ DEBUG=prettier-plugin-powershell prettier script.ps1
 See how the parser interprets your code:
 
 ```javascript
-const prettier = require('prettier');
-const { parsePowerShell } = require('prettier-plugin-powershell');
+import prettier from 'prettier';
+import plugin from 'prettier-plugin-powershell';
 
-const ast = parsePowerShell('$x = 1', {});
+const ast = await prettier.__debug.parse('$x = 1', {
+   parser: 'powershell',
+   plugins: [plugin]
+});
 console.log(JSON.stringify(ast, null, 2));
 ```
 
+> Save as an `.mjs` file (or run with `node --input-type=module`) so top-level `await` is available.
+
 ### Check Token Output
 
-See how the tokenizer breaks down your code:
+Token-stream inspection is not part of the published API yet. Clone the repository and run the tokenizer tests if you need to inspect internals.
 
-```javascript
-const { tokenize } = require('prettier-plugin-powershell');
-const tokens = tokenize('$x = 1');
-console.log(tokens);
-```
+**TODO (owner: @Nick2bad4u):** Publish a supported CLI helper for dumping tokenizer output.
 
----
+--------------------------------------------------------------------------------
 
 ## Common Error Messages
 
@@ -283,20 +313,22 @@ console.log(tokens);
 
 **Fix:** Refactor to reduce nesting depth. Consider extracting functions.
 
----
+--------------------------------------------------------------------------------
 
 ## Getting Help
 
 ### Before Filing an Issue
 
 1. **Update to the latest version**:
-   ```bash
-   npm update prettier-plugin-powershell
-   ```
+
+  ```bash
+  npm update prettier-plugin-powershell
+  ```
 
 2. **Create a minimal reproduction**:
-   - Reduce your code to the smallest example that shows the problem
-   - Test with default options first
+
+  - Reduce your code to the smallest example that shows the problem
+  - Test with default options first
 
 3. **Check existing issues**: Your problem may already be reported
 
@@ -336,24 +368,29 @@ $x=1
 \`\`\`
 
 ## Environment
-- Plugin version: 2.0.3
-- Prettier version: 3.0.0
+- Plugin version: 2.0.9
+- Prettier version: 3.6.2
 - Node version: 20.0.0
 - OS: Windows 11
 - Configuration: Default
 ```
 
----
+--------------------------------------------------------------------------------
 
 ## Performance Tips
 
 1. **Use `.prettierignore`**: Exclude generated files, vendor code, etc.
 2. **Format incrementally**: Format changed files only in CI
 3. **Cache formatting results**: Use `--cache` flag
-4. **Parallelize formatting**: Use tools like `prettier --parallel`
+4. **Parallelize formatting**: Use `xargs -P` or GNU `parallel` to run multiple `prettier` processes, for example:
+
+  ```bash
+  find . -name "*.ps1" -print0 | xargs -0 -P 4 -n 1 prettier --write
+  ```
+
 5. **Profile first**: Run benchmark before optimizing
 
----
+--------------------------------------------------------------------------------
 
 ## Additional Resources
 

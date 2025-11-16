@@ -356,6 +356,46 @@ describe("Printer property-based tests", () => {
         );
     });
 
+    it("does not change static method identifier case when keywordCase is set", async () => {
+        await withProgress(
+            "printer.keywordCase.staticMethod",
+            PROPERTY_RUNS,
+            async (tracker) => {
+                await fc.assert(
+                    fc.asyncProperty(
+                        fc.constantFrom("preserve", "lower", "upper", "pascal"),
+                        fc.constantFrom("Exit", "Return", "While", "For", "If"),
+                        async (keywordCase, methodName) => {
+                            tracker.advance();
+                            const script = `[Foo.Bar]::${methodName}(42)`;
+                            const formatted = await formatAndAssert(
+                                script,
+                                {
+                                    parser: "powershell",
+                                    plugins: [plugin],
+                                    filepath: "test.ps1",
+                                    powershellKeywordCase: keywordCase,
+                                },
+                                "printer.property.staticMethodKeywordCase"
+                            );
+                            await assertPowerShellParses(
+                                formatted,
+                                "printer.property.staticMethodKeywordCase"
+                            );
+
+                            if (!formatted.includes(`::${methodName}(`)) {
+                                throw new Error(
+                                    `Static method name casing changed for '${methodName}' with keywordCase='${keywordCase}'.\nFormatted:\n${formatted}`
+                                );
+                            }
+                        }
+                    ),
+                    { numRuns: PROPERTY_RUNS }
+                );
+            }
+        );
+    });
+
     it("handles empty scripts", async () => {
         await withProgress("printer.empty", PROPERTY_RUNS, async (tracker) => {
             await fc.assert(

@@ -250,4 +250,43 @@ describe("Comment Positioning Improvements", () => {
             expect(result).toContain("# NOTE:");
         });
     });
+
+    describe("Mixed documentation styles (TSDoc/JSDoc-like)", () => {
+        it("preserves TSDoc-style tags inside line comments", async () => {
+            const input = `# /** Summary of the function */\n# @param foo Description of foo\n# @returns Result description\nfunction Test-Doc { }`;
+            const result = await formatAndAssert(
+                input,
+                baseConfig,
+                "comment-positioning.tsdoc-line"
+            );
+            expect(result).toContain("/** Summary of the function */");
+            expect(result).toContain("@param foo Description of foo");
+            expect(result).toContain("@returns Result description");
+        });
+
+        it("preserves TSDoc-style content inside block comments", async () => {
+            const input = `<#\n/**\n * Summary of the function\n * @param bar Description of bar\n * @returns Result description\n */\n#>\nfunction Test-BlockDoc { }`;
+            const result = await formatAndAssert(
+                input,
+                baseConfig,
+                "comment-positioning.tsdoc-block"
+            );
+            expect(result).toContain("/**");
+            expect(result).toContain("@param bar Description of bar");
+            expect(result).toContain("@returns Result description");
+            expect(result).toContain("#>");
+        });
+
+        it("preserves JSDoc-style content inside here-strings", async () => {
+            const input = `$doc = @'\n/**\n * Some docs\n * @param baz Description of baz\n * @returns Something interesting\n */\n'@\nWrite-Host $doc`;
+            const result = await formatAndAssert(
+                input,
+                baseConfig,
+                "comment-positioning.jsdoc-heredoc"
+            );
+            expect(result).toContain("/**");
+            expect(result).toContain("@param baz Description of baz");
+            expect(result).toContain("@returns Something interesting");
+        });
+    });
 });
