@@ -204,7 +204,7 @@ jobs:
           git push origin "v${VERSION}"
 
       - name: Create GitHub release
-        uses: actions/create-release@v1
+        uses: actions/create-release@latest
         env:
           GITHUB_TOKEN: ${{ github.token }}
         if: steps.guard.outputs.skip != 'true'

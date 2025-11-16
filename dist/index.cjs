@@ -1523,9 +1523,13 @@ function createTextNode(token) {
   if ((role === "unknown" || role === "word") && FALLBACK_OPERATOR_TOKENS.has(token.value)) {
     role = "operator";
   }
+  let value = token.value;
+  if (token.type === "comment") {
+    value = `#${value}`;
+  }
   return {
     type: "Text",
-    value: token.value,
+    value,
     role,
     loc: { start: token.start, end: token.end }
   };
@@ -2408,9 +2412,23 @@ function printArray(node, options) {
     return [open, close];
   }
   const groupId = Symbol("array");
-  const elementDocs = node.elements.map(
-    (element) => printExpression(element, options)
-  );
+  const elementDocs = [];
+  for (let index = 0; index < node.elements.length; index += 1) {
+    const element = node.elements[index];
+    if (isCommentExpression(element)) {
+      continue;
+    }
+    let printed = printExpression(element, options);
+    const nextElement = node.elements[index + 1];
+    if (nextElement && isCommentExpression(nextElement)) {
+      const commentText = extractCommentText(nextElement);
+      if (commentText) {
+        printed = [printed, lineSuffix([" ", commentText])];
+        index += 1;
+      }
+    }
+    elementDocs.push(printed);
+  }
   const shouldBreak = elementDocs.length > 1;
   const separator = [",", line];
   return group(

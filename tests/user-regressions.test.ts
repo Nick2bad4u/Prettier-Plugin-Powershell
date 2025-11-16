@@ -19,6 +19,9 @@ const countOccurrences = (text: string, needle: string) =>
 const readFixture = (relativePath: string) =>
     readFile(new URL(relativePath, import.meta.url), "utf8");
 
+const normalizeNewlines = (text: string): string =>
+    text.replace(/\r\n/g, "\n");
+
 describe("ps-color-scripts regressions", () => {
     async function assertFormatting(
         inputFixture: string,
@@ -38,7 +41,7 @@ describe("ps-color-scripts regressions", () => {
             },
             snapshotKey
         );
-        expect(result).toBe(expected);
+        expect(normalizeNewlines(result)).toBe(normalizeNewlines(expected));
     }
 
     it("normalizes Invoke-ColorScriptCacheOperation indentation and semicolons", async () => {
@@ -107,6 +110,22 @@ describe("ps-color-scripts regressions", () => {
             "./test_files/Test-File-16.unformatted.ps1",
             "./test_files/Test-File-16.ps1",
             "user-regressions.test-file-16"
+        );
+    });
+
+    it("preserves inline color comments in ANSI palette loop script (Test-File-17)", async () => {
+        await assertFormatting(
+            "./test_files/Test-File-17.unformatted.ps1",
+            "./test_files/Test-File-17..ps1",
+            "user-regressions.test-file-17"
+        );
+    });
+
+    it("preserves inline color comments in ANSI palette header script (Test-File-18)", async () => {
+        await assertFormatting(
+            "./test_files/Test-File-18.unformatted.ps1",
+            "./test_files/Test-File-18..ps1",
+            "user-regressions.test-file-18"
         );
     });
 

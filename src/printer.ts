@@ -783,9 +783,37 @@ function printArray(node: ArrayLiteralNode, options: ResolvedOptions): Doc {
         return [open, close];
     }
     const groupId = Symbol("array");
-    const elementDocs = node.elements.map((element) =>
-        printExpression(element, options)
-    );
+
+    // Build element docs while treating comment-only expressions as trailing
+    // comments on the previous element. This preserves inline comment intent
+    // for constructs like:
+    //   "#000000", # Black
+    // which would otherwise be parsed as two separate elements.
+    const elementDocs: Doc[] = [];
+
+    for (let index = 0; index < node.elements.length; index += 1) {
+        const element = node.elements[index];
+
+        // Skip standalone comment expressions here; they will be attached to
+        // the previous real element when encountered as `nextElement` below.
+        if (isCommentExpression(element)) {
+            continue;
+        }
+
+        let printed = printExpression(element, options);
+
+        const nextElement = node.elements[index + 1];
+        if (nextElement && isCommentExpression(nextElement)) {
+            const commentText = extractCommentText(nextElement);
+            if (commentText) {
+                printed = [printed, lineSuffix([" ", commentText])];
+                index += 1; // Consume the comment element
+            }
+        }
+
+        elementDocs.push(printed);
+    }
+
     const shouldBreak = elementDocs.length > 1;
     const separator: Doc = [",", line];
     // PowerShell does NOT support trailing commas in arrays, so never add them

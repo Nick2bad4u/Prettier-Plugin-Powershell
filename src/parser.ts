@@ -859,9 +859,19 @@ function createTextNode(token: Token): TextNode {
         role = "operator";
     }
 
+    let value = token.value;
+
+    // Preserve the fact that this originated from a `#` line comment so that
+    // downstream printers can recognise it as comment text rather than code.
+    // The tokenizer stores the comment text *after* the `#`, including any
+    // leading whitespace (e.g. " Black"), so we simply re-prepend `#` here.
+    if (token.type === "comment") {
+        value = `#${value}`;
+    }
+
     return {
         type: "Text",
-        value: token.value,
+        value,
         role,
         loc: { start: token.start, end: token.end },
     } satisfies TextNode;
