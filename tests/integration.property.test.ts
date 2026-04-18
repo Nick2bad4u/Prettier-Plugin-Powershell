@@ -1,6 +1,5 @@
 import * as fc from "fast-check";
-import { env } from "node:process";
-import { describe, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { parsePowerShell } from "../src/parser.js";
 import plugin from "../src/plugin.js";
@@ -9,14 +8,18 @@ import { formatAndAssert } from "./utils/format-and-assert.js";
 import { assertPowerShellParses } from "./utils/powershell.js";
 import { withProgress } from "./utils/progress.js";
 
+const { env: testEnv } = process;
+
 const PROPERTY_RUNS = Number.parseInt(
-    env.POWERSHELL_PROPERTY_RUNS ?? "100",
+    testEnv.POWERSHELL_PROPERTY_RUNS ?? "100",
     10
 );
 
 describe("integration property tests", () => {
     describe("round-trip preservation", () => {
         it("preserves semantic structure through tokenize -> parse -> format cycle", async () => {
+            expect.hasAssertions();
+
             await withProgress(
                 "integration.roundTrip",
                 PROPERTY_RUNS,
@@ -76,9 +79,7 @@ describe("integration property tests", () => {
                                         tabWidth: 2,
                                     } as never
                                 );
-                                if (
-                                    formattedAst?.type !== "Script"
-                                ) {
+                                if (formattedAst?.type !== "Script") {
                                     throw new Error(
                                         "Re-parsing formatted output failed"
                                     );
@@ -109,6 +110,8 @@ describe("integration property tests", () => {
         });
 
         it("handles option combinations consistently", async () => {
+            expect.hasAssertions();
+
             await withProgress(
                 "integration.optionCombos",
                 PROPERTY_RUNS,
@@ -201,10 +204,13 @@ describe("integration property tests", () => {
     });
 
     describe("cross-module consistency", () => {
-        it("ensures tokenizer and parser agree on locations", () => withProgress(
+        it("ensures tokenizer and parser agree on locations", () =>
+            withProgress(
                 "integration.tokenizerLocations",
                 PROPERTY_RUNS,
                 (tracker) => {
+                    expect.hasAssertions();
+
                     fc.assert(
                         fc.property(
                             fc.constantFrom(
@@ -236,17 +242,19 @@ describe("integration property tests", () => {
                                     const firstNonNewline = tokens.find(
                                         (t) => t.type !== "newline"
                                     );
-                                    const lastNonNewline = [...tokens]
-                                        .reverse()
+                                    const lastNonNewline = tokens
+                                        .toReversed()
                                         .find((t) => t.type !== "newline");
 
-                                    if (firstNonNewline && lastNonNewline && (
-                                            ast.loc.start >
-                                                firstNonNewline.start ||
-                                            ast.loc.end < lastNonNewline.end
-                                        )) {
-                                            // Acceptable deviation noted
-                                        }
+                                    if (
+                                        firstNonNewline &&
+                                        lastNonNewline &&
+                                        (ast.loc.start >
+                                            firstNonNewline.start ||
+                                            ast.loc.end < lastNonNewline.end)
+                                    ) {
+                                        // Acceptable deviation noted
+                                    }
                                 }
                             }
                         ),
@@ -256,6 +264,8 @@ describe("integration property tests", () => {
             ));
 
         it("ensures printer output can be re-tokenized and re-parsed", async () => {
+            expect.hasAssertions();
+
             await withProgress(
                 "integration.retTokenize",
                 PROPERTY_RUNS,
@@ -314,6 +324,8 @@ describe("integration property tests", () => {
 
     describe("error resilience", () => {
         it("handles concatenated valid scripts gracefully", async () => {
+            expect.hasAssertions();
+
             await withProgress(
                 "integration.concatenated",
                 PROPERTY_RUNS,
@@ -361,9 +373,7 @@ describe("integration property tests", () => {
                                         tabWidth: 2,
                                     } as never
                                 );
-                                if (
-                                    formattedAst?.type !== "Script"
-                                ) {
+                                if (formattedAst?.type !== "Script") {
                                     throw new Error(
                                         "Failed to re-parse formatted combined scripts"
                                     );
@@ -377,6 +387,8 @@ describe("integration property tests", () => {
         });
 
         it("preserves valid PowerShell across repeated formatting", async () => {
+            expect.hasAssertions();
+
             await withProgress(
                 "integration.repeatedFormatting",
                 PROPERTY_RUNS,
@@ -445,76 +457,75 @@ describe("integration property tests", () => {
     });
 
     describe("plugin interface contracts", () => {
-        it("locStart and locEnd return valid positions", () => withProgress(
-                "integration.locBounds",
-                PROPERTY_RUNS,
-                (tracker) => {
-                    fc.assert(
-                        fc.property(
-                            fc.constantFrom(
-                                "$x = 42",
-                                "Write-Output 'test'",
-                                "function Test { 'hello' }"
-                            ),
-                            (script) => {
-                                tracker.advance();
-                                const ast = parsePowerShell(script, {
-                                    tabWidth: 2,
-                                } as never);
+        it("locStart and locEnd return valid positions", () =>
+            withProgress("integration.locBounds", PROPERTY_RUNS, (tracker) => {
+                expect.hasAssertions();
 
-                                const { locEnd, locStart } =
-                                    plugin.parsers!.powershell;
-
-                                const start = locStart(ast);
-                                const end = locEnd(ast);
-
-                                if (
-                                    start < 0 ||
-                                    end < start ||
-                                    end > script.length
-                                ) {
-                                    throw new Error(
-                                        `Invalid loc: start=${start}, end=${end}, script.length=${script.length}`
-                                    );
-                                }
-                            }
+                fc.assert(
+                    fc.property(
+                        fc.constantFrom(
+                            "$x = 42",
+                            "Write-Output 'test'",
+                            "function Test { 'hello' }"
                         ),
-                        { numRuns: PROPERTY_RUNS }
-                    );
-                }
-            ));
+                        (script) => {
+                            tracker.advance();
+                            const ast = parsePowerShell(script, {
+                                tabWidth: 2,
+                            } as never);
 
-        it("hasPragma always returns false", () => withProgress(
-                "integration.hasPragma",
-                PROPERTY_RUNS,
-                (tracker) => {
-                    fc.assert(
-                        fc.property(
-                            fc.constantFrom(
-                                "$x = 42",
-                                "# prettier-ignore\n$x = 1",
-                                "Write-Output 'test'"
-                            ),
-                            (script) => {
-                                tracker.advance();
-                                const { hasPragma } =
-                                    plugin.parsers!.powershell;
+                            const { locEnd, locStart } =
+                                plugin.parsers!.powershell;
 
-                                if (hasPragma!(script)) {
-                                    throw new Error(
-                                        "hasPragma should always return false"
-                                    );
-                                }
+                            const start = locStart(ast);
+                            const end = locEnd(ast);
+
+                            if (
+                                start < 0 ||
+                                end < start ||
+                                end > script.length
+                            ) {
+                                throw new Error(
+                                    `Invalid loc: start=${start}, end=${end}, script.length=${script.length}`
+                                );
                             }
+                        }
+                    ),
+                    { numRuns: PROPERTY_RUNS }
+                );
+            }));
+
+        it("hasPragma always returns false", () =>
+            withProgress("integration.hasPragma", PROPERTY_RUNS, (tracker) => {
+                expect.hasAssertions();
+
+                fc.assert(
+                    fc.property(
+                        fc.constantFrom(
+                            "$x = 42",
+                            "# prettier-ignore\n$x = 1",
+                            "Write-Output 'test'"
                         ),
-                        { numRuns: PROPERTY_RUNS }
-                    );
-                }
-            ));
+                        (script) => {
+                            tracker.advance();
+                            const { hasPragma } = plugin.parsers!.powershell;
+
+                            if (hasPragma!(script)) {
+                                throw new Error(
+                                    "hasPragma should always return false"
+                                );
+                            }
+                        }
+                    ),
+                    { numRuns: PROPERTY_RUNS }
+                );
+            }));
     });
 
     describe("file extension handling", () => {
         it("formats all supported extensions identically", async () => {
+            expect.hasAssertions();
+
             await withProgress(
                 "integration.extensions",
                 PROPERTY_RUNS,
@@ -572,4 +583,3 @@ describe("integration property tests", () => {
         });
     });
 });
-

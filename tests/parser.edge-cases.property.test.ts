@@ -1,14 +1,15 @@
 import * as fc from "fast-check";
-import { env } from "node:process";
-import { describe, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import type { BaseNode } from "../src/ast.js";
 
 import { parsePowerShell } from "../src/parser.js";
 import { tokenize } from "../src/tokenizer.js";
 
+const { env: testEnv } = process;
+
 const PROPERTY_RUNS = Number.parseInt(
-    env.POWERSHELL_PROPERTY_RUNS ?? "150",
+    testEnv.POWERSHELL_PROPERTY_RUNS ?? "150",
     10
 );
 
@@ -17,6 +18,8 @@ const createParserOptions = () => ({ tabWidth: 2 }) as never;
 describe("parser edge case property tests", () => {
     describe("nesting depth limits", () => {
         it("handles deeply nested script blocks", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(fc.integer({ max: 20, min: 1 }), (depth) => {
                     const opening = "{".repeat(depth);
@@ -25,7 +28,7 @@ describe("parser edge case property tests", () => {
                     const script = `${opening} ${content} ${closing}`;
 
                     const ast = parsePowerShell(script, createParserOptions());
-                    if (ast?.type !== "Script") {
+                    if (ast.type !== "Script") {
                         throw new Error(
                             `Failed to parse nested script blocks at depth ${depth}`
                         );
@@ -36,6 +39,8 @@ describe("parser edge case property tests", () => {
         });
 
         it("handles deeply nested arrays", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(fc.integer({ max: 15, min: 1 }), (depth) => {
                     const opening = "@(".repeat(depth);
@@ -44,7 +49,7 @@ describe("parser edge case property tests", () => {
                     const script = `$x = ${opening}${content}${closing}`;
 
                     const ast = parsePowerShell(script, createParserOptions());
-                    if (ast?.type !== "Script") {
+                    if (ast.type !== "Script") {
                         throw new Error(
                             `Failed to parse nested arrays at depth ${depth}`
                         );
@@ -55,6 +60,8 @@ describe("parser edge case property tests", () => {
         });
 
         it("handles deeply nested hashtables", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(fc.integer({ max: 15, min: 1 }), (depth) => {
                     let script = "$x = @{";
@@ -65,7 +72,7 @@ describe("parser edge case property tests", () => {
                     script += "}".repeat(depth + 1);
 
                     const ast = parsePowerShell(script, createParserOptions());
-                    if (ast?.type !== "Script") {
+                    if (ast.type !== "Script") {
                         throw new Error(
                             `Failed to parse nested hashtables at depth ${depth}`
                         );
@@ -78,22 +85,21 @@ describe("parser edge case property tests", () => {
 
     describe("unbalanced delimiters", () => {
         it("handles missing closing braces gracefully", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.integer({ max: 5, min: 1 }),
                     fc.integer({ max: 3, min: 0 }),
                     (opening, closing) => {
-                        const script =
-                            `${"{".repeat(opening) 
-                            } Write-Output 'test' ${ 
-                            "}".repeat(Math.min(closing, opening))}`;
+                        const script = `${"{".repeat(opening)} Write-Output 'test' ${"}".repeat(Math.min(closing, opening))}`;
 
                         // Should not throw
                         const ast = parsePowerShell(
                             script,
                             createParserOptions()
                         );
-                        if (ast?.type !== "Script") {
+                        if (ast.type !== "Script") {
                             throw new Error(
                                 "Failed to parse unbalanced braces"
                             );
@@ -105,15 +111,14 @@ describe("parser edge case property tests", () => {
         });
 
         it("handles missing closing parentheses gracefully", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.integer({ max: 5, min: 1 }),
                     fc.integer({ max: 3, min: 0 }),
                     (opening, closing) => {
-                        const script =
-                            `${"$x = @(".repeat(opening) 
-                            }1, 2, 3${ 
-                            ")".repeat(Math.min(closing, opening))}`;
+                        const script = `${"$x = @(".repeat(opening)}1, 2, 3${")".repeat(Math.min(closing, opening))}`;
 
                         // Should not throw
                         const ast = parsePowerShell(
@@ -134,6 +139,8 @@ describe("parser edge case property tests", () => {
 
     describe("comment placement", () => {
         it("handles comments in various positions", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.constantFrom(
@@ -150,7 +157,7 @@ describe("parser edge case property tests", () => {
                             script,
                             createParserOptions()
                         );
-                        if (ast?.type !== "Script") {
+                        if (ast.type !== "Script") {
                             throw new Error(
                                 "Failed to parse script with comments"
                             );
@@ -167,10 +174,11 @@ describe("parser edge case property tests", () => {
                                 node.trailingComment !== undefined
                         );
 
-                        if (!hasComment && !hasPipelineWithComment) {
-                            // This is okay - some scripts might not have comments preserved as nodes
-                            // but the parsing should still succeed
-                        }
+                        expect(
+                            hasComment ||
+                                hasPipelineWithComment ||
+                                ast.body.length > 0
+                        ).toBe(true);
                     }
                 ),
                 { numRuns: PROPERTY_RUNS }
@@ -178,6 +186,8 @@ describe("parser edge case property tests", () => {
         });
 
         it("handles block comments in various positions", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.constantFrom(
@@ -205,6 +215,8 @@ describe("parser edge case property tests", () => {
 
     describe("string edge cases", () => {
         it("handles various quote types and escaping", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.constantFrom(
@@ -221,7 +233,7 @@ describe("parser edge case property tests", () => {
                             script,
                             createParserOptions()
                         );
-                        if (ast?.type !== "Script") {
+                        if (ast.type !== "Script") {
                             throw new Error(
                                 `Failed to parse string expression: ${stringExpr}`
                             );
@@ -233,6 +245,8 @@ describe("parser edge case property tests", () => {
         });
 
         it("handles here-strings with various content", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.constantFrom(
@@ -250,7 +264,7 @@ describe("parser edge case property tests", () => {
                             script,
                             createParserOptions()
                         );
-                        if (ast?.type !== "Script") {
+                        if (ast.type !== "Script") {
                             throw new Error(
                                 `Failed to parse here-string: ${hereString}`
                             );
@@ -264,6 +278,8 @@ describe("parser edge case property tests", () => {
 
     describe("whitespace variations", () => {
         it("handles various whitespace combinations", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.constantFrom(" ", "\t", "\r\n", "\n", "  ", "\t\t"),
@@ -274,7 +290,7 @@ describe("parser edge case property tests", () => {
                             script,
                             createParserOptions()
                         );
-                        if (ast?.type !== "Script") {
+                        if (ast.type !== "Script") {
                             throw new Error("Failed to parse with whitespace");
                         }
                     }
@@ -284,6 +300,8 @@ describe("parser edge case property tests", () => {
         });
 
         it("handles scripts with only whitespace", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.constantFrom("", " ", "\n", "\r\n", "\t", "   \n  \n  "),
@@ -292,7 +310,7 @@ describe("parser edge case property tests", () => {
                             whitespace,
                             createParserOptions()
                         );
-                        if (ast?.type !== "Script") {
+                        if (ast.type !== "Script") {
                             throw new Error(
                                 "Failed to parse whitespace-only script"
                             );
@@ -306,6 +324,8 @@ describe("parser edge case property tests", () => {
 
     describe("pipeline edge cases", () => {
         it("handles long pipelines", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(fc.integer({ max: 20, min: 2 }), (length) => {
                     const commands = Array.from(
@@ -315,7 +335,7 @@ describe("parser edge case property tests", () => {
                     const script = commands.join(" | ");
 
                     const ast = parsePowerShell(script, createParserOptions());
-                    if (ast?.type !== "Script") {
+                    if (ast.type !== "Script") {
                         throw new Error(
                             `Failed to parse pipeline of length ${length}`
                         );
@@ -339,6 +359,8 @@ describe("parser edge case property tests", () => {
         });
 
         it("handles pipelines with line continuations", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.constantFrom(
@@ -351,7 +373,7 @@ describe("parser edge case property tests", () => {
                             script,
                             createParserOptions()
                         );
-                        if (ast?.type !== "Script") {
+                        if (ast.type !== "Script") {
                             throw new Error(
                                 "Failed to parse pipeline with line continuation"
                             );
@@ -365,6 +387,8 @@ describe("parser edge case property tests", () => {
 
     describe("special characters and operators", () => {
         it("handles various operators", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.constantFrom(
@@ -384,7 +408,7 @@ describe("parser edge case property tests", () => {
                             expression,
                             createParserOptions()
                         );
-                        if (ast?.type !== "Script") {
+                        if (ast.type !== "Script") {
                             throw new Error(
                                 `Failed to parse operator expression: ${expression}`
                             );
@@ -396,6 +420,8 @@ describe("parser edge case property tests", () => {
         });
 
         it("handles type casts and attributes", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.constantFrom(
@@ -409,7 +435,7 @@ describe("parser edge case property tests", () => {
                             declaration,
                             createParserOptions()
                         );
-                        if (ast?.type !== "Script") {
+                        if (ast.type !== "Script") {
                             throw new Error(
                                 `Failed to parse type/attribute: ${declaration}`
                             );
@@ -423,6 +449,8 @@ describe("parser edge case property tests", () => {
 
     describe("location consistency under stress", () => {
         it("maintains location invariants for complex nested structures", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.record({
@@ -465,7 +493,7 @@ describe("parser edge case property tests", () => {
                             script,
                             createParserOptions()
                         );
-                        if (ast?.type !== "Script") {
+                        if (ast.type !== "Script") {
                             throw new Error(
                                 "Failed to parse complex nested structure"
                             );
@@ -491,7 +519,7 @@ describe("parser edge case property tests", () => {
                                 if (Array.isArray(value)) {
                                     for (const item of value) {
                                         if (
-                                            item &&
+                                            item !== null &&
                                             typeof item === "object" &&
                                             "type" in item
                                         ) {
@@ -502,7 +530,7 @@ describe("parser edge case property tests", () => {
                                         }
                                     }
                                 } else if (
-                                    value &&
+                                    value !== null &&
                                     typeof value === "object" &&
                                     "type" in value
                                 ) {
@@ -521,6 +549,8 @@ describe("parser edge case property tests", () => {
 
     describe("token-to-AST correspondence", () => {
         it("ensures all tokens are accounted for in the AST", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.constantFrom(
@@ -537,7 +567,7 @@ describe("parser edge case property tests", () => {
                             createParserOptions()
                         );
 
-                        if (ast?.type !== "Script") {
+                        if (ast.type !== "Script") {
                             throw new Error("Failed to parse script");
                         }
 
@@ -547,10 +577,7 @@ describe("parser edge case property tests", () => {
                         );
                         if (nonWhitespaceTokens.length > 0) {
                             const firstToken = nonWhitespaceTokens[0];
-                            const lastToken =
-                                nonWhitespaceTokens.at(
-                                    -1
-                                );
+                            const lastToken = nonWhitespaceTokens.at(-1);
 
                             if (
                                 ast.body.length > 0 &&

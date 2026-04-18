@@ -1,22 +1,61 @@
 import { type ChildProcess, spawn } from "node:child_process";
-import { resolve } from "node:path";
+import { once } from "node:events";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
-const shouldVerify = process.env.POWERSHELL_VERIFY_SYNTAX !== "0";
-const shouldTrace = process.env.POWERSHELL_SYNTAX_TRACE === "1";
-const maxChecksEnv = process.env.POWERSHELL_MAX_SYNTAX_CHECKS;
-const defaultMaxChecks = shouldVerify
-    ? maxChecksEnv === undefined
-        ? -1
-        : Number.parseInt(maxChecksEnv, 10)
-    : 0;
+const { env: processEnvironment } = process;
 
-let checksRemaining = Number.isNaN(defaultMaxChecks)
-    ? Number.POSITIVE_INFINITY
-    : defaultMaxChecks < 0
-      ? Number.POSITIVE_INFINITY
-      : defaultMaxChecks;
+const shouldVerify = processEnvironment.POWERSHELL_VERIFY_SYNTAX !== "0";
+const shouldTrace = processEnvironment.POWERSHELL_SYNTAX_TRACE === "1";
+const maxChecksEnv = processEnvironment.POWERSHELL_MAX_SYNTAX_CHECKS;
+
+const resolveChecksRemaining = (): number => {
+    if (!shouldVerify) {
+        return 0;
+    }
+
+    if (maxChecksEnv === undefined) {
+        return Number.POSITIVE_INFINITY;
+    }
+
+    const parsed = Number.parseInt(maxChecksEnv, 10);
+
+    return Number.isNaN(parsed) || parsed < 0
+        ? Number.POSITIVE_INFINITY
+        : parsed;
+};
+
+let checksRemaining = resolveChecksRemaining();
 
 let totalInvocations = 0;
+
+const { platform } = process;
+
+const powerShellExecutable = (() => {
+    const configuredExecutable = processEnvironment.POWERSHELL_EXECUTABLE;
+
+    if (configuredExecutable !== undefined && configuredExecutable.length > 0) {
+        return configuredExecutable;
+    }
+
+    const candidates =
+        platform === "win32"
+            ? [
+                  String.raw`C:\Program Files\PowerShell\7\pwsh.exe`,
+                  String.raw`C:\Program Files\PowerShell\7-preview\pwsh.exe`,
+              ]
+            : [
+                  "/usr/bin/pwsh",
+                  "/usr/local/bin/pwsh",
+                  "/opt/microsoft/powershell/7/pwsh",
+              ];
+
+    const [firstCandidate] = candidates;
+
+    return (
+        candidates.find((candidate) => existsSync(candidate)) ?? firstCandidate
+    );
+})();
 
 const shouldRunValidation = (): boolean => {
     if (!shouldVerify) {
@@ -32,9 +71,8 @@ const shouldRunValidation = (): boolean => {
     return false;
 };
 
-const validateScriptPath = resolve(
-    import.meta.dirname,
-    "validate-syntax.ps1"
+const validateScriptPath = fileURLToPath(
+    new URL("validate-syntax.ps1", import.meta.url)
 );
 
 const missingPwshMessage =
@@ -61,6 +99,124 @@ const pendingValidations = new Map<
 let validationCounter = 0;
 let responseBuffer = Buffer.alloc(0);
 
+const rejectAllPendingValidations = (message: string): void => {
+    for (const pending of pendingValidations.values()) {
+        pending.reject(new Error(message));
+    }
+
+    pendingValidations.clear();
+    persistentProcess = null;
+};
+
+const processResponseBuffer = (): void => {
+    while (responseBuffer.length >= 4) {
+        const responseLength = responseBuffer.readInt32LE(0);
+        const fullMessageLength = 4 + responseLength;
+
+        if (responseBuffer.length < fullMessageLength) {
+            return;
+        }
+
+        const responseData = responseBuffer.subarray(4, fullMessageLength);
+        responseBuffer = responseBuffer.subarray(fullMessageLength);
+
+        const oldestPendingEntry = pendingValidations.entries().next().value as
+            | [
+                  number,
+                  {
+                      reject: (error: Error) => void;
+                      resolve: (outcome: ParseOutcome) => void;
+                  },
+              ]
+            | undefined;
+
+        if (oldestPendingEntry === undefined) {
+            return;
+        }
+
+        const [id, pending] = oldestPendingEntry;
+        const response = responseData.toString("utf8");
+        const lines = response.split("\n");
+
+        pendingValidations.delete(id);
+
+        if (lines[0] === "OK") {
+            pending.resolve({ ok: true });
+        } else if (lines[0] === "ERROR") {
+            pending.resolve({
+                exitCode: 1,
+                ok: false,
+                stderr: lines.slice(1).join("\n"),
+                stdout: "",
+            });
+        }
+    }
+};
+
+const monitorPersistentProcessError = async (
+    proc: ChildProcess
+): Promise<void> => {
+    const [error] = await once(proc, "error");
+
+    if (shouldTrace) {
+        console.error("[powershell-syntax] Process error:", error);
+    }
+
+    const message =
+        error instanceof Error
+            ? `PowerShell process error: ${error.message}`
+            : `PowerShell process error: ${String(error)}`;
+
+    rejectAllPendingValidations(message);
+};
+
+const monitorPersistentProcessExit = async (
+    proc: ChildProcess
+): Promise<void> => {
+    const [code] = await once(proc, "exit");
+
+    if (shouldTrace) {
+        console.log(`[powershell-syntax] Process exited with code ${code}`);
+    }
+
+    rejectAllPendingValidations(
+        `PowerShell process exited unexpectedly with code ${String(code)}`
+    );
+};
+
+const monitorPersistentProcessStdout = async (
+    stdout: NonNullable<ChildProcess["stdout"]>
+): Promise<void> => {
+    for await (const chunk of stdout) {
+        responseBuffer = Buffer.concat([
+            responseBuffer,
+            Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk),
+        ]);
+        processResponseBuffer();
+    }
+};
+
+const monitorPersistentProcessStderr = async (
+    stderr: NonNullable<ChildProcess["stderr"]>
+): Promise<void> => {
+    for await (const chunk of stderr) {
+        console.error(
+            "[powershell-syntax] stderr:",
+            Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk)
+        );
+    }
+};
+
+const cleanupPersistentProcessOnExit = async (): Promise<void> => {
+    await once(process, "exit");
+
+    if (persistentProcess) {
+        persistentProcess.kill();
+    }
+};
+
+void cleanupPersistentProcessOnExit();
+
 function initPersistentProcess(): void {
     if (persistentProcess) {
         return;
@@ -68,7 +224,7 @@ function initPersistentProcess(): void {
 
     try {
         persistentProcess = spawn(
-            "pwsh",
+            powerShellExecutable,
             [
                 "-NoLogo",
                 "-NoProfile",
@@ -85,11 +241,26 @@ function initPersistentProcess(): void {
             }
         );
     } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-            throw new Error(missingPwshMessage);
+        if (error instanceof Error) {
+            if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+                throw new Error(missingPwshMessage, {
+                    cause: error,
+                });
+            }
+
+            throw new Error(
+                `Failed to spawn persistent PowerShell process: ${error.message}`,
+                {
+                    cause: error,
+                }
+            );
         }
+
         throw new Error(
-            `Failed to spawn persistent PowerShell process: ${(error as Error).message}`
+            `Failed to spawn persistent PowerShell process: ${String(error)}`,
+            {
+                cause: error,
+            }
         );
     }
 
@@ -101,96 +272,20 @@ function initPersistentProcess(): void {
         throw new Error("Failed to access PowerShell process stdio");
     }
 
-    persistentProcess.on("error", (error) => {
-        if (shouldTrace) {
-            console.error("[powershell-syntax] Process error:", error);
-        }
-        // Reject all pending validations
-        for (const pending of pendingValidations.values()) {
-            pending.reject(
-                new Error(`PowerShell process error: ${error.message}`)
-            );
-        }
-        pendingValidations.clear();
-        persistentProcess = null;
-    });
+    void monitorPersistentProcessError(persistentProcess);
+    void monitorPersistentProcessExit(persistentProcess);
+    void monitorPersistentProcessStdout(persistentProcess.stdout);
 
-    persistentProcess.on("exit", (code) => {
-        if (shouldTrace) {
-            console.log(`[powershell-syntax] Process exited with code ${code}`);
-        }
-        // Reject all pending validations
-        for (const pending of pendingValidations.values()) {
-            pending.reject(
-                new Error(
-                    `PowerShell process exited unexpectedly with code ${code}`
-                )
-            );
-        }
-        pendingValidations.clear();
-        persistentProcess = null;
-    });
-
-    // Read responses from stdout
-    persistentProcess.stdout.on("data", (chunk: Buffer) => {
-        responseBuffer = Buffer.concat([responseBuffer, chunk]);
-
-        // Process complete messages
-        while (responseBuffer.length >= 4) {
-            const responseLength = responseBuffer.readInt32LE(0);
-            if (responseBuffer.length < 4 + responseLength) {
-                // Not enough data yet
-                break;
-            }
-
-            const responseData = responseBuffer.subarray(4, 4 + responseLength);
-            responseBuffer = responseBuffer.subarray(4 + responseLength);
-
-            const response = responseData.toString("utf8");
-            const lines = response.split("\n");
-
-            if (lines[0] === "OK") {
-                // Success - find and resolve the oldest pending validation
-                const [[id, pending]] = pendingValidations.entries();
-                pendingValidations.delete(id);
-                pending.resolve({ ok: true });
-            } else if (lines[0] === "ERROR") {
-                // Error - extract error message
-                const errorMessage = lines.slice(1).join("\n");
-                const [[id, pending]] = pendingValidations.entries();
-                pendingValidations.delete(id);
-                pending.resolve({
-                    exitCode: 1,
-                    ok: false,
-                    stderr: errorMessage,
-                    stdout: "",
-                });
-            }
-        }
-    });
-
-    // Log stderr for debugging
     if (shouldTrace) {
-        persistentProcess.stderr.on("data", (chunk: Buffer) => {
-            console.error(
-                "[powershell-syntax] stderr:",
-                chunk.toString("utf8")
-            );
-        });
+        void monitorPersistentProcessStderr(persistentProcess.stderr);
     }
-
-    // Cleanup on process exit
-    process.on("exit", () => {
-        if (persistentProcess) {
-            persistentProcess.kill();
-        }
-    });
 }
 
 const runPowerShellParser = async (
     script: string,
     identifier: string
-): Promise<ParseOutcome> => new Promise((resolve, reject) => {
+): Promise<ParseOutcome> =>
+    new Promise((resolve, reject) => {
         totalInvocations += 1;
         if (shouldTrace) {
             const remaining =

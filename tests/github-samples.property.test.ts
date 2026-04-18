@@ -1,5 +1,8 @@
+import type { IncomingHttpHeaders, IncomingMessage } from "node:http";
+
 import * as fc from "fast-check";
 import { createHash } from "node:crypto";
+import { once } from "node:events";
 import {
     existsSync,
     mkdirSync,
@@ -7,9 +10,10 @@ import {
     readFileSync,
     writeFileSync,
 } from "node:fs";
-import { join, resolve } from "node:path";
-import { env } from "node:process";
-import { beforeAll, describe, it } from "vitest";
+import * as https from "node:https";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { parsePowerShell } from "../src/parser.js";
 import plugin from "../src/plugin.js";
@@ -35,262 +39,344 @@ interface SampledScript {
     identifier: string;
 }
 
+const { env: testEnv } = process;
+
 const PROPERTY_RUNS = Number.parseInt(
-    env.POWERSHELL_PROPERTY_RUNS ?? "25",
+    testEnv.POWERSHELL_PROPERTY_RUNS ?? "25",
     10
 );
-const ENABLE_GITHUB_SAMPLES =
-    env.POWERSHELL_ENABLE_GITHUB_SAMPLES === "1";
-const CACHE_GITHUB_SAMPLES =
-    env.POWERSHELL_CACHE_GITHUB_SAMPLES === "1";
+const ENABLE_GITHUB_SAMPLES = testEnv.POWERSHELL_ENABLE_GITHUB_SAMPLES === "1";
+const CACHE_GITHUB_SAMPLES = testEnv.POWERSHELL_CACHE_GITHUB_SAMPLES === "1";
 const GITHUB_QUERY =
-    env.POWERSHELL_GITHUB_QUERY ??
+    testEnv.POWERSHELL_GITHUB_QUERY ??
     "extension:ps1 language:PowerShell size:1000..50000";
 const GITHUB_SAMPLE_COUNT = Number.parseInt(
-    env.POWERSHELL_GITHUB_SAMPLE_COUNT ?? "8",
+    testEnv.POWERSHELL_GITHUB_SAMPLE_COUNT ?? "8",
     10
 );
 const MAX_CANDIDATES = Number.parseInt(
-    env.POWERSHELL_GITHUB_MAX_CANDIDATES ?? "50",
+    testEnv.POWERSHELL_GITHUB_MAX_CANDIDATES ?? "50",
     10
 );
 const MAX_LENGTH = Number.parseInt(
-    env.POWERSHELL_GITHUB_MAX_LENGTH ?? "200000",
+    testEnv.POWERSHELL_GITHUB_MAX_LENGTH ?? "200000",
     10
 );
 const MIN_LENGTH = Number.parseInt(
-    env.POWERSHELL_GITHUB_MIN_LENGTH ?? "500",
+    testEnv.POWERSHELL_GITHUB_MIN_LENGTH ?? "500",
     10
 );
 
+const cacheDir = fileURLToPath(
+    new URL("fixtures/github-cache/", import.meta.url)
+);
+
+const githubHeaders: Record<string, string> = {
+    Accept: "application/vnd.github+json",
+    "User-Agent": "prettier-plugin-powershell-tests",
+};
+const githubToken = testEnv.GITHUB_TOKEN;
+if (githubToken) {
+    githubHeaders.Authorization = `token ${githubToken}`;
+}
+
+const sanitizeIdentifier = (identifier: string): string => {
+    const sanitizedCharacters = [...identifier].map((character) => {
+        const isDecimalDigit = /\d/v.test(character);
+        const isLowercaseLetter = /[a-z]/v.test(character);
+        const isUppercaseLetter = /[A-Z]/v.test(character);
+        const isDot = character === ".";
+        const isDash = character === "-";
+
+        return isDecimalDigit ||
+            isLowercaseLetter ||
+            isUppercaseLetter ||
+            isDot ||
+            isDash
+            ? character
+            : "_";
+    });
+
+    return sanitizedCharacters.join("").slice(0, 50);
+};
+
+const getCacheFileName = (identifier: string): string => {
+    const hash = createHash("sha256")
+        .update(identifier)
+        .digest("hex")
+        .slice(0, 16);
+    const safeName = sanitizeIdentifier(identifier);
+
+    return `${safeName}-${hash}.ps1`;
+};
+
+const readUtf8IfNonEmpty = (absolutePath: string): null | string => {
+    const content = readFileSync(absolutePath, "utf8");
+
+    return content.trim().length > 0 ? content : null;
+};
+
+const loadFromCache = (identifier: string): null | string => {
+    if (!CACHE_GITHUB_SAMPLES) {
+        return null;
+    }
+
+    try {
+        const cacheFile = path.join(cacheDir, getCacheFileName(identifier));
+
+        return existsSync(cacheFile) ? readFileSync(cacheFile, "utf8") : null;
+    } catch {
+        return null;
+    }
+};
+
+const saveToCache = (identifier: string, content: string): void => {
+    if (!CACHE_GITHUB_SAMPLES) {
+        return;
+    }
+
+    try {
+        if (!existsSync(cacheDir)) {
+            mkdirSync(cacheDir, { recursive: true });
+        }
+
+        const cacheFile = path.join(cacheDir, getCacheFileName(identifier));
+        writeFileSync(cacheFile, content, "utf8");
+    } catch (error) {
+        console.warn(`Failed to cache ${identifier}:`, error);
+    }
+};
+
+const getResponse = async (url: string): Promise<IncomingMessage> => {
+    const request = https.get(url, { headers: githubHeaders });
+    const responsePromise = once(request, "response").then(
+        ([response]) => response as IncomingMessage
+    );
+    const errorPromise: Promise<never> = once(request, "error").then(
+        ([error]) => {
+            throw error instanceof Error ? error : new Error(String(error));
+        }
+    );
+
+    return Promise.race([responsePromise, errorPromise]);
+};
+
+const requestText = async (
+    url: string
+): Promise<{
+    body: string;
+    headers: IncomingHttpHeaders;
+    status: number;
+    statusText: string;
+}> => {
+    const response = await getResponse(url);
+    const status = response.statusCode ?? 0;
+    const statusText = response.statusMessage ?? "";
+    let body = "";
+
+    response.setEncoding("utf8");
+
+    for await (const chunk of response) {
+        body += typeof chunk === "string" ? chunk : chunk.toString("utf8");
+    }
+
+    return {
+        body,
+        headers: response.headers,
+        status,
+        statusText,
+    };
+};
+
+const fetchJson = async <T>(url: string): Promise<T> => {
+    const response = await requestText(url);
+
+    if (response.status === 403) {
+        const remaining = response.headers["x-ratelimit-remaining"];
+        const reset = response.headers["x-ratelimit-reset"];
+
+        throw new Error(
+            `GitHub API rate limit exceeded (remaining=${remaining}, reset=${reset}).`
+        );
+    }
+
+    if (response.status < 200 || response.status >= 300) {
+        throw new Error(
+            `GitHub API request failed (${response.status} ${response.statusText}): ${response.body}`
+        );
+    }
+
+    return JSON.parse(response.body) as T;
+};
+
+const fetchText = async (url: string): Promise<string> => {
+    const response = await requestText(url);
+
+    if (response.status < 200 || response.status >= 300) {
+        throw new Error(
+            `Failed to fetch script content (${response.status} ${response.statusText}): ${response.body}`
+        );
+    }
+
+    return response.body;
+};
+
+const loadFallbackSamples = (samples: SampledScript[], limit: number): void => {
+    for (const relativePath of fallbackSamplePaths) {
+        if (samples.length >= limit) {
+            break;
+        }
+
+        const absolutePath = fileURLToPath(
+            new URL(relativePath, import.meta.url)
+        );
+
+        try {
+            const content = readUtf8IfNonEmpty(absolutePath);
+
+            if (content !== null) {
+                samples.push({
+                    content,
+                    identifier: `local:${relativePath}`,
+                });
+            }
+        } catch (error) {
+            console.warn(
+                `Unable to load fallback sample ${relativePath}:`,
+                error
+            );
+        }
+    }
+};
+
+const loadCachedSamples = (samples: SampledScript[], limit: number): void => {
+    if (!CACHE_GITHUB_SAMPLES || !existsSync(cacheDir)) {
+        return;
+    }
+
+    try {
+        const cacheFiles = readdirSync(cacheDir);
+
+        for (const file of cacheFiles) {
+            const isCacheCandidate = file.endsWith(".ps1");
+
+            if (samples.length < limit && isCacheCandidate) {
+                const content = readUtf8IfNonEmpty(path.join(cacheDir, file));
+
+                if (content !== null) {
+                    samples.push({
+                        content,
+                        identifier: `cached:${file}`,
+                    });
+                }
+            }
+        }
+
+        if (samples.length >= limit) {
+            console.log(
+                `Loaded ${samples.length} samples from cache (${cacheDir})`
+            );
+        }
+    } catch (error) {
+        console.warn("Failed to load cached samples:", error);
+    }
+};
+
+const fetchGitHubCandidates = async (): Promise<GitHubCodeItem[]> => {
+    const searchUrl = `https://api.github.com/search/code?q=${encodeURIComponent(GITHUB_QUERY)}&per_page=${Math.max(MAX_CANDIDATES, GITHUB_SAMPLE_COUNT)}&sort=indexed&order=desc`;
+
+    try {
+        const searchResults = await fetchJson<GitHubSearchResponse>(searchUrl);
+
+        return searchResults.items ?? [];
+    } catch (error) {
+        console.warn("Unable to query GitHub samples:", error);
+        return [];
+    }
+};
+
+const fetchCandidateContent = async (
+    candidate: GitHubCodeItem
+): Promise<null | string> => {
+    const possibleRefs = [
+        "refs/heads/main",
+        "refs/heads/master",
+        candidate.sha,
+    ];
+
+    for (const ref of possibleRefs) {
+        const rawUrl = `https://raw.githubusercontent.com/${candidate.repository.full_name}/${ref}/${candidate.path}`;
+
+        try {
+            return await fetchText(rawUrl);
+        } catch {
+            // Try the next ref candidate.
+        }
+    }
+
+    return null;
+};
+
+const addGitHubSamples = async (
+    samples: SampledScript[],
+    limit: number
+): Promise<void> => {
+    const candidates = await fetchGitHubCandidates();
+
+    if (candidates.length === 0) {
+        console.warn(
+            "GitHub search returned no PowerShell candidates; falling back to local fixtures."
+        );
+        return;
+    }
+
+    for (const candidate of candidates) {
+        if (samples.length >= limit) {
+            break;
+        }
+
+        const identifier = `${candidate.repository.full_name}/${candidate.path}`;
+        const cached = loadFromCache(identifier);
+
+        if (cached === null) {
+            const content = await fetchCandidateContent(candidate);
+
+            if (content === null) {
+                console.warn(
+                    `Skipping ${identifier}: file not found in main, master, or SHA ${candidate.sha}`
+                );
+            } else if (
+                content.length >= MIN_LENGTH &&
+                content.length <= MAX_LENGTH
+            ) {
+                samples.push({ content, identifier });
+                saveToCache(identifier, content);
+            }
+        } else {
+            samples.push({ content: cached, identifier });
+        }
+    }
+};
+
 const fallbackSamplePaths = [
-    "./fixtures/github-fallback-simple.ps1",
-    "./fixtures/sample-unformatted.ps1",
-    "./fixtures/sample-formatted.ps1",
+    "fixtures/github-fallback-simple.ps1",
+    "fixtures/sample-unformatted.ps1",
+    "fixtures/sample-formatted.ps1",
 ];
 
 describe("real-world GitHub PowerShell samples", () => {
     const samples: SampledScript[] = [];
-    const baseDir = import.meta.dirname;
-    const cacheDir = join(baseDir, "fixtures", "github-cache");
-
-    const githubHeaders: Record<string, string> = {
-        Accept: "application/vnd.github+json",
-        "User-Agent": "prettier-plugin-powershell-tests",
-    };
-    const githubToken = env.GITHUB_TOKEN;
-    if (githubToken) {
-        githubHeaders.Authorization = `token ${githubToken}`;
-    }
-
-    const getCacheFileName = (identifier: string): string => {
-        const hash = createHash("sha256")
-            .update(identifier)
-            .digest("hex")
-            .slice(0, 16);
-        const safeName = identifier
-            .replaceAll(/[^\d\-.a-z]/gi, "_")
-            .slice(0, 50);
-        return `${safeName}-${hash}.ps1`;
-    };
-
-    const loadFromCache = (identifier: string): null | string => {
-        if (!CACHE_GITHUB_SAMPLES) {
-            return null;
-        }
-        try {
-            const cacheFile = join(cacheDir, getCacheFileName(identifier));
-            if (existsSync(cacheFile)) {
-                return readFileSync(cacheFile, "utf8");
-            }
-        } catch {
-            // Ignore cache read errors
-        }
-        return null;
-    };
-
-    const saveToCache = (identifier: string, content: string): void => {
-        if (!CACHE_GITHUB_SAMPLES) {
-            return;
-        }
-        try {
-            if (!existsSync(cacheDir)) {
-                mkdirSync(cacheDir, { recursive: true });
-            }
-            const cacheFile = join(cacheDir, getCacheFileName(identifier));
-            writeFileSync(cacheFile, content, "utf8");
-        } catch (error) {
-            console.warn(`Failed to cache ${identifier}:`, error);
-        }
-    };
-
-    const fetchJson = async <T>(url: string): Promise<T> => {
-        const response = await fetch(url, { headers: githubHeaders });
-        if (response.status === 403) {
-            const remaining = response.headers.get("x-ratelimit-remaining");
-            const reset = response.headers.get("x-ratelimit-reset");
-            throw new Error(
-                `GitHub API rate limit exceeded (remaining=${remaining}, reset=${reset}).`
-            );
-        }
-        if (!response.ok) {
-            const body = await response.text();
-            throw new Error(
-                `GitHub API request failed (${response.status} ${response.statusText}): ${body}`
-            );
-        }
-        return (await response.json()) as T;
-    };
-
-    const fetchText = async (url: string): Promise<string> => {
-        const response = await fetch(url, { headers: githubHeaders });
-        if (!response.ok) {
-            const body = await response.text();
-            throw new Error(
-                `Failed to fetch script content (${response.status} ${response.statusText}): ${body}`
-            );
-        }
-        return response.text();
-    };
-
     beforeAll(async () => {
-        const loadFallbackSamples = (remaining: number) => {
-            for (const relativePath of fallbackSamplePaths) {
-                if (remaining <= 0) {
-                    break;
-                }
-                const absolutePath = resolve(baseDir, relativePath);
-                try {
-                    const content = readFileSync(absolutePath, "utf8");
-                    if (content.trim().length === 0) {
-                        continue;
-                    }
-                    samples.push({
-                        content,
-                        identifier: `local:${relativePath}`,
-                    });
-                    remaining -= 1;
-                } catch (error) {
-                    console.warn(
-                        `Unable to load fallback sample ${relativePath}:`,
-                        error
-                    );
-                }
-            }
-        };
-
         if (ENABLE_GITHUB_SAMPLES) {
-            // Try to load from cache first
-            if (CACHE_GITHUB_SAMPLES && existsSync(cacheDir)) {
-                try {
-                    const cacheFiles = readdirSync(cacheDir);
-                    for (const file of cacheFiles) {
-                        if (samples.length >= GITHUB_SAMPLE_COUNT) {
-                            break;
-                        }
-                        if (!file.endsWith(".ps1")) {
-                            continue;
-                        }
-                        const content = readFileSync(
-                            join(cacheDir, file),
-                            "utf8"
-                        );
-                        if (content.trim().length === 0) {
-                            continue;
-                        }
-                        samples.push({
-                            content,
-                            identifier: `cached:${file}`,
-                        });
-                    }
-                    if (samples.length >= GITHUB_SAMPLE_COUNT) {
-                        console.log(
-                            `Loaded ${samples.length} samples from cache (${cacheDir})`
-                        );
-                    }
-                } catch (error) {
-                    console.warn("Failed to load cached samples:", error);
-                }
-            }
+            loadCachedSamples(samples, GITHUB_SAMPLE_COUNT);
 
-            // Fetch from GitHub if we need more samples
             if (samples.length < GITHUB_SAMPLE_COUNT) {
-                const searchUrl =
-                    `https://api.github.com/search/code?q=${ 
-                    encodeURIComponent(GITHUB_QUERY) 
-                    }&per_page=${Math.max(MAX_CANDIDATES, GITHUB_SAMPLE_COUNT)}&sort=indexed&order=desc`;
-                let candidates: GitHubCodeItem[] = [];
-                try {
-                    const searchResults =
-                        await fetchJson<GitHubSearchResponse>(searchUrl);
-                    candidates = searchResults.items ?? [];
-                } catch (error) {
-                    console.warn("Unable to query GitHub samples:", error);
-                }
-
-                if (candidates.length === 0) {
-                    console.warn(
-                        "GitHub search returned no PowerShell candidates; falling back to local fixtures."
-                    );
-                }
-
-                for (const candidate of candidates) {
-                    if (samples.length >= GITHUB_SAMPLE_COUNT) {
-                        break;
-                    }
-                    const identifier = `${candidate.repository.full_name}/${candidate.path}`;
-
-                    // Check cache first
-                    const cached = loadFromCache(identifier);
-                    if (cached) {
-                        samples.push({ content: cached, identifier });
-                        continue;
-                    }
-
-                    // Try with refs/heads/main first, then master, then the SHA as fallback
-                    const possibleRefs = [
-                        "refs/heads/main",
-                        "refs/heads/master",
-                        candidate.sha,
-                    ];
-                    let content: null | string = null;
-
-                    for (const ref of possibleRefs) {
-                        const rawUrl = `https://raw.githubusercontent.com/${candidate.repository.full_name}/${ref}/${candidate.path}`;
-                        try {
-                            content = await fetchText(rawUrl);
-                            break; // Success!
-                        } catch {
-                            // Try next ref
-                            continue;
-                        }
-                    }
-
-                    if (!content) {
-                        console.warn(
-                            `Skipping ${identifier}: file not found in main, master, or SHA ${candidate.sha}`
-                        );
-                        continue;
-                    }
-
-                    try {
-                        if (
-                            content.length < MIN_LENGTH ||
-                            content.length > MAX_LENGTH
-                        ) {
-                            continue;
-                        }
-                        samples.push({ content, identifier });
-                        saveToCache(identifier, content);
-                    } catch (error) {
-                        console.warn(`Skipping ${identifier}:`, error);
-                    }
-                }
+                await addGitHubSamples(samples, GITHUB_SAMPLE_COUNT);
             }
         }
 
         if (samples.length < GITHUB_SAMPLE_COUNT) {
-            loadFallbackSamples(GITHUB_SAMPLE_COUNT - samples.length);
+            loadFallbackSamples(samples, GITHUB_SAMPLE_COUNT);
         }
 
         if (samples.length === 0) {
@@ -301,6 +387,8 @@ describe("real-world GitHub PowerShell samples", () => {
     });
 
     it("formats GitHub PowerShell scripts without regressions", async () => {
+        expect.hasAssertions();
+
         const runCount = Math.min(PROPERTY_RUNS, samples.length);
         await withProgress("githubSamples", runCount, async (tracker) => {
             await fc.assert(
@@ -344,4 +432,3 @@ describe("real-world GitHub PowerShell samples", () => {
         });
     });
 });
-
