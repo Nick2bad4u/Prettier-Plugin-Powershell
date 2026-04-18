@@ -8,7 +8,6 @@
         "allowUnreachableCode": false,
         "allowUnusedLabels": false,
         "alwaysStrict": true,
-        "baseUrl": "",
         "checkJs": false,
         "declaration": true,
         "declarationDir": "./types",
@@ -42,7 +41,7 @@
         "strictPropertyInitialization": true,
         "suppressExcessPropertyErrors": false,
         "suppressImplicitAnyIndexErrors": false,
-        "target": "ES2020",
+        "target": "esnext",
         "tsBuildInfoFile": ".tsbuildinfo",
         "useUnknownInCatchVariables": true,
         "verbatimModuleSyntax": true

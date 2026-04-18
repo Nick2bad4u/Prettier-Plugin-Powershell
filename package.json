@@ -1,7 +1,8 @@
 {
-    "name": "prettier-plugin-powershell",
     "$schema": "https://www.schemastore.org/package.json",
+    "name": "prettier-plugin-powershell",
     "version": "2.0.11",
+    "private": false,
     "description": "Prettier plugin for formatting PowerShell source files with idiomatic defaults.",
     "keywords": [
         "prettier",
@@ -27,14 +28,8 @@
         "type": "git",
         "url": "git+https://github.com/Nick2bad4u/prettier-plugin-powershell.git"
     },
-    "license": "UnLicense",
+    "license": "UNLICENSED",
     "type": "module",
-    "files": [
-        "dist"
-    ],
-    "main": "./dist/index.cjs",
-    "module": "./dist/index.js",
-    "types": "./dist/index.d.ts",
     "exports": {
         ".": {
             "types": "./dist/index.d.ts",
@@ -42,24 +37,35 @@
             "require": "./dist/index.cjs"
         }
     },
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
     "scripts": {
+        "benchmark": "node benchmark.mjs",
         "build": "tsup src/plugin.ts --format esm,cjs --dts src/plugin.ts --dts-resolve --clean --sourcemap --tsconfig tsconfig.json --shims --treeshake safest --cjsInterop --metafile",
         "build:watch": "tsup src/plugin.ts --format esm,cjs --dts --watch",
         "clean": "rimraf dist",
+        "format": "prettier \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\" --write",
         "lint": "eslint --config eslint.config.mjs src tests --cache --cache-strategy content --cache-location .cache/.eslintcache --max-warnings=-1 && echo \"Eslint done!\"",
         "lint:fix": "eslint --config eslint.config.mjs src tests --cache --cache-strategy content --cache-location .cache/.eslintcache --max-warnings=-1 --fix && echo \"Eslint done!\"",
-        "format": "prettier \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\" --write",
-        "test": "vitest run",
-        "test:fuzz": "pwsh -NoLogo -NoProfile -Command \"$env:POWERSHELL_PROPERTY_RUNS=2000; npm run test\"",
-        "test:ci": "vitest run --reporter=summary",
-        "test:debug": "vitest --inspect-brk",
-        "test:coverage": "vitest run --coverage",
-        "test:watch": "vitest",
-        "typecheck": "tsc --project tsconfig.json --noEmit",
-        "benchmark": "node benchmark.mjs",
+        "prepare": "npm run build",
         "profile": "node profile-parser.mjs",
         "profile:enhanced": "node profile-enhanced.mjs",
-        "prepare": "npm run build"
+        "test": "vitest run",
+        "test:ci": "vitest run --reporter=summary",
+        "test:coverage": "vitest run --coverage",
+        "test:debug": "vitest --inspect-brk",
+        "test:fuzz": "pwsh -NoLogo -NoProfile -Command \"$env:POWERSHELL_PROPERTY_RUNS=2000; npm run test\"",
+        "test:watch": "vitest",
+        "typecheck": "tsc --project tsconfig.json --noEmit"
+    },
+    "dependencies": {
+        "prettier": "^3.8.3",
+        "rimraf": "^6.1.3",
+        "tsup": "^8.5.1"
     },
     "devDependencies": {
         "@docusaurus/eslint-plugin": "^3.10.0",
@@ -93,10 +99,10 @@
         "eslint-plugin-depend": "^1.5.0",
         "eslint-plugin-docusaurus-2": "^0.1.4",
         "eslint-plugin-eslint-plugin": "^7.3.2",
-        "eslint-plugin-etc-misc": "^1.0.6",
+        "eslint-plugin-etc-misc": "^1.0.7",
         "eslint-plugin-file-progress-2": "^5.0.1",
         "eslint-plugin-github-actions-2": "^1.0.6",
-        "eslint-plugin-immutable-2": "^1.0.9",
+        "eslint-plugin-immutable-2": "^1.0.10",
         "eslint-plugin-import": "^2.32.0",
         "eslint-plugin-import-x": "^4.16.2",
         "eslint-plugin-jsdoc": "^62.9.0",
@@ -122,7 +128,7 @@
         "eslint-plugin-redos": "^4.5.0",
         "eslint-plugin-regexp": "^3.1.0",
         "eslint-plugin-require-jsdoc": "^1.0.4",
-        "eslint-plugin-sdl-2": "^1.0.6",
+        "eslint-plugin-sdl-2": "^1.0.7",
         "eslint-plugin-security": "^4.0.0",
         "eslint-plugin-sonarjs": "^4.0.3",
         "eslint-plugin-stylelint-2": "^1.0.14",
@@ -151,18 +157,16 @@
         "prettier-plugin-sql": "^0.20.0",
         "prettier-plugin-tailwindcss": "^0.7.2",
         "toml-eslint-parser": "^1.0.3",
+        "typescript": "*",
         "typescript-eslint": "^8.58.2",
         "vitest": "^4.1.4",
         "yaml-eslint-parser": "^2.0.0"
     },
-    "engines": {
-        "node": ">=20.0.0"
+    "peerDependencies": {
+        "typescript": "^6.0.3"
     },
     "packageManager": "npm@11.12.1",
-    "dependencies": {
-        "prettier": "^3.8.3",
-        "rimraf": "^6.1.3",
-        "tsup": "^8.5.1",
-        "typescript": "^6.0.3"
+    "engines": {
+        "node": ">=20.0.0"
     }
 }
