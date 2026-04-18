@@ -249,7 +249,7 @@ describe("Integration property tests", () => {
                                                 firstNonNewline.start ||
                                             ast.loc.end < lastNonNewline.end
                                         ) {
-                                            // acceptable deviation noted
+                                            // Acceptable deviation noted
                                         }
                                     }
                                 }

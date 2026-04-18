@@ -1,172 +1,172 @@
 import type { ParserOptions, SupportOptions } from "prettier";
 
-export type TrailingCommaOption = "none" | "multiline" | "all";
-export type IndentStyleOption = "spaces" | "tabs";
 export type BraceStyleOption = "1tbs" | "allman";
-export type KeywordCaseOption = "preserve" | "lower" | "upper" | "pascal";
-export type PresetOption = "none" | "invoke-formatter";
-
+export type IndentStyleOption = "spaces" | "tabs";
+export type KeywordCaseOption = "lower" | "pascal" | "preserve" | "upper";
 export interface PluginConfiguration {
-    powershellIndentStyle: IndentStyleOption;
-    powershellIndentSize: number;
-    powershellTrailingComma: TrailingCommaOption;
-    powershellSortHashtableKeys: boolean;
-    powershellBlankLinesBetweenFunctions: number;
     powershellBlankLineAfterParam: boolean;
+    powershellBlankLinesBetweenFunctions: number;
     powershellBraceStyle: BraceStyleOption;
+    powershellIndentSize: number;
+    powershellIndentStyle: IndentStyleOption;
+    powershellKeywordCase: KeywordCaseOption;
     powershellLineWidth: number;
     powershellPreferSingleQuote: boolean;
-    powershellKeywordCase: KeywordCaseOption;
+    powershellPreset: PresetOption;
     powershellRewriteAliases: boolean;
     powershellRewriteWriteHost: boolean;
-    powershellPreset: PresetOption;
+    powershellSortHashtableKeys: boolean;
+    powershellTrailingComma: TrailingCommaOption;
 }
+export type PresetOption = "invoke-formatter" | "none";
+
+export type TrailingCommaOption = "all" | "multiline" | "none";
 
 export const pluginOptions: SupportOptions = {
-    powershellIndentStyle: {
-        category: "PowerShell",
-        type: "choice",
-        default: "spaces",
-        description: "Indent PowerShell code using spaces or tabs.",
-        choices: [
-            { value: "spaces", description: "Use spaces for indentation." },
-            { value: "tabs", description: "Use tabs for indentation." },
-        ],
-    },
-    powershellIndentSize: {
-        category: "PowerShell",
-        type: "int",
-        default: 4,
-        description: "Number of indentation characters for each level.",
-        range: { start: 1, end: 8, step: 1 },
-    },
-    powershellTrailingComma: {
-        category: "PowerShell",
-        type: "choice",
-        default: "none",
-        description:
-            "Control trailing commas for array and hashtable literals.",
-        choices: [
-            {
-                value: "none",
-                description: "Never add a trailing comma or semicolon.",
-            },
-            {
-                value: "multiline",
-                description:
-                    "Add trailing comma/semicolon when the literal spans multiple lines.",
-            },
-            {
-                value: "all",
-                description:
-                    "Always add trailing comma/semicolon when possible.",
-            },
-        ],
-    },
-    powershellSortHashtableKeys: {
-        category: "PowerShell",
-        type: "boolean",
-        default: false,
-        description: "Sort hashtable keys alphabetically when formatting.",
-    },
-    powershellBlankLinesBetweenFunctions: {
-        category: "PowerShell",
-        type: "int",
-        default: 1,
-        description:
-            "Number of blank lines to ensure between function declarations.",
-        range: { start: 0, end: 3, step: 1 },
-    },
     powershellBlankLineAfterParam: {
         category: "PowerShell",
-        type: "boolean",
         default: true,
         description:
             "Insert a blank line after param(...) blocks inside script blocks.",
+        type: "boolean",
+    },
+    powershellBlankLinesBetweenFunctions: {
+        category: "PowerShell",
+        default: 1,
+        description:
+            "Number of blank lines to ensure between function declarations.",
+        range: { end: 3, start: 0, step: 1 },
+        type: "int",
     },
     powershellBraceStyle: {
         category: "PowerShell",
-        type: "choice",
+        choices: [
+            {
+                description:
+                    "One True Brace Style – keep opening braces on the same line.",
+                value: "1tbs",
+            },
+            {
+                description:
+                    "Allman style – place opening braces on the next line.",
+                value: "allman",
+            },
+        ],
         default: "1tbs",
         description:
             "Control placement of opening braces for script blocks and functions.",
-        choices: [
-            {
-                value: "1tbs",
-                description:
-                    "One True Brace Style – keep opening braces on the same line.",
-            },
-            {
-                value: "allman",
-                description:
-                    "Allman style – place opening braces on the next line.",
-            },
-        ],
+        type: "choice",
     },
-    powershellLineWidth: {
+    powershellIndentSize: {
         category: "PowerShell",
+        default: 4,
+        description: "Number of indentation characters for each level.",
+        range: { end: 8, start: 1, step: 1 },
         type: "int",
-        default: 120,
-        description: "Maximum preferred line width for PowerShell documents.",
-        range: { start: 40, end: 200, step: 1 },
     },
-    powershellPreferSingleQuote: {
+    powershellIndentStyle: {
         category: "PowerShell",
-        type: "boolean",
-        default: false,
-        description:
-            "Prefer single-quoted strings when no interpolation is required.",
+        choices: [
+            { description: "Use spaces for indentation.", value: "spaces" },
+            { description: "Use tabs for indentation.", value: "tabs" },
+        ],
+        default: "spaces",
+        description: "Indent PowerShell code using spaces or tabs.",
+        type: "choice",
     },
     powershellKeywordCase: {
         category: "PowerShell",
-        type: "choice",
+        choices: [
+            {
+                description: "Leave keyword casing unchanged.",
+                value: "preserve",
+            },
+            { description: "Convert keywords to lower-case.", value: "lower" },
+            { description: "Convert keywords to upper-case.", value: "upper" },
+            {
+                description: "Capitalise keywords (PascalCase).",
+                value: "pascal",
+            },
+        ],
         default: "lower",
         description:
             "Normalise the casing of PowerShell keywords (defaults to lowercase to match PSScriptAnalyzer).",
-        choices: [
-            {
-                value: "preserve",
-                description: "Leave keyword casing unchanged.",
-            },
-            { value: "lower", description: "Convert keywords to lower-case." },
-            { value: "upper", description: "Convert keywords to upper-case." },
-            {
-                value: "pascal",
-                description: "Capitalise keywords (PascalCase).",
-            },
-        ],
+        type: "choice",
     },
-    powershellRewriteAliases: {
+    powershellLineWidth: {
         category: "PowerShell",
-        type: "boolean",
-        default: false,
-        description: "Rewrite common cmdlet aliases to their canonical names.",
+        default: 120,
+        description: "Maximum preferred line width for PowerShell documents.",
+        range: { end: 200, start: 40, step: 1 },
+        type: "int",
     },
-    powershellRewriteWriteHost: {
+    powershellPreferSingleQuote: {
         category: "PowerShell",
-        type: "boolean",
         default: false,
         description:
-            "Rewrite Write-Host invocations to Write-Output to discourage host-only output.",
+            "Prefer single-quoted strings when no interpolation is required.",
+        type: "boolean",
     },
     powershellPreset: {
         category: "PowerShell",
-        type: "choice",
+        choices: [
+            {
+                description:
+                    "Do not apply a preset; rely solely on explicit options.",
+                value: "none",
+            },
+            {
+                description:
+                    "Match the defaults used by Invoke-Formatter / PSScriptAnalyzer's CodeFormatting profile.",
+                value: "invoke-formatter",
+            },
+        ],
         default: "none",
         description:
             "Apply a predefined bundle of formatting preferences (e.g. Invoke-Formatter parity).",
+        type: "choice",
+    },
+    powershellRewriteAliases: {
+        category: "PowerShell",
+        default: false,
+        description: "Rewrite common cmdlet aliases to their canonical names.",
+        type: "boolean",
+    },
+    powershellRewriteWriteHost: {
+        category: "PowerShell",
+        default: false,
+        description:
+            "Rewrite Write-Host invocations to Write-Output to discourage host-only output.",
+        type: "boolean",
+    },
+    powershellSortHashtableKeys: {
+        category: "PowerShell",
+        default: false,
+        description: "Sort hashtable keys alphabetically when formatting.",
+        type: "boolean",
+    },
+    powershellTrailingComma: {
+        category: "PowerShell",
         choices: [
             {
+                description: "Never add a trailing comma or semicolon.",
                 value: "none",
-                description:
-                    "Do not apply a preset; rely solely on explicit options.",
             },
             {
-                value: "invoke-formatter",
                 description:
-                    "Match the defaults used by Invoke-Formatter / PSScriptAnalyzer's CodeFormatting profile.",
+                    "Add trailing comma/semicolon when the literal spans multiple lines.",
+                value: "multiline",
+            },
+            {
+                description:
+                    "Always add trailing comma/semicolon when possible.",
+                value: "all",
             },
         ],
+        default: "none",
+        description:
+            "Control trailing commas for array and hashtable literals.",
+        type: "choice",
     },
 };
 
@@ -175,19 +175,23 @@ export const defaultOptions = {
 };
 
 export interface ResolvedOptions {
-    indentStyle: IndentStyleOption;
-    indentSize: number;
-    trailingComma: TrailingCommaOption;
-    sortHashtableKeys: boolean;
-    blankLinesBetweenFunctions: number;
     blankLineAfterParam: boolean;
+    blankLinesBetweenFunctions: number;
     braceStyle: BraceStyleOption;
+    indentSize: number;
+    indentStyle: IndentStyleOption;
+    keywordCase: KeywordCaseOption;
     lineWidth: number;
     preferSingleQuote: boolean;
-    keywordCase: KeywordCaseOption;
     rewriteAliases: boolean;
     rewriteWriteHost: boolean;
+    sortHashtableKeys: boolean;
+    trailingComma: TrailingCommaOption;
 }
+
+type PresetDefaults = Partial<
+    Record<"tabWidth" | keyof PluginConfiguration, unknown>
+>;
 
 /**
  * Resolves PowerShell-specific options and normalizes Prettier options.
@@ -215,11 +219,7 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
               ? Math.floor(normalizedTabWidth)
               : 4;
 
-    if (indentStyle === "tabs") {
-        options.useTabs = true;
-    } else {
-        options.useTabs = false;
-    }
+    options.useTabs = indentStyle === "tabs";
     options.tabWidth = indentSize;
 
     const trailingComma =
@@ -260,42 +260,38 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
     }
 
     return {
-        indentStyle,
-        indentSize,
-        trailingComma,
-        sortHashtableKeys,
-        blankLinesBetweenFunctions,
         blankLineAfterParam,
+        blankLinesBetweenFunctions,
         braceStyle,
+        indentSize,
+        indentStyle,
+        keywordCase,
         lineWidth,
         preferSingleQuote,
-        keywordCase,
         rewriteAliases,
         rewriteWriteHost,
+        sortHashtableKeys,
+        trailingComma,
     } satisfies ResolvedOptions;
 }
 
-type PresetDefaults = Partial<
-    Record<keyof PluginConfiguration | "tabWidth", unknown>
->;
-
 const PRESET_DEFAULTS: Record<PresetOption, PresetDefaults> = {
-    none: {},
     "invoke-formatter": {
-        powershellIndentStyle: "spaces",
-        powershellIndentSize: 4,
-        tabWidth: 4,
-        powershellTrailingComma: "none",
-        powershellSortHashtableKeys: false,
-        powershellBlankLinesBetweenFunctions: 1,
         powershellBlankLineAfterParam: true,
+        powershellBlankLinesBetweenFunctions: 1,
         powershellBraceStyle: "1tbs",
+        powershellIndentSize: 4,
+        powershellIndentStyle: "spaces",
+        powershellKeywordCase: "lower",
         powershellLineWidth: 120,
         powershellPreferSingleQuote: false,
-        powershellKeywordCase: "lower",
         powershellRewriteAliases: false,
         powershellRewriteWriteHost: false,
+        powershellSortHashtableKeys: false,
+        powershellTrailingComma: "none",
+        tabWidth: 4,
     },
+    none: {},
 };
 
 function applyPresetDefaults(
@@ -308,7 +304,7 @@ function applyPresetDefaults(
     }
     const target = options as Record<string, unknown>;
     for (const [key, value] of Object.entries(overrides)) {
-        if (typeof target[key] === "undefined") {
+        if (target[key] === undefined) {
             target[key] = value;
         }
     }

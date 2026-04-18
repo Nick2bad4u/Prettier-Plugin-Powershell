@@ -27,9 +27,9 @@ describe("Progress logging behaviour", () => {
         const { createProgressTracker } = await loadProgressModule();
         const tracker = createProgressTracker("log-test", 3);
 
-        tracker.advance(); // first run logs
+        tracker.advance(); // First run logs
         tracker.advance(); // no log
-        tracker.advance(); // final run logs
+        tracker.advance(); // Final run logs
         tracker.complete();
 
         expect(logSpy).toHaveBeenCalledWith("[progress] log-test run 1/3");
@@ -53,10 +53,10 @@ describe("Progress logging behaviour", () => {
         const { createProgressTracker } = await loadProgressModule();
         const tracker = createProgressTracker("interval-test");
 
-        tracker.advance(); // logs
-        tracker.advance(); // interval hit, logs
+        tracker.advance(); // Logs
+        tracker.advance(); // Interval hit, logs
         tracker.advance(); // no log
-        tracker.advance(); // interval hit again, logs
+        tracker.advance(); // Interval hit again, logs
 
         const messages = logSpy.mock.calls.map(([message]) => String(message));
         expect(messages).toEqual([

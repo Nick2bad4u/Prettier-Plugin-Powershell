@@ -62,7 +62,7 @@ export async function formatAndAssertRoundTrip(
     if (
         (typeof opts !== "string" && opts.expectIdempotent === false) === false
     ) {
-        // default to strict equality
+        // Default to strict equality
         if (formatted1 !== formatted2) {
             throw new Error(
                 `Not idempotent: first and second pass differ for ${id}:\nFirst:\n${formatted1}\nSecond:\n${formatted2}`

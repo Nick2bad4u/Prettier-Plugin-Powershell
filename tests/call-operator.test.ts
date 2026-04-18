@@ -44,7 +44,7 @@ describe("Call operator formatting", () => {
         const input = joinLines(
             "",
             "$invoke = Get-Command Invoke-RestMethod",
-            '$params = @{ Uri = "https://example.com" }',
+            '$params = @{ URI = "https://example.com" }',
             "& $invoke @params",
             ""
         );
@@ -55,7 +55,7 @@ describe("Call operator formatting", () => {
         );
         expect(result).toBe(
             "$invoke = Get-Command Invoke-RestMethod\n" +
-                '$params = @{ Uri = "https://example.com" }\n' +
+                '$params = @{ URI = "https://example.com" }\n' +
                 "& $invoke @params\n"
         );
     });

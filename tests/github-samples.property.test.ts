@@ -338,7 +338,7 @@ describe("Real-world GitHub PowerShell samples", () => {
                             );
                         }
 
-                        // formatAndAssertRoundTrip already verified idempotence and parseability
+                        // FormatAndAssertRoundTrip already verified idempotence and parseability
                     }
                 ),
                 { numRuns: runCount }

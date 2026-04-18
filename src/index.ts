@@ -1,34 +1,34 @@
 import type { Plugin, SupportLanguage } from "prettier";
 
-import { pluginOptions, defaultOptions } from "./options.js";
-import { parsePowerShell, locEnd, locStart } from "./parser.js";
+import { defaultOptions, pluginOptions } from "./options.js";
+import { locEnd, locStart, parsePowerShell } from "./parser.js";
 import { powerShellPrinter } from "./printer.js";
 
 const languages: SupportLanguage[] = [
     {
-        name: "PowerShell",
-        parsers: ["powershell"],
+        aceMode: "powershell",
         extensions: [
             ".ps1",
             ".psm1",
             ".psd1",
         ],
-        tmScope: "source.powershell",
-        aceMode: "powershell",
         linguistLanguageId: 131,
+        name: "PowerShell",
+        parsers: ["powershell"],
+        tmScope: "source.powershell",
         vscodeLanguageIds: ["powershell"],
     },
 ] as const;
 
 const parsers: Plugin["parsers"] = {
     powershell: {
-        parse: parsePowerShell,
         astFormat: "powershell-ast",
-        locStart,
-        locEnd,
         hasPragma() {
             return false;
         },
+        locEnd,
+        locStart,
+        parse: parsePowerShell,
     },
 } as const;
 
@@ -37,11 +37,11 @@ const printers: Plugin["printers"] = {
 };
 
 const plugin: Plugin = {
+    defaultOptions,
     languages,
+    options: pluginOptions,
     parsers,
     printers,
-    options: pluginOptions,
-    defaultOptions,
 };
 
 /* c8 ignore next */

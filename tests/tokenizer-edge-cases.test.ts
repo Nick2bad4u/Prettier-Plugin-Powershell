@@ -42,7 +42,7 @@ describe("Tokenizer edge cases", () => {
         expect(heredoc?.value).toBe('@"\r\nLine 1\r\nLine 2\r\n"@');
     });
 
-    it("handles Unix line endings in here-strings correctly", () => {
+    it("handles UNIX line endings in here-strings correctly", () => {
         const script = '@"\nLine 1\nLine 2\n"@';
         const tokens = tokenize(script);
         const heredoc = tokens.find((t) => t.type === "heredoc");

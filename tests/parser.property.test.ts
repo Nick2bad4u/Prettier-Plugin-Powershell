@@ -152,7 +152,7 @@ describe("PowerShell parser property-based tests", () => {
                             skipParse: hasTryCatch || !isValidPowerShell,
                         }
                     );
-                    // formatAndAssert already asserted parse when applicable
+                    // FormatAndAssert already asserted parse when applicable
                     if (formatted !== formattedTwice) {
                         throw new Error(
                             `Formatter is not idempotent under generated input.\n` +

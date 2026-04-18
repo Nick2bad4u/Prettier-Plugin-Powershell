@@ -19,38 +19,59 @@ import type {
     TextNode,
     TokenRole,
 } from "./ast.js";
-import { resolveOptions } from "./options.js";
 import type { Token } from "./tokenizer.js";
+
+import { resolveOptions } from "./options.js";
 import { tokenize } from "./tokenizer.js";
 
 const FALLBACK_OPERATOR_TOKENS = new Set([
-    "+",
-    "-",
-    "*",
-    "/",
-    "%",
-    "&",
-    "|",
-    "^",
     "!",
-    "?",
-    "++",
-    "--",
-    "+=",
-    "-=",
-    "*=",
-    "/=",
+    "%",
     "%=",
+    "&",
     "&=",
-    "|=",
-    "^=",
+    "*",
+    "*=",
+    "+",
+    "++",
+    "+=",
+    "-",
+    "--",
+    "-=",
+    "/",
+    "/=",
+    "?",
     "??",
+    "^",
+    "^=",
+    "|",
+    "|=",
 ]);
 
-function extendNodeLocation(node: { loc: SourceLocation }, end: number): void {
-    if (end > node.loc.end) {
-        node.loc = { ...node.loc, end };
-    }
+interface SplitContext<TState> {
+    current: Token[];
+    stack: string[];
+    state: TState;
+    token: Token;
+    topLevel: boolean;
+}
+
+type SplitDecision = "skip" | void;
+
+interface SplitOptions<TState = Record<string, never>> {
+    createInitialState?: () => TState;
+    delimiterValues?: string[];
+    onAfterAddToken?: (context: SplitContext<TState>) => void;
+    onBeforeAddToken?: (context: SplitContext<TState>) => void;
+    onFlush?: (
+        segment: Token[],
+        state: TState,
+        segments: Token[][],
+        force: boolean
+    ) => Token[] | void;
+    onToken?: (context: SplitContext<TState>) => SplitDecision;
+    shouldSplitOnDelimiter?: (context: SplitContext<TState>) => boolean;
+    splitOnNewline?: (context: SplitContext<TState>) => boolean;
 }
 
 class Parser {
@@ -61,16 +82,16 @@ class Parser {
         private readonly source: string
     ) {}
 
-    parseScript(terminators: Set<string> = new Set()): ScriptNode {
+    parseScript(terminators = new Set<string>()): ScriptNode {
         const body: ScriptBodyNode[] = [];
         const start = this.tokens.length > 0 ? this.tokens[0].start : 0;
 
-        const appendNode = (node: ScriptBodyNode | null | undefined) => {
+        const appendNode = (node: null | ScriptBodyNode | undefined) => {
             if (!node) {
                 return;
             }
 
-            const last = body[body.length - 1];
+            const last = body.at(-1);
             if (last && shouldMergeNodes(last, node)) {
                 mergeNodes(last, node);
             } else {
@@ -89,8 +110,7 @@ class Parser {
                 this.advance();
                 const nextToken = this.peek();
                 if (
-                    nextToken &&
-                    nextToken.type === "comment" &&
+                    nextToken?.type === "comment" &&
                     this.isInlineComment(nextToken)
                 ) {
                     const commentNode = this.createCommentNode(
@@ -112,7 +132,7 @@ class Parser {
                 const commentToken = this.advance();
                 const commentNode = this.createCommentNode(commentToken, false);
                 if (body.length > 0) {
-                    const previousNode = body[body.length - 1];
+                    const previousNode = body.at(-1);
                     let lookaheadOffset = 0;
                     let nextToken: Token | undefined;
                     while (
@@ -126,23 +146,20 @@ class Parser {
                     }
                     if (previousNode.type === "Pipeline") {
                         const lastSegment =
-                            previousNode.segments[
-                                previousNode.segments.length - 1
-                            ];
+                            previousNode.segments.at(
+                                -1
+                            );
                         const lastPart =
-                            lastSegment?.parts[lastSegment.parts.length - 1];
+                            lastSegment?.parts.at(-1);
                         const belongsToBlock = Boolean(
-                            lastPart &&
-                                lastPart.type === "ScriptBlock" &&
+                            lastPart?.type === "ScriptBlock" &&
                                 (commentNode.loc.start < lastPart.loc.end ||
-                                    (nextToken &&
-                                        nextToken.type === "punctuation" &&
+                                    (nextToken?.type === "punctuation" &&
                                         nextToken.value === "}"))
                         );
                         if (
                             belongsToBlock &&
-                            lastPart &&
-                            lastPart.type === "ScriptBlock" &&
+                            lastPart?.type === "ScriptBlock" &&
                             lastSegment
                         ) {
                             lastPart.body.push(commentNode);
@@ -172,187 +189,29 @@ class Parser {
             if (statement) {
                 appendNode(statement);
             } else {
-                // avoid infinite loops
+                // Avoid infinite loops
                 this.advance();
             }
         }
 
-        const end = body.length > 0 ? body[body.length - 1].loc.end : start;
+        const end = body.length > 0 ? body.at(-1).loc.end : start;
         return {
-            type: "Script",
             body,
-            loc: { start, end },
+            loc: { end, start },
+            type: "Script",
         } satisfies ScriptNode;
     }
 
-    private parseFunction(): FunctionDeclarationNode {
-        const startToken = this.advance(); // function keyword
-        const headerTokens: Token[] = [startToken];
-
-        while (!this.isEOF()) {
-            const token = this.peek()!;
-            if (token.type === "comment") {
-                break;
-            }
-            if (token.type === "punctuation" && token.value === "{") {
-                break;
-            }
-            headerTokens.push(this.advance());
-        }
-
-        const headerExpression = buildExpressionFromTokens(
-            headerTokens,
-            this.source
-        );
-        const body = this.parseScriptBlock();
-        const end = body.loc.end;
-
-        return {
-            type: "FunctionDeclaration",
-            header: headerExpression,
-            body,
-            loc: { start: startToken.start, end },
-        } satisfies FunctionDeclarationNode;
-    }
-
-    private parseStatement(): PipelineNode | null {
-        const segments: Token[][] = [[]];
-        let trailingComment: CommentNode | undefined;
-
-        const structureStack: string[] = [];
-        let lineContinuation = false;
-
-        while (!this.isEOF()) {
-            const token = this.peek()!;
-            const terminatorType = this.classifyStatementTerminator(
-                token,
-                structureStack.length
-            );
-
-            if (terminatorType === "newline") {
-                if (lineContinuation) {
-                    this.advance();
-                    lineContinuation = false;
-                    continue;
-                }
-                /* c8 ignore next */
-                if (structureStack.length > 0) {
-                    const newlineToken = this.advance();
-                    segments[segments.length - 1].push(newlineToken);
-                    continue;
-                }
-                if (
-                    structureStack.length === 0 &&
-                    this.isPipelineContinuationAfterNewline()
-                ) {
-                    this.advance();
-                    continue;
-                }
-                break;
-            }
-
-            if (terminatorType === "semicolon") {
-                break;
-            }
-
-            if (
-                terminatorType === "closing-brace" ||
-                terminatorType === "closing-paren"
-            ) {
-                break;
-            }
-
-            if (token.type === "comment") {
-                if (
-                    structureStack.length === 0 &&
-                    this.isInlineComment(token)
-                ) {
-                    trailingComment = this.createCommentNode(
-                        this.advance(),
-                        true
-                    );
-                }
-                if (structureStack.length === 0) {
-                    break;
-                }
-                // Inside a structure - include the comment as part of the statement
-                const currentSegment = segments[segments.length - 1];
-                currentSegment.push(this.advance());
-                continue;
-            }
-
-            if (token.type === "block-comment") {
-                if (structureStack.length === 0) {
-                    break;
-                }
-                // Inside a structure - include the block comment
-                const currentSegment = segments[segments.length - 1];
-                currentSegment.push(this.advance());
-                continue;
-            }
-
-            if (token.type === "operator" && token.value === "|") {
-                if (structureStack.length > 0) {
-                    const currentSegment = segments[segments.length - 1];
-                    currentSegment.push(this.advance());
-                    lineContinuation = false;
-                    continue;
-                }
-
-                this.advance();
-                segments.push([]);
-                lineContinuation = false;
-                continue;
-            }
-
-            /* c8 ignore next */
-            if (token.type === "unknown" && token.value === "`") {
-                this.advance();
-                lineContinuation = true;
-                continue;
-            }
-
-            const currentSegment = segments[segments.length - 1];
-            currentSegment.push(this.advance());
-            lineContinuation = false;
-
-            if (isOpeningToken(token)) {
-                structureStack.push(token.value);
-            } else if (isClosingToken(token)) {
-                structureStack.pop();
-            }
-        }
-
-        const filteredSegments = segments.filter(
-            (segment) => segment.length > 0
-        );
-        if (filteredSegments.length === 0) {
-            return null;
-        }
-
-        const expressionSegments = filteredSegments.map((segmentTokens) =>
-            buildExpressionFromTokens(segmentTokens, this.source)
-        );
-        const start = expressionSegments[0].loc.start;
-        const end = expressionSegments[expressionSegments.length - 1].loc.end;
-
-        const pipelineNode: PipelineNode = {
-            type: "Pipeline",
-            segments: expressionSegments,
-            loc: { start, end },
-        };
-
-        if (trailingComment) {
-            pipelineNode.trailingComment = trailingComment;
-        }
-
-        return pipelineNode;
+    private advance(): Token {
+        const token = this.tokens[this.tokenIndex];
+        this.tokenIndex += 1;
+        return token;
     }
 
     private classifyStatementTerminator(
         token: Token | undefined,
         structureDepth: number
-    ): "newline" | "semicolon" | "closing-brace" | "closing-paren" | null {
+    ): "closing-brace" | "closing-paren" | "newline" | "semicolon" | null {
         if (!token) {
             return null;
         }
@@ -373,42 +232,9 @@ class Parser {
         return null;
     }
 
-    private parseScriptBlock(): ScriptBlockNode {
-        const openToken = this.peek();
-        if (
-            !openToken ||
-            openToken.type !== "punctuation" ||
-            openToken.value !== "{"
-        ) {
-            return {
-                type: "ScriptBlock",
-                body: [],
-                loc: { start: openToken?.start ?? 0, end: openToken?.end ?? 0 },
-            } satisfies ScriptBlockNode;
-        }
-        this.advance();
-
-        const { contentTokens, closingToken } =
-            this.collectBalancedTokens(openToken);
-        const nestedParser = new Parser(contentTokens, this.source);
-        const script = nestedParser.parseScript(new Set());
-        const closingEnd = closingToken?.end ?? openToken.end;
-        const bodyEnd =
-            script.body.length > 0
-                ? script.body[script.body.length - 1].loc.end
-                : closingEnd;
-        const end = Math.max(closingEnd, bodyEnd);
-
-        return {
-            type: "ScriptBlock",
-            body: script.body,
-            loc: { start: openToken.start, end },
-        } satisfies ScriptBlockNode;
-    }
-
     private collectBalancedTokens(startToken: Token): {
-        contentTokens: Token[];
         closingToken?: Token;
+        contentTokens: Token[];
     } {
         const contentTokens: Token[] = [];
         const stack: string[] = [startToken.value];
@@ -424,7 +250,7 @@ class Parser {
 
             if (isClosingToken(token)) {
                 if (stack.length <= 1) {
-                    return { contentTokens, closingToken: token };
+                    return { closingToken: token, contentTokens };
                 }
                 stack.pop();
                 contentTokens.push(token);
@@ -443,7 +269,7 @@ class Parser {
         let end = start;
         while (!this.isEOF()) {
             const token = this.peek();
-            if (!token || token.type !== "newline") {
+            if (token?.type !== "newline") {
                 break;
             }
             const current = this.advance();
@@ -451,9 +277,9 @@ class Parser {
             end = current.end;
         }
         return {
-            type: "BlankLine",
             count,
-            loc: { start, end },
+            loc: { end, start },
+            type: "BlankLine",
         } satisfies BlankLineNode;
     }
 
@@ -463,12 +289,24 @@ class Parser {
             style === "line" && inline && this.isInlineComment(token);
 
         return {
+            inline: isInline,
+            loc: { end: token.end, start: token.start },
+            style,
             type: "Comment",
             value: token.value,
-            inline: isInline,
-            style,
-            loc: { start: token.start, end: token.end },
         } satisfies CommentNode;
+    }
+
+    private isEOF(): boolean {
+        return this.tokenIndex >= this.tokens.length;
+    }
+
+    private isFunctionDeclaration(): boolean {
+        const token = this.peek();
+        return Boolean(
+            token?.type === "keyword" &&
+                token.value.toLowerCase() === "function"
+        );
     }
 
     private isInlineComment(token: Token): boolean {
@@ -526,875 +364,205 @@ class Parser {
         return false;
     }
 
-    private isFunctionDeclaration(): boolean {
-        const token = this.peek();
-        return Boolean(
-            token &&
-                token.type === "keyword" &&
-                token.value.toLowerCase() === "function"
+    private parseFunction(): FunctionDeclarationNode {
+        const startToken = this.advance(); // Function keyword
+        const headerTokens: Token[] = [startToken];
+
+        while (!this.isEOF()) {
+            const token = this.peek()!;
+            if (token.type === "comment") {
+                break;
+            }
+            if (token.type === "punctuation" && token.value === "{") {
+                break;
+            }
+            headerTokens.push(this.advance());
+        }
+
+        const headerExpression = buildExpressionFromTokens(
+            headerTokens,
+            this.source
         );
+        const body = this.parseScriptBlock();
+        const end = body.loc.end;
+
+        return {
+            body,
+            header: headerExpression,
+            loc: { end, start: startToken.start },
+            type: "FunctionDeclaration",
+        } satisfies FunctionDeclarationNode;
+    }
+
+    private parseScriptBlock(): ScriptBlockNode {
+        const openToken = this.peek();
+        if (
+            openToken?.type !== "punctuation" ||
+            openToken.value !== "{"
+        ) {
+            return {
+                body: [],
+                loc: { end: openToken?.end ?? 0, start: openToken?.start ?? 0 },
+                type: "ScriptBlock",
+            } satisfies ScriptBlockNode;
+        }
+        this.advance();
+
+        const { closingToken, contentTokens } =
+            this.collectBalancedTokens(openToken);
+        const nestedParser = new Parser(contentTokens, this.source);
+        const script = nestedParser.parseScript(new Set());
+        const closingEnd = closingToken?.end ?? openToken.end;
+        const bodyEnd =
+            script.body.length > 0
+                ? script.body.at(-1).loc.end
+                : closingEnd;
+        const end = Math.max(closingEnd, bodyEnd);
+
+        return {
+            body: script.body,
+            loc: { end, start: openToken.start },
+            type: "ScriptBlock",
+        } satisfies ScriptBlockNode;
+    }
+
+    private parseStatement(): null | PipelineNode {
+        const segments: Token[][] = [[]];
+        let trailingComment: CommentNode | undefined;
+
+        const structureStack: string[] = [];
+        let lineContinuation = false;
+
+        while (!this.isEOF()) {
+            const token = this.peek()!;
+            const terminatorType = this.classifyStatementTerminator(
+                token,
+                structureStack.length
+            );
+
+            if (terminatorType === "newline") {
+                if (lineContinuation) {
+                    this.advance();
+                    lineContinuation = false;
+                    continue;
+                }
+                /* c8 ignore next */
+                if (structureStack.length > 0) {
+                    const newlineToken = this.advance();
+                    segments.at(-1).push(newlineToken);
+                    continue;
+                }
+                if (
+                    structureStack.length === 0 &&
+                    this.isPipelineContinuationAfterNewline()
+                ) {
+                    this.advance();
+                    continue;
+                }
+                break;
+            }
+
+            if (terminatorType === "semicolon") {
+                break;
+            }
+
+            if (
+                terminatorType === "closing-brace" ||
+                terminatorType === "closing-paren"
+            ) {
+                break;
+            }
+
+            if (token.type === "comment") {
+                if (
+                    structureStack.length === 0 &&
+                    this.isInlineComment(token)
+                ) {
+                    trailingComment = this.createCommentNode(
+                        this.advance(),
+                        true
+                    );
+                }
+                if (structureStack.length === 0) {
+                    break;
+                }
+                // Inside a structure - include the comment as part of the statement
+                const currentSegment = segments.at(-1);
+                currentSegment.push(this.advance());
+                continue;
+            }
+
+            if (token.type === "block-comment") {
+                if (structureStack.length === 0) {
+                    break;
+                }
+                // Inside a structure - include the block comment
+                const currentSegment = segments.at(-1);
+                currentSegment.push(this.advance());
+                continue;
+            }
+
+            if (token.type === "operator" && token.value === "|") {
+                if (structureStack.length > 0) {
+                    const currentSegment = segments.at(-1);
+                    currentSegment.push(this.advance());
+                    lineContinuation = false;
+                    continue;
+                }
+
+                this.advance();
+                segments.push([]);
+                lineContinuation = false;
+                continue;
+            }
+
+            /* c8 ignore next */
+            if (token.type === "unknown" && token.value === "`") {
+                this.advance();
+                lineContinuation = true;
+                continue;
+            }
+
+            const currentSegment = segments.at(-1);
+            currentSegment.push(this.advance());
+            lineContinuation = false;
+
+            if (isOpeningToken(token)) {
+                structureStack.push(token.value);
+            } else if (isClosingToken(token)) {
+                structureStack.pop();
+            }
+        }
+
+        const filteredSegments = segments.filter(
+            (segment) => segment.length > 0
+        );
+        if (filteredSegments.length === 0) {
+            return null;
+        }
+
+        const expressionSegments = filteredSegments.map((segmentTokens) =>
+            buildExpressionFromTokens(segmentTokens, this.source)
+        );
+        const start = expressionSegments[0].loc.start;
+        const end = expressionSegments.at(-1).loc.end;
+
+        const pipelineNode: PipelineNode = {
+            loc: { end, start },
+            segments: expressionSegments,
+            type: "Pipeline",
+        };
+
+        if (trailingComment) {
+            pipelineNode.trailingComment = trailingComment;
+        }
+
+        return pipelineNode;
     }
 
     private peek(offset = 0): Token | undefined {
         return this.tokens[this.tokenIndex + offset];
     }
-
-    private advance(): Token {
-        const token = this.tokens[this.tokenIndex];
-        this.tokenIndex += 1;
-        return token;
-    }
-
-    private isEOF(): boolean {
-        return this.tokenIndex >= this.tokens.length;
-    }
-}
-
-function isOpeningToken(token: Token): boolean {
-    if (token.type === "operator") {
-        return token.value === "@{" || token.value === "@(";
-    }
-    return (
-        token.type === "punctuation" &&
-        (token.value === "{" || token.value === "(" || token.value === "[")
-    );
-}
-
-function isClosingToken(token: Token): boolean {
-    return (
-        token.type === "punctuation" &&
-        (token.value === "}" || token.value === ")" || token.value === "]")
-    );
-}
-
-function shouldMergeNodes(
-    previous: ScriptBodyNode,
-    next: ScriptBodyNode
-): boolean {
-    if (previous.type === "Pipeline" && next.type === "Comment") {
-        return Boolean(next.inline);
-    }
-
-    if (previous.type === "BlankLine" && next.type === "BlankLine") {
-        return true;
-    }
-
-    return false;
-}
-
-function mergeNodes(previous: ScriptBodyNode, next: ScriptBodyNode): void {
-    if (previous.type === "Pipeline" && next.type === "Comment") {
-        previous.trailingComment = next;
-        extendNodeLocation(previous, next.loc.end);
-        return;
-    }
-
-    if (previous.type === "BlankLine" && next.type === "BlankLine") {
-        previous.count += next.count;
-        extendNodeLocation(previous, next.loc.end);
-        return;
-    }
-}
-
-function buildExpressionFromTokens(
-    tokens: Token[],
-    source: string = ""
-): ExpressionNode {
-    const firstToken = tokens.find((token) => token.type !== "newline");
-    const lastToken = [...tokens]
-        .reverse()
-        .find((token) => token.type !== "newline");
-    if (!firstToken || !lastToken) {
-        return {
-            type: "Expression",
-            parts: [],
-            loc: {
-                start: tokens[0]?.start ?? 0,
-                end: tokens[tokens.length - 1]?.end ?? 0,
-            },
-        } satisfies ExpressionNode;
-    }
-
-    const parts: ExpressionPartNode[] = [];
-    let index = 0;
-
-    while (index < tokens.length) {
-        const token = tokens[index];
-
-        if (token.type === "newline") {
-            index += 1;
-            continue;
-        }
-
-        if (token.type === "operator" && token.value === "@{") {
-            const { node, nextIndex } = parseHashtablePart(
-                tokens,
-                index,
-                source
-            );
-            parts.push(node);
-            index = nextIndex;
-            continue;
-        }
-
-        if (
-            (token.type === "operator" && token.value === "@(") ||
-            (token.type === "punctuation" && token.value === "[")
-        ) {
-            const { node, nextIndex } = parseArrayPart(tokens, index, source);
-            parts.push(node);
-            index = nextIndex;
-            continue;
-        }
-
-        if (token.type === "punctuation" && token.value === "{") {
-            const { node, nextIndex } = parseScriptBlockPart(
-                tokens,
-                index,
-                source
-            );
-            parts.push(node);
-            index = nextIndex;
-            continue;
-        }
-
-        if (token.type === "punctuation" && token.value === "(") {
-            const { node, nextIndex } = parseParenthesisPart(
-                tokens,
-                index,
-                source
-            );
-            parts.push(node);
-            index = nextIndex;
-            continue;
-        }
-
-        if (token.type === "heredoc") {
-            parts.push(createHereStringNode(token));
-            index += 1;
-            continue;
-        }
-
-        if (token.type === "attribute") {
-            parts.push(createTextNode(token));
-            index += 1;
-            continue;
-        }
-
-        parts.push(createTextNode(token));
-        index += 1;
-    }
-
-    const expressionEnd =
-        parts.length > 0 ? parts[parts.length - 1].loc.end : lastToken.end;
-
-    return {
-        type: "Expression",
-        parts,
-        loc: {
-            start: firstToken.start,
-            end: expressionEnd,
-        },
-    } satisfies ExpressionNode;
-}
-
-function parseHashtablePart(
-    tokens: Token[],
-    startIndex: number,
-    source: string = ""
-): { node: HashtableNode; nextIndex: number } {
-    const startToken = tokens[startIndex];
-    const { contentTokens, endIndex, closingToken } = collectStructureTokens(
-        tokens,
-        startIndex
-    );
-    const entries = splitHashtableEntries(contentTokens).map((entryTokens) =>
-        buildHashtableEntry(entryTokens, source)
-    );
-    const end =
-        closingToken?.end ??
-        contentTokens[contentTokens.length - 1]?.end ??
-        startToken.end;
-    return {
-        node: {
-            type: "Hashtable",
-            entries,
-            loc: { start: startToken.start, end },
-        },
-        nextIndex: endIndex,
-    };
-}
-
-function resolveStructureEnd(
-    startToken: Token,
-    closingToken: Token | undefined,
-    contentTokens: Token[]
-): number {
-    if (closingToken) {
-        return closingToken.end;
-    }
-    const lastContent =
-        contentTokens.length > 0
-            ? contentTokens[contentTokens.length - 1]
-            : undefined;
-    if (lastContent) {
-        return lastContent.end;
-    }
-    return startToken.end;
-}
-
-function parseArrayPart(
-    tokens: Token[],
-    startIndex: number,
-    source: string = ""
-): { node: ArrayLiteralNode; nextIndex: number } {
-    const startToken = tokens[startIndex];
-    const { contentTokens, endIndex, closingToken } = collectStructureTokens(
-        tokens,
-        startIndex
-    );
-    const elements = splitArrayElements(contentTokens).map((elementTokens) =>
-        buildExpressionFromTokens(elementTokens, source)
-    );
-    /* c8 ignore next */
-    const kind = startToken.value === "@(" ? "implicit" : "explicit";
-    const end = resolveStructureEnd(startToken, closingToken, contentTokens);
-    return {
-        node: {
-            type: "ArrayLiteral",
-            elements,
-            kind,
-            loc: { start: startToken.start, end },
-        },
-        nextIndex: endIndex,
-    } satisfies { node: ArrayLiteralNode; nextIndex: number };
-}
-
-function parseParenthesisPart(
-    tokens: Token[],
-    startIndex: number,
-    source: string = ""
-): { node: ParenthesisNode; nextIndex: number } {
-    const startToken = tokens[startIndex];
-    const { contentTokens, endIndex, closingToken } = collectStructureTokens(
-        tokens,
-        startIndex
-    );
-    const elements = splitArrayElements(contentTokens).map((elementTokens) =>
-        buildExpressionFromTokens(elementTokens, source)
-    );
-    const hasComma = hasTopLevelComma(contentTokens);
-    const hasNewline = contentTokens.some((token) => token.type === "newline");
-    const end = resolveStructureEnd(startToken, closingToken, contentTokens);
-    return {
-        node: {
-            type: "Parenthesis",
-            elements,
-            hasComma,
-            hasNewline,
-            loc: { start: startToken.start, end },
-        },
-        nextIndex: endIndex,
-    };
-}
-
-function parseScriptBlockPart(
-    tokens: Token[],
-    startIndex: number,
-    source: string = ""
-): { node: ScriptBlockNode; nextIndex: number } {
-    const startToken = tokens[startIndex];
-    const { contentTokens, endIndex, closingToken } = collectStructureTokens(
-        tokens,
-        startIndex
-    );
-    const nestedParser = new Parser(contentTokens, source);
-    const script = nestedParser.parseScript();
-    const closingEnd = resolveStructureEnd(
-        startToken,
-        closingToken,
-        contentTokens
-    );
-    const bodyEnd =
-        script.body.length > 0
-            ? script.body[script.body.length - 1].loc.end
-            : closingEnd;
-    const end = Math.max(closingEnd, bodyEnd);
-    return {
-        node: {
-            type: "ScriptBlock",
-            body: script.body,
-            loc: { start: startToken.start, end },
-        },
-        nextIndex: endIndex,
-    };
-}
-
-function createHereStringNode(token: Token): HereStringNode {
-    const quote = token.quote ?? "double";
-    return {
-        type: "HereString",
-        quote,
-        value: token.value,
-        loc: { start: token.start, end: token.end },
-    } satisfies HereStringNode;
-}
-
-function createTextNode(token: Token): TextNode {
-    const tokenTypeToRole: Record<string, TokenRole> = {
-        identifier: "word",
-        keyword: "keyword",
-        number: "number",
-        variable: "variable",
-        string: "string",
-        operator: "operator",
-        punctuation: "punctuation",
-    };
-    let role: TokenRole = tokenTypeToRole[token.type] ?? "unknown";
-
-    if (
-        (role === "unknown" || role === "word") &&
-        FALLBACK_OPERATOR_TOKENS.has(token.value)
-    ) {
-        role = "operator";
-    }
-
-    let value = token.value;
-
-    // Preserve the fact that this originated from a `#` line comment so that
-    // downstream printers can recognise it as comment text rather than code.
-    // The tokenizer stores the comment text *after* the `#`, including any
-    // leading whitespace (e.g. " Black"), so we simply re-prepend `#` here.
-    if (token.type === "comment") {
-        value = `#${value}`;
-    }
-
-    return {
-        type: "Text",
-        value,
-        role,
-        loc: { start: token.start, end: token.end },
-    } satisfies TextNode;
-}
-
-function collectStructureTokens(
-    tokens: Token[],
-    startIndex: number
-): { contentTokens: Token[]; endIndex: number; closingToken?: Token } {
-    const contentTokens: Token[] = [];
-    const stack: string[] = [tokens[startIndex].value];
-    let index = startIndex + 1;
-
-    while (index < tokens.length) {
-        const token = tokens[index];
-
-        if (isOpeningToken(token)) {
-            stack.push(token.value);
-            contentTokens.push(token);
-            index += 1;
-            continue;
-        }
-
-        if (isClosingToken(token)) {
-            if (stack.length === 1) {
-                return {
-                    contentTokens,
-                    endIndex: index + 1,
-                    closingToken: token,
-                };
-            }
-            stack.pop();
-            contentTokens.push(token);
-            index += 1;
-            continue;
-        }
-
-        contentTokens.push(token);
-        index += 1;
-    }
-
-    return { contentTokens, endIndex: tokens.length };
-}
-
-function parseStatementForTest(tokens: Token[]): PipelineNode | null {
-    const parser = new Parser(tokens, "");
-    const internal = parser as unknown as {
-        parseStatement(): PipelineNode | null;
-    };
-    return internal.parseStatement();
-}
-
-type SplitDecision = "skip" | void;
-
-interface SplitContext<TState> {
-    token: Token;
-    state: TState;
-    current: Token[];
-    stack: string[];
-    topLevel: boolean;
-}
-
-interface SplitOptions<TState = Record<string, never>> {
-    delimiterValues?: string[];
-    splitOnNewline?: (context: SplitContext<TState>) => boolean;
-    shouldSplitOnDelimiter?: (context: SplitContext<TState>) => boolean;
-    onToken?: (context: SplitContext<TState>) => SplitDecision;
-    onBeforeAddToken?: (context: SplitContext<TState>) => void;
-    onAfterAddToken?: (context: SplitContext<TState>) => void;
-    onFlush?: (
-        segment: Token[],
-        state: TState,
-        segments: Token[][],
-        force: boolean
-    ) => Token[] | void;
-    createInitialState?: () => TState;
-}
-
-function splitTopLevelTokens<TState = Record<string, never>>(
-    tokens: Token[],
-    options: SplitOptions<TState> = {}
-): Token[][] {
-    const result: Token[][] = [];
-    let current: Token[] = [];
-    const stack: string[] = [];
-    const state = options.createInitialState
-        ? options.createInitialState()
-        : ({} as TState);
-
-    const flush = (force = false) => {
-        if (!force && current.length === 0) {
-            return;
-        }
-        const maybeSegment = options.onFlush?.(current, state, result, force);
-        const segment = maybeSegment ?? current;
-        if (segment.length > 0) {
-            result.push(segment);
-        }
-        current = [];
-    };
-
-    for (const token of tokens) {
-        const topLevel = stack.length === 0;
-        const context: SplitContext<TState> = {
-            token,
-            state,
-            current,
-            stack,
-            topLevel,
-        };
-
-        if (token.type === "newline" && topLevel) {
-            if (options.splitOnNewline?.(context)) {
-                flush();
-            }
-            continue;
-        }
-
-        if (
-            topLevel &&
-            token.type === "punctuation" &&
-            options.delimiterValues?.includes(token.value)
-        ) {
-            if (options.shouldSplitOnDelimiter?.(context) ?? true) {
-                flush();
-            }
-            continue;
-        }
-
-        const decision = options.onToken?.(context);
-        if (decision === "skip") {
-            continue;
-        }
-
-        options.onBeforeAddToken?.(context);
-
-        if (isOpeningToken(token)) {
-            stack.push(token.value);
-            current.push(token);
-        } else if (isClosingToken(token)) {
-            stack.pop();
-            current.push(token);
-        } else {
-            current.push(token);
-        }
-
-        options.onAfterAddToken?.({
-            token,
-            state,
-            current,
-            stack,
-            topLevel: stack.length === 0,
-        });
-    }
-
-    flush(true);
-
-    return result;
-}
-
-function splitHashtableEntries(tokens: Token[]): Token[][] {
-    type HashtableSplitState = {
-        hasEquals: boolean;
-        justSawEquals: boolean;
-        pendingComments: Token[];
-    };
-
-    const rawSegments = splitTopLevelTokens<HashtableSplitState>(tokens, {
-        delimiterValues: [";"],
-        createInitialState: () => ({
-            hasEquals: false,
-            justSawEquals: false,
-            pendingComments: [],
-        }),
-        splitOnNewline: (context) => {
-            if (context.current.length === 0) {
-                return false;
-            }
-            if (!context.state.hasEquals || context.state.justSawEquals) {
-                return false;
-            }
-            if (context.state.pendingComments.length > 0) {
-                context.current.push(...context.state.pendingComments);
-                context.state.pendingComments = [];
-            }
-            return true;
-        },
-        shouldSplitOnDelimiter: (context) => {
-            if (context.current.length === 0) {
-                return false;
-            }
-            if (context.state.pendingComments.length > 0) {
-                context.current.push(...context.state.pendingComments);
-                context.state.pendingComments = [];
-            }
-            return true;
-        },
-        onToken: (context) => {
-            if (
-                context.token.type === "comment" ||
-                context.token.type === "block-comment"
-            ) {
-                context.state.pendingComments.push(context.token);
-                return "skip";
-            }
-        },
-        onBeforeAddToken: (context) => {
-            if (context.state.pendingComments.length > 0) {
-                context.current.push(...context.state.pendingComments);
-                context.state.pendingComments = [];
-            }
-        },
-        onAfterAddToken: (context) => {
-            const { token, state, topLevel } = context;
-            if (topLevel && token.type === "operator" && token.value === "=") {
-                state.hasEquals = true;
-                state.justSawEquals = true;
-                return;
-            }
-            if (
-                token.type !== "newline" &&
-                token.type !== "comment" &&
-                token.type !== "block-comment"
-            ) {
-                state.justSawEquals = false;
-            }
-        },
-        onFlush: (segment, state, segments, _force) => {
-            // Use the `_force` parameter to appease lint rules about unused vars
-            void _force;
-            if (state.pendingComments.length > 0) {
-                if (segment.length > 0) {
-                    segment.push(...state.pendingComments);
-                } else if (segments.length > 0) {
-                    segments[segments.length - 1].push(
-                        ...state.pendingComments
-                    );
-                }
-                state.pendingComments = [];
-            }
-            state.hasEquals = false;
-            state.justSawEquals = false;
-            return segment;
-        },
-    });
-
-    const segments: Token[][] = [];
-    for (const segment of rawSegments) {
-        if (segments.length > 0) {
-            const continuation = extractElseContinuation(segment);
-            if (continuation) {
-                segments[segments.length - 1].push(...continuation.elseTokens);
-                if (continuation.remainingTokens.length > 0) {
-                    segments.push(continuation.remainingTokens);
-                }
-                continue;
-            }
-        }
-        segments.push(segment);
-    }
-
-    return segments;
-}
-
-function extractElseContinuation(
-    tokens: Token[]
-): { elseTokens: Token[]; remainingTokens: Token[] } | null {
-    let index = 0;
-    const prefix: Token[] = [];
-    while (
-        index < tokens.length &&
-        (tokens[index].type === "newline" ||
-            tokens[index].type === "comment" ||
-            tokens[index].type === "block-comment")
-    ) {
-        prefix.push(tokens[index]);
-        index += 1;
-    }
-
-    const keywordToken = tokens[index];
-    if (!keywordToken || keywordToken.type !== "keyword") {
-        return null;
-    }
-    const keyword = keywordToken.value.toLowerCase();
-    if (keyword !== "else" && keyword !== "elseif") {
-        return null;
-    }
-
-    const captured: Token[] = [...prefix];
-    const stack: string[] = [];
-    for (; index < tokens.length; index += 1) {
-        const token = tokens[index];
-        captured.push(token);
-        if (token.type === "punctuation" && token.value === "{") {
-            stack.push("{");
-        } else if (token.type === "punctuation" && token.value === "}") {
-            if (stack.length === 0) {
-                continue;
-            }
-            stack.pop();
-            if (stack.length === 0) {
-                index += 1;
-                break;
-            }
-        }
-    }
-
-    if (stack.length > 0) {
-        return null;
-    }
-
-    return {
-        elseTokens: captured,
-        remainingTokens: tokens.slice(index),
-    };
-}
-
-function buildHashtableEntry(
-    tokens: Token[],
-    source: string = ""
-): HashtableEntryNode {
-    // Separate comments from other tokens
-    const leadingComments: Token[] = [];
-    const trailingComments: Token[] = [];
-    const otherTokens: Token[] = [];
-
-    let equalsIndex = -1;
-    let foundEquals = false;
-
-    for (let i = 0; i < tokens.length; i++) {
-        const token = tokens[i];
-
-        if (token.type === "comment" || token.type === "block-comment") {
-            // Comments before the = are leading, after are trailing
-            if (!foundEquals) {
-                leadingComments.push(token);
-            } else {
-                trailingComments.push(token);
-            }
-        } else {
-            if (
-                token.type === "operator" &&
-                token.value === "=" &&
-                !foundEquals
-            ) {
-                equalsIndex = otherTokens.length;
-                foundEquals = true;
-            }
-            otherTokens.push(token);
-        }
-    }
-
-    const keyTokens =
-        equalsIndex === -1 ? otherTokens : otherTokens.slice(0, equalsIndex);
-    const valueTokens =
-        equalsIndex === -1 ? [] : otherTokens.slice(equalsIndex + 1);
-    const keyExpression = buildExpressionFromTokens(keyTokens, source);
-    const valueExpression =
-        valueTokens.length > 0
-            ? buildExpressionFromTokens(valueTokens, source)
-            : buildExpressionFromTokens([], source);
-    const key = extractKeyText(keyTokens);
-
-    // Calculate start/end based on non-comment tokens like original logic
-    const start = keyTokens[0]?.start ?? valueTokens[0]?.start ?? 0;
-    const end =
-        (valueTokens[valueTokens.length - 1] ?? keyTokens[keyTokens.length - 1])
-            ?.end ?? start;
-
-    const entry: HashtableEntryNode = {
-        type: "HashtableEntry",
-        key,
-        rawKey: keyExpression,
-        value: valueExpression,
-        loc: { start, end },
-    };
-
-    // Add comments if present
-    if (leadingComments.length > 0) {
-        entry.leadingComments = leadingComments.map((token) => ({
-            type: "Comment" as const,
-            value: token.value,
-            inline: false,
-            style:
-                token.type === "block-comment"
-                    ? ("block" as const)
-                    : ("line" as const),
-            loc: { start: token.start, end: token.end },
-        }));
-    }
-
-    if (trailingComments.length > 0) {
-        const trailingNodes: CommentNode[] = [];
-        let referenceEnd =
-            valueTokens[valueTokens.length - 1]?.end ??
-            keyTokens[keyTokens.length - 1]?.end ??
-            tokens[0]?.start ??
-            0;
-
-        for (const token of trailingComments) {
-            const inline =
-                token.type === "comment" &&
-                isInlineSpacing(source, referenceEnd, token.start);
-
-            trailingNodes.push({
-                type: "Comment" as const,
-                value: token.value,
-                inline,
-                style:
-                    token.type === "block-comment"
-                        ? ("block" as const)
-                        : ("line" as const),
-                loc: { start: token.start, end: token.end },
-            });
-
-            referenceEnd = token.end;
-        }
-
-        if (trailingNodes.length > 1) {
-            for (const comment of trailingNodes) {
-                comment.inline = false;
-            }
-        }
-
-        if (trailingNodes.length > 0) {
-            entry.trailingComments = trailingNodes;
-        }
-    }
-
-    return entry;
-}
-
-function findTopLevelEquals(tokens: Token[]): number {
-    const stack: string[] = [];
-    for (let index = 0; index < tokens.length; index += 1) {
-        const token = tokens[index];
-        if (isOpeningToken(token)) {
-            stack.push(token.value);
-            continue;
-        }
-        if (isClosingToken(token)) {
-            stack.pop();
-            continue;
-        }
-        if (
-            stack.length === 0 &&
-            token.type === "operator" &&
-            token.value === "="
-        ) {
-            return index;
-        }
-    }
-    return -1;
-}
-
-function isInlineSpacing(source: string, start: number, end: number): boolean {
-    if (start === undefined || end === undefined) {
-        return false;
-    }
-    for (let index = start; index < end; index += 1) {
-        const char = source[index];
-        if (char === "\n" || char === "\r") {
-            return false;
-        }
-        switch (char) {
-            case " ":
-            case "\t":
-            case "\f":
-            case "\v":
-            case "\u00A0":
-            case "\u200B":
-            case "\u2060":
-            case "\uFEFF":
-                break;
-            default:
-                return false;
-        }
-    }
-    return true;
-}
-
-function extractKeyText(tokens: Token[]): string {
-    const text = tokens
-        .filter((token) => token.type !== "newline")
-        .map((token) => token.value)
-        .join(" ")
-        .trim();
-    if (text.startsWith('"') && text.endsWith('"')) {
-        return text.slice(1, -1);
-    }
-    if (text.startsWith("'") && text.endsWith("'")) {
-        return text.slice(1, -1);
-    }
-    return text;
-}
-
-function splitArrayElements(tokens: Token[]): Token[][] {
-    return splitTopLevelTokens(tokens, {
-        delimiterValues: [","],
-        splitOnNewline: (context) => context.current.length > 0,
-    });
-}
-
-function hasTopLevelComma(tokens: Token[]): boolean {
-    const stack: string[] = [];
-    for (const token of tokens) {
-        if (isOpeningToken(token)) {
-            stack.push(token.value);
-            continue;
-        }
-        if (isClosingToken(token)) {
-            stack.pop();
-            continue;
-        }
-        if (
-            stack.length === 0 &&
-            token.type === "punctuation" &&
-            token.value === ","
-        ) {
-            return true;
-        }
-    }
-    return false;
 }
 
 /**
@@ -1440,40 +608,867 @@ export function parseScriptWithTerminators(
     const parser = new Parser(tokens, source);
     return parser.parseScript(terminators);
 }
+
+function buildExpressionFromTokens(
+    tokens: Token[],
+    source = ""
+): ExpressionNode {
+    const firstToken = tokens.find((token) => token.type !== "newline");
+    const lastToken = [...tokens]
+        .reverse()
+        .find((token) => token.type !== "newline");
+    if (!firstToken || !lastToken) {
+        return {
+            loc: {
+                end: tokens.at(-1)?.end ?? 0,
+                start: tokens[0]?.start ?? 0,
+            },
+            parts: [],
+            type: "Expression",
+        } satisfies ExpressionNode;
+    }
+
+    const parts: ExpressionPartNode[] = [];
+    let index = 0;
+
+    while (index < tokens.length) {
+        const token = tokens[index];
+
+        if (token.type === "newline") {
+            index += 1;
+            continue;
+        }
+
+        if (token.type === "operator" && token.value === "@{") {
+            const { nextIndex, node } = parseHashtablePart(
+                tokens,
+                index,
+                source
+            );
+            parts.push(node);
+            index = nextIndex;
+            continue;
+        }
+
+        if (
+            (token.type === "operator" && token.value === "@(") ||
+            (token.type === "punctuation" && token.value === "[")
+        ) {
+            const { nextIndex, node } = parseArrayPart(tokens, index, source);
+            parts.push(node);
+            index = nextIndex;
+            continue;
+        }
+
+        if (token.type === "punctuation" && token.value === "{") {
+            const { nextIndex, node } = parseScriptBlockPart(
+                tokens,
+                index,
+                source
+            );
+            parts.push(node);
+            index = nextIndex;
+            continue;
+        }
+
+        if (token.type === "punctuation" && token.value === "(") {
+            const { nextIndex, node } = parseParenthesisPart(
+                tokens,
+                index,
+                source
+            );
+            parts.push(node);
+            index = nextIndex;
+            continue;
+        }
+
+        if (token.type === "heredoc") {
+            parts.push(createHereStringNode(token));
+            index += 1;
+            continue;
+        }
+
+        if (token.type === "attribute") {
+            parts.push(createTextNode(token));
+            index += 1;
+            continue;
+        }
+
+        parts.push(createTextNode(token));
+        index += 1;
+    }
+
+    const expressionEnd =
+        parts.length > 0 ? parts.at(-1).loc.end : lastToken.end;
+
+    return {
+        loc: {
+            end: expressionEnd,
+            start: firstToken.start,
+        },
+        parts,
+        type: "Expression",
+    } satisfies ExpressionNode;
+}
+
+function buildHashtableEntry(
+    tokens: Token[],
+    source = ""
+): HashtableEntryNode {
+    // Separate comments from other tokens
+    const leadingComments: Token[] = [];
+    const trailingComments: Token[] = [];
+    const otherTokens: Token[] = [];
+
+    let equalsIndex = -1;
+    let foundEquals = false;
+
+    for (const token of tokens) {
+
+        if (token.type === "comment" || token.type === "block-comment") {
+            // Comments before the = are leading, after are trailing
+            if (foundEquals) {
+                trailingComments.push(token);
+            } else {
+                leadingComments.push(token);
+            }
+        } else {
+            if (
+                token.type === "operator" &&
+                token.value === "=" &&
+                !foundEquals
+            ) {
+                equalsIndex = otherTokens.length;
+                foundEquals = true;
+            }
+            otherTokens.push(token);
+        }
+    }
+
+    const keyTokens =
+        equalsIndex === -1 ? otherTokens : otherTokens.slice(0, equalsIndex);
+    const valueTokens =
+        equalsIndex === -1 ? [] : otherTokens.slice(equalsIndex + 1);
+    const keyExpression = buildExpressionFromTokens(keyTokens, source);
+    const valueExpression =
+        valueTokens.length > 0
+            ? buildExpressionFromTokens(valueTokens, source)
+            : buildExpressionFromTokens([], source);
+    const key = extractKeyText(keyTokens);
+
+    // Calculate start/end based on non-comment tokens like original logic
+    const start = keyTokens[0]?.start ?? valueTokens[0]?.start ?? 0;
+    const end =
+        (valueTokens.at(-1) ?? keyTokens.at(-1))
+            ?.end ?? start;
+
+    const entry: HashtableEntryNode = {
+        key,
+        loc: { end, start },
+        rawKey: keyExpression,
+        type: "HashtableEntry",
+        value: valueExpression,
+    };
+
+    // Add comments if present
+    if (leadingComments.length > 0) {
+        entry.leadingComments = leadingComments.map((token) => ({
+            inline: false,
+            loc: { end: token.end, start: token.start },
+            style:
+                token.type === "block-comment"
+                    ? ("block" as const)
+                    : ("line" as const),
+            type: "Comment" as const,
+            value: token.value,
+        }));
+    }
+
+    if (trailingComments.length > 0) {
+        const trailingNodes: CommentNode[] = [];
+        let referenceEnd =
+            valueTokens.at(-1)?.end ??
+            keyTokens.at(-1)?.end ??
+            tokens[0]?.start ??
+            0;
+
+        for (const token of trailingComments) {
+            const inline =
+                token.type === "comment" &&
+                isInlineSpacing(source, referenceEnd, token.start);
+
+            trailingNodes.push({
+                inline,
+                loc: { end: token.end, start: token.start },
+                style:
+                    token.type === "block-comment"
+                        ? ("block" as const)
+                        : ("line" as const),
+                type: "Comment" as const,
+                value: token.value,
+            });
+
+            referenceEnd = token.end;
+        }
+
+        if (trailingNodes.length > 1) {
+            for (const comment of trailingNodes) {
+                comment.inline = false;
+            }
+        }
+
+        if (trailingNodes.length > 0) {
+            entry.trailingComments = trailingNodes;
+        }
+    }
+
+    return entry;
+}
+
+function collectStructureTokens(
+    tokens: Token[],
+    startIndex: number
+): { closingToken?: Token; contentTokens: Token[]; endIndex: number; } {
+    const contentTokens: Token[] = [];
+    const stack: string[] = [tokens[startIndex].value];
+    let index = startIndex + 1;
+
+    while (index < tokens.length) {
+        const token = tokens[index];
+
+        if (isOpeningToken(token)) {
+            stack.push(token.value);
+            contentTokens.push(token);
+            index += 1;
+            continue;
+        }
+
+        if (isClosingToken(token)) {
+            if (stack.length === 1) {
+                return {
+                    closingToken: token,
+                    contentTokens,
+                    endIndex: index + 1,
+                };
+            }
+            stack.pop();
+            contentTokens.push(token);
+            index += 1;
+            continue;
+        }
+
+        contentTokens.push(token);
+        index += 1;
+    }
+
+    return { contentTokens, endIndex: tokens.length };
+}
+
+function createHereStringNode(token: Token): HereStringNode {
+    const quote = token.quote ?? "double";
+    return {
+        loc: { end: token.end, start: token.start },
+        quote,
+        type: "HereString",
+        value: token.value,
+    } satisfies HereStringNode;
+}
+
+function createTextNode(token: Token): TextNode {
+    const tokenTypeToRole: Record<string, TokenRole> = {
+        identifier: "word",
+        keyword: "keyword",
+        number: "number",
+        operator: "operator",
+        punctuation: "punctuation",
+        string: "string",
+        variable: "variable",
+    };
+    let role: TokenRole = tokenTypeToRole[token.type] ?? "unknown";
+
+    if (
+        (role === "unknown" || role === "word") &&
+        FALLBACK_OPERATOR_TOKENS.has(token.value)
+    ) {
+        role = "operator";
+    }
+
+    let value = token.value;
+
+    // Preserve the fact that this originated from a `#` line comment so that
+    // downstream printers can recognise it as comment text rather than code.
+    // The tokenizer stores the comment text *after* the `#`, including any
+    // leading whitespace (e.g. " Black"), so we simply re-prepend `#` here.
+    if (token.type === "comment") {
+        value = `#${value}`;
+    }
+
+    return {
+        loc: { end: token.end, start: token.start },
+        role,
+        type: "Text",
+        value,
+    } satisfies TextNode;
+}
+
+function extendNodeLocation(node: { loc: SourceLocation }, end: number): void {
+    if (end > node.loc.end) {
+        node.loc = { ...node.loc, end };
+    }
+}
+
+function extractElseContinuation(
+    tokens: Token[]
+): null | { elseTokens: Token[]; remainingTokens: Token[] } {
+    let index = 0;
+    const prefix: Token[] = [];
+    while (
+        index < tokens.length &&
+        (tokens[index].type === "newline" ||
+            tokens[index].type === "comment" ||
+            tokens[index].type === "block-comment")
+    ) {
+        prefix.push(tokens[index]);
+        index += 1;
+    }
+
+    const keywordToken = tokens[index];
+    if (keywordToken?.type !== "keyword") {
+        return null;
+    }
+    const keyword = keywordToken.value.toLowerCase();
+    if (keyword !== "else" && keyword !== "elseif") {
+        return null;
+    }
+
+    const captured: Token[] = [...prefix];
+    const stack: string[] = [];
+    for (; index < tokens.length; index += 1) {
+        const token = tokens[index];
+        captured.push(token);
+        if (token.type === "punctuation" && token.value === "{") {
+            stack.push("{");
+        } else if (token.type === "punctuation" && token.value === "}") {
+            if (stack.length === 0) {
+                continue;
+            }
+            stack.pop();
+            if (stack.length === 0) {
+                index += 1;
+                break;
+            }
+        }
+    }
+
+    if (stack.length > 0) {
+        return null;
+    }
+
+    return {
+        elseTokens: captured,
+        remainingTokens: tokens.slice(index),
+    };
+}
+
+function extractKeyText(tokens: Token[]): string {
+    const text = tokens
+        .filter((token) => token.type !== "newline")
+        .map((token) => token.value)
+        .join(" ")
+        .trim();
+    if (text.startsWith('"') && text.endsWith('"')) {
+        return text.slice(1, -1);
+    }
+    if (text.startsWith("'") && text.endsWith("'")) {
+        return text.slice(1, -1);
+    }
+    return text;
+}
+
+function findTopLevelEquals(tokens: Token[]): number {
+    const stack: string[] = [];
+    for (const [index, token] of tokens.entries()) {
+        if (isOpeningToken(token)) {
+            stack.push(token.value);
+            continue;
+        }
+        if (isClosingToken(token)) {
+            stack.pop();
+            continue;
+        }
+        if (
+            stack.length === 0 &&
+            token.type === "operator" &&
+            token.value === "="
+        ) {
+            return index;
+        }
+    }
+    return -1;
+}
+
+function hasTopLevelComma(tokens: Token[]): boolean {
+    const stack: string[] = [];
+    for (const token of tokens) {
+        if (isOpeningToken(token)) {
+            stack.push(token.value);
+            continue;
+        }
+        if (isClosingToken(token)) {
+            stack.pop();
+            continue;
+        }
+        if (
+            stack.length === 0 &&
+            token.type === "punctuation" &&
+            token.value === ","
+        ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function isClosingToken(token: Token): boolean {
+    return (
+        token.type === "punctuation" &&
+        (token.value === "}" || token.value === ")" || token.value === "]")
+    );
+}
+
+function isInlineSpacing(source: string, start: number, end: number): boolean {
+    if (start === undefined || end === undefined) {
+        return false;
+    }
+    for (let index = start; index < end; index += 1) {
+        const char = source[index];
+        if (char === "\n" || char === "\r") {
+            return false;
+        }
+        switch (char) {
+            case " ":
+            case "\t":
+            case "\f":
+            case "\v":
+            case "\u00A0":
+            case "\uFEFF":
+            case "\u200B":
+            case "\u2060": {
+                break;
+            }
+            default: {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+function isOpeningToken(token: Token): boolean {
+    if (token.type === "operator") {
+        return token.value === "@{" || token.value === "@(";
+    }
+    return (
+        token.type === "punctuation" &&
+        (token.value === "{" || token.value === "(" || token.value === "[")
+    );
+}
+
+function mergeNodes(previous: ScriptBodyNode, next: ScriptBodyNode): void {
+    if (previous.type === "Pipeline" && next.type === "Comment") {
+        previous.trailingComment = next;
+        extendNodeLocation(previous, next.loc.end);
+        return;
+    }
+
+    if (previous.type === "BlankLine" && next.type === "BlankLine") {
+        previous.count += next.count;
+        extendNodeLocation(previous, next.loc.end);
+        
+    }
+}
+
+function parseArrayPart(
+    tokens: Token[],
+    startIndex: number,
+    source = ""
+): { nextIndex: number; node: ArrayLiteralNode; } {
+    const startToken = tokens[startIndex];
+    const { closingToken, contentTokens, endIndex } = collectStructureTokens(
+        tokens,
+        startIndex
+    );
+    const elements = splitArrayElements(contentTokens).map((elementTokens) =>
+        buildExpressionFromTokens(elementTokens, source)
+    );
+    /* c8 ignore next */
+    const kind = startToken.value === "@(" ? "implicit" : "explicit";
+    const end = resolveStructureEnd(startToken, closingToken, contentTokens);
+    return {
+        nextIndex: endIndex,
+        node: {
+            elements,
+            kind,
+            loc: { end, start: startToken.start },
+            type: "ArrayLiteral",
+        },
+    } satisfies { nextIndex: number; node: ArrayLiteralNode; };
+}
+
+function parseHashtablePart(
+    tokens: Token[],
+    startIndex: number,
+    source = ""
+): { nextIndex: number; node: HashtableNode; } {
+    const startToken = tokens[startIndex];
+    const { closingToken, contentTokens, endIndex } = collectStructureTokens(
+        tokens,
+        startIndex
+    );
+    const entries = splitHashtableEntries(contentTokens).map((entryTokens) =>
+        buildHashtableEntry(entryTokens, source)
+    );
+    const end =
+        closingToken?.end ??
+        contentTokens.at(-1)?.end ??
+        startToken.end;
+    return {
+        nextIndex: endIndex,
+        node: {
+            entries,
+            loc: { end, start: startToken.start },
+            type: "Hashtable",
+        },
+    };
+}
+
+function parseParenthesisPart(
+    tokens: Token[],
+    startIndex: number,
+    source = ""
+): { nextIndex: number; node: ParenthesisNode; } {
+    const startToken = tokens[startIndex];
+    const { closingToken, contentTokens, endIndex } = collectStructureTokens(
+        tokens,
+        startIndex
+    );
+    const elements = splitArrayElements(contentTokens).map((elementTokens) =>
+        buildExpressionFromTokens(elementTokens, source)
+    );
+    const hasComma = hasTopLevelComma(contentTokens);
+    const hasNewline = contentTokens.some((token) => token.type === "newline");
+    const end = resolveStructureEnd(startToken, closingToken, contentTokens);
+    return {
+        nextIndex: endIndex,
+        node: {
+            elements,
+            hasComma,
+            hasNewline,
+            loc: { end, start: startToken.start },
+            type: "Parenthesis",
+        },
+    };
+}
+
+function parseScriptBlockPart(
+    tokens: Token[],
+    startIndex: number,
+    source = ""
+): { nextIndex: number; node: ScriptBlockNode; } {
+    const startToken = tokens[startIndex];
+    const { closingToken, contentTokens, endIndex } = collectStructureTokens(
+        tokens,
+        startIndex
+    );
+    const nestedParser = new Parser(contentTokens, source);
+    const script = nestedParser.parseScript();
+    const closingEnd = resolveStructureEnd(
+        startToken,
+        closingToken,
+        contentTokens
+    );
+    const bodyEnd =
+        script.body.length > 0
+            ? script.body.at(-1).loc.end
+            : closingEnd;
+    const end = Math.max(closingEnd, bodyEnd);
+    return {
+        nextIndex: endIndex,
+        node: {
+            body: script.body,
+            loc: { end, start: startToken.start },
+            type: "ScriptBlock",
+        },
+    };
+}
+
+function parseStatementForTest(tokens: Token[]): null | PipelineNode {
+    const parser = new Parser(tokens, "");
+    const internal = parser as unknown as {
+        parseStatement: () => null | PipelineNode;
+    };
+    return internal.parseStatement();
+}
+
+function resolveStructureEnd(
+    startToken: Token,
+    closingToken: Token | undefined,
+    contentTokens: Token[]
+): number {
+    if (closingToken) {
+        return closingToken.end;
+    }
+    const lastContent =
+        contentTokens.length > 0
+            ? contentTokens.at(-1)
+            : undefined;
+    if (lastContent) {
+        return lastContent.end;
+    }
+    return startToken.end;
+}
+
+function shouldMergeNodes(
+    previous: ScriptBodyNode,
+    next: ScriptBodyNode
+): boolean {
+    if (previous.type === "Pipeline" && next.type === "Comment") {
+        return Boolean(next.inline);
+    }
+
+    if (previous.type === "BlankLine" && next.type === "BlankLine") {
+        return true;
+    }
+
+    return false;
+}
+
+function splitArrayElements(tokens: Token[]): Token[][] {
+    return splitTopLevelTokens(tokens, {
+        delimiterValues: [","],
+        splitOnNewline: (context) => context.current.length > 0,
+    });
+}
+
+function splitHashtableEntries(tokens: Token[]): Token[][] {
+    type HashtableSplitState = {
+        hasEquals: boolean;
+        justSawEquals: boolean;
+        pendingComments: Token[];
+    };
+
+    const rawSegments = splitTopLevelTokens<HashtableSplitState>(tokens, {
+        createInitialState: () => ({
+            hasEquals: false,
+            justSawEquals: false,
+            pendingComments: [],
+        }),
+        delimiterValues: [";"],
+        onAfterAddToken: (context) => {
+            const { state, token, topLevel } = context;
+            if (topLevel && token.type === "operator" && token.value === "=") {
+                state.hasEquals = true;
+                state.justSawEquals = true;
+                return;
+            }
+            if (
+                token.type !== "newline" &&
+                token.type !== "comment" &&
+                token.type !== "block-comment"
+            ) {
+                state.justSawEquals = false;
+            }
+        },
+        onBeforeAddToken: (context) => {
+            if (context.state.pendingComments.length > 0) {
+                context.current.push(...context.state.pendingComments);
+                context.state.pendingComments = [];
+            }
+        },
+        onFlush: (segment, state, segments, _force) => {
+            // Use the `_force` parameter to appease lint rules about unused vars
+            void _force;
+            if (state.pendingComments.length > 0) {
+                if (segment.length > 0) {
+                    segment.push(...state.pendingComments);
+                } else if (segments.length > 0) {
+                    segments.at(-1).push(
+                        ...state.pendingComments
+                    );
+                }
+                state.pendingComments = [];
+            }
+            state.hasEquals = false;
+            state.justSawEquals = false;
+            return segment;
+        },
+        onToken: (context) => {
+            if (
+                context.token.type === "comment" ||
+                context.token.type === "block-comment"
+            ) {
+                context.state.pendingComments.push(context.token);
+                return "skip";
+            }
+        },
+        shouldSplitOnDelimiter: (context) => {
+            if (context.current.length === 0) {
+                return false;
+            }
+            if (context.state.pendingComments.length > 0) {
+                context.current.push(...context.state.pendingComments);
+                context.state.pendingComments = [];
+            }
+            return true;
+        },
+        splitOnNewline: (context) => {
+            if (context.current.length === 0) {
+                return false;
+            }
+            if (!context.state.hasEquals || context.state.justSawEquals) {
+                return false;
+            }
+            if (context.state.pendingComments.length > 0) {
+                context.current.push(...context.state.pendingComments);
+                context.state.pendingComments = [];
+            }
+            return true;
+        },
+    });
+
+    const segments: Token[][] = [];
+    for (const segment of rawSegments) {
+        if (segments.length > 0) {
+            const continuation = extractElseContinuation(segment);
+            if (continuation) {
+                segments.at(-1).push(...continuation.elseTokens);
+                if (continuation.remainingTokens.length > 0) {
+                    segments.push(continuation.remainingTokens);
+                }
+                continue;
+            }
+        }
+        segments.push(segment);
+    }
+
+    return segments;
+}
+
+function splitTopLevelTokens<TState = Record<string, never>>(
+    tokens: Token[],
+    options: SplitOptions<TState> = {}
+): Token[][] {
+    const result: Token[][] = [];
+    let current: Token[] = [];
+    const stack: string[] = [];
+    const state = options.createInitialState
+        ? options.createInitialState()
+        : ({} as TState);
+
+    const flush = (force = false) => {
+        if (!force && current.length === 0) {
+            return;
+        }
+        const maybeSegment = options.onFlush?.(current, state, result, force);
+        const segment = maybeSegment ?? current;
+        if (segment.length > 0) {
+            result.push(segment);
+        }
+        current = [];
+    };
+
+    for (const token of tokens) {
+        const topLevel = stack.length === 0;
+        const context: SplitContext<TState> = {
+            current,
+            stack,
+            state,
+            token,
+            topLevel,
+        };
+
+        if (token.type === "newline" && topLevel) {
+            if (options.splitOnNewline?.(context)) {
+                flush();
+            }
+            continue;
+        }
+
+        if (
+            topLevel &&
+            token.type === "punctuation" &&
+            options.delimiterValues?.includes(token.value)
+        ) {
+            if (options.shouldSplitOnDelimiter?.(context) ?? true) {
+                flush();
+            }
+            continue;
+        }
+
+        const decision = options.onToken?.(context);
+        if (decision === "skip") {
+            continue;
+        }
+
+        options.onBeforeAddToken?.(context);
+
+        if (isOpeningToken(token)) {
+            stack.push(token.value);
+            current.push(token);
+        } else if (isClosingToken(token)) {
+            stack.pop();
+            current.push(token);
+        } else {
+            current.push(token);
+        }
+
+        options.onAfterAddToken?.({
+            current,
+            stack,
+            state,
+            token,
+            topLevel: stack.length === 0,
+        });
+    }
+
+    flush(true);
+
+    return result;
+}
 export const __parserTestUtils: {
-    isOpeningToken: typeof isOpeningToken;
-    isClosingToken: typeof isClosingToken;
-    collectStructureTokens: typeof collectStructureTokens;
-    splitHashtableEntries: typeof splitHashtableEntries;
-    findTopLevelEquals: typeof findTopLevelEquals;
-    extractKeyText: typeof extractKeyText;
-    splitArrayElements: typeof splitArrayElements;
-    hasTopLevelComma: typeof hasTopLevelComma;
-    splitTopLevelTokens: typeof splitTopLevelTokens;
-    parseScriptWithTerminators: typeof parseScriptWithTerminators;
     buildExpressionFromTokens: typeof buildExpressionFromTokens;
+    buildHashtableEntry: typeof buildHashtableEntry;
+    collectStructureTokens: typeof collectStructureTokens;
     createHereStringNode: typeof createHereStringNode;
     createTextNode: typeof createTextNode;
-    buildHashtableEntry: typeof buildHashtableEntry;
-    resolveStructureEnd: typeof resolveStructureEnd;
+    extractKeyText: typeof extractKeyText;
+    findTopLevelEquals: typeof findTopLevelEquals;
+    hasTopLevelComma: typeof hasTopLevelComma;
+    isClosingToken: typeof isClosingToken;
+    isOpeningToken: typeof isOpeningToken;
+    parseScriptWithTerminators: typeof parseScriptWithTerminators;
     parseStatementForTest: typeof parseStatementForTest;
+    resolveStructureEnd: typeof resolveStructureEnd;
+    splitArrayElements: typeof splitArrayElements;
+    splitHashtableEntries: typeof splitHashtableEntries;
+    splitTopLevelTokens: typeof splitTopLevelTokens;
 } = {
-    isOpeningToken,
-    isClosingToken,
-    collectStructureTokens,
-    splitHashtableEntries,
-    findTopLevelEquals,
-    extractKeyText,
-    splitArrayElements,
-    hasTopLevelComma,
-    splitTopLevelTokens,
-    parseScriptWithTerminators,
     buildExpressionFromTokens,
+    buildHashtableEntry,
+    collectStructureTokens,
     createHereStringNode,
     createTextNode,
-    buildHashtableEntry,
-    resolveStructureEnd,
+    extractKeyText,
+    findTopLevelEquals,
+    hasTopLevelComma,
+    isClosingToken,
+    isOpeningToken,
+    parseScriptWithTerminators,
     parseStatementForTest,
+    resolveStructureEnd,
+    splitArrayElements,
+    splitHashtableEntries,
+    splitTopLevelTokens,
 };
 
 export const locStart = (node: { loc: { start: number } }): number =>

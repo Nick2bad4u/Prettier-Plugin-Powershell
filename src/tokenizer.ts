@@ -1,165 +1,195 @@
 import type { HereStringNode } from "./ast.js";
 
-export type TokenType =
-    | "newline"
-    | "identifier"
-    | "keyword"
-    | "variable"
-    | "number"
-    | "string"
-    | "heredoc"
-    | "comment"
-    | "block-comment"
-    | "attribute"
-    | "punctuation"
-    | "operator"
-    | "unknown";
-
 export interface Token {
+    end: number;
+    quote?: "double" | "single";
+    start: number;
     type: TokenType;
     value: string;
-    start: number;
-    end: number;
-    quote?: "single" | "double";
 }
 
+export type TokenType =
+    | "attribute"
+    | "block-comment"
+    | "comment"
+    | "heredoc"
+    | "identifier"
+    | "keyword"
+    | "newline"
+    | "number"
+    | "operator"
+    | "punctuation"
+    | "string"
+    | "unknown"
+    | "variable";
+
 const KEYWORDS = new Set([
-    "function",
-    "if",
-    "elseif",
+    "begin",
+    "break",
+    "catch",
+    "class",
+    "configuration",
+    "continue",
+    "data",
+    "default",
+    "do",
+    "dynamicparam",
     "else",
+    "elseif",
+    "end",
+    "enum",
+    "exit",
+    "filter",
+    "finally",
     "for",
     "foreach",
-    "while",
-    "switch",
-    "try",
-    "catch",
-    "finally",
-    "param",
-    "class",
-    "enum",
-    "begin",
-    "process",
-    "end",
-    "dynamicparam",
-    "filter",
-    "workflow",
-    "configuration",
+    "function",
+    "if",
     "inlinescript",
     "parallel",
-    "sequence",
-    "break",
-    "continue",
+    "param",
+    "process",
     "return",
+    "sequence",
+    "switch",
     "throw",
-    "exit",
     "trap",
-    "data",
-    "do",
+    "try",
     "until",
-    "default",
+    "while",
+    "workflow",
 ]);
 
 // PowerShell operators (case-insensitive)
 const POWERSHELL_OPERATORS = new Set([
-    // Comparison operators
-    "-eq",
-    "-ne",
-    "-gt",
-    "-ge",
-    "-lt",
-    "-le",
-    "-like",
-    "-notlike",
-    "-match",
-    "-notmatch",
-    "-contains",
-    "-notcontains",
-    "-in",
-    "-notin",
-    "-is",
-    "-isnot",
-    // Case-sensitive variants
-    "-ceq",
-    "-cne",
-    "-cgt",
-    "-cge",
-    "-clt",
-    "-cle",
-    "-clike",
-    "-cnotlike",
-    "-cmatch",
-    "-cnotmatch",
-    "-ccontains",
-    "-cnotcontains",
-    "-cin",
-    "-cnotin",
-    // Case-insensitive explicit variants
-    "-ieq",
-    "-ine",
-    "-igt",
-    "-ige",
-    "-ilt",
-    "-ile",
-    "-ilike",
-    "-inotlike",
-    "-imatch",
-    "-inotmatch",
-    "-icontains",
-    "-inotcontains",
-    "-iin",
-    "-inotin",
     // Logical operators
     "-and",
-    "-or",
-    "-xor",
-    "-not",
+    // Type operators
+    "-as",
     // Bitwise operators
     "-band",
+    "-bnot",
     "-bor",
     "-bxor",
-    "-bnot",
+    "-ccontains",
+    // Case-sensitive variants
+    "-ceq",
+    "-cge",
+    "-cgt",
+    "-cin",
+    "-cle",
+    "-clike",
+    "-clt",
+    "-cmatch",
+    "-cne",
+    "-cnotcontains",
+    "-cnotin",
+    "-cnotlike",
+    "-cnotmatch",
+    "-contains",
+    // Other operators
+    "-creplace",
+    "-csplit",
+    // Comparison operators
+    "-eq",
+    "-f",
+    "-ge",
+    "-gt",
+    "-icontains",
+    // Case-insensitive explicit variants
+    "-ieq",
+    "-ige",
+    "-igt",
+    "-iin",
+    "-ile",
+    "-ilike",
+    "-ilt",
+    "-imatch",
+    "-in",
+    "-ine",
+    "-inotcontains",
+    "-inotin",
+    "-inotlike",
+    "-inotmatch",
+    "-ireplace",
+    "-is",
+    "-isnot",
+    "-isplit",
+    "-join",
+    "-le",
+    "-like",
+    "-lt",
+    "-match",
+    "-ne",
+    "-not",
+    "-notcontains",
+    "-notin",
+    "-notlike",
+    "-notmatch",
+    "-or",
+    "-replace",
     "-shl",
     "-shr",
     // String operators
     "-split",
-    "-join",
-    "-replace",
-    "-f",
-    // Type operators
-    "-as",
-    // Other operators
-    "-creplace",
-    "-ireplace",
-    "-csplit",
-    "-isplit",
+    "-xor",
 ]);
 
 const PUNCTUATION = new Set([
-    "{",
-    "}",
     "(",
     ")",
-    "[",
-    "]",
     ",",
-    ";",
     ".",
     ":",
+    ";",
+    "[",
+    "]",
+    "{",
+    "}",
 ]);
 
 // Cached regex patterns for performance
 // These are defined at module level to avoid recreation in the tokenize loop
-const WHITESPACE_PATTERN = /[\s\u00A0\u200B\u2060\uFEFF]/;
-const IDENTIFIER_START_PATTERN = /[A-Za-z_]/;
-const UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}_:-]$/u;
-const HEX_DIGIT_PATTERN = /[0-9A-Fa-f]/;
+const WHITESPACE_PATTERN = /[\s\u200B\u2060]/;
+const IDENTIFIER_START_PATTERN = /[_a-z]/i;
+const UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}\-:_]$/u;
+const HEX_DIGIT_PATTERN = /[\da-f]/i;
 const BINARY_DIGIT_PATTERN = /[01]/;
-const DECIMAL_DIGIT_PATTERN = /[0-9]/;
-const NUMBER_SUFFIX_PATTERN = /[dDfFlLuU]/;
+const DECIMAL_DIGIT_PATTERN = /\d/;
+const NUMBER_SUFFIX_PATTERN = /[dflu]/i;
 const UNICODE_IDENTIFIER_START_PATTERN = /[\p{L}_]/u;
-const UNICODE_IDENTIFIER_CHAR_PATTERN = /[\p{L}\p{N}_-]/u;
-const UNICODE_IDENTIFIER_AFTER_DASH_PATTERN = /[-\p{L}]/u;
+const UNICODE_IDENTIFIER_CHAR_PATTERN = /[\p{L}\p{N}\-_]/u;
+const UNICODE_IDENTIFIER_AFTER_DASH_PATTERN = /[\p{L}\-]/u;
+
+/**
+ * Normalizes a here-string by removing the opening and closing delimiters.
+ *
+ * PowerShell here-strings have the format:
+ *
+ * @param node - The here-string AST node
+ *
+ * @returns The normalized content without delimiters
+ *
+ * @"
+ * content
+ * "@
+ *
+ * or
+ *
+ * @'
+ * content
+ * '@
+ *
+ * This function extracts just the content between the delimiters.
+ * If the here-string is too short (malformed), returns it as-is.
+ */
+export function normalizeHereString(node: HereStringNode): string {
+    const lines = node.value.split(/\r?\n/);
+    if (lines.length <= 2) {
+        return node.value;
+    }
+    return lines.slice(1, -1).join("\n");
+}
 
 /**
  * Tokenizes PowerShell source code into an array of tokens.
@@ -193,7 +223,7 @@ export function tokenize(source: string): Token[] {
 
     const readCodePoint = (
         position: number
-    ): { codePoint: number; text: string; width: number } | null => {
+    ): null | { codePoint: number; text: string; width: number } => {
         const codePoint = source.codePointAt(position);
         if (codePoint === undefined) {
             return null;
@@ -213,12 +243,14 @@ export function tokenize(source: string): Token[] {
             case "\f":
             case "\v":
             case "\u00A0":
-            case "\u200B":
-            case "\u2060":
             case "\uFEFF":
+            case "\u200B":
+            case "\u2060": {
                 return true;
-            default:
+            }
+            default: {
                 return false;
+            }
         }
     };
 
@@ -229,10 +261,10 @@ export function tokenize(source: string): Token[] {
         if (char === "\r" || char === "\n") {
             if (char === "\r" && source[index + 1] === "\n") {
                 index += 2;
-                push({ type: "newline", value: "\r\n", start, end: index });
+                push({ end: index, start, type: "newline", value: "\r\n" });
             } else {
                 index += 1;
-                push({ type: "newline", value: "\n", start, end: index });
+                push({ end: index, start, type: "newline", value: "\n" });
             }
             continue;
         }
@@ -255,12 +287,12 @@ export function tokenize(source: string): Token[] {
                 }
                 scanIndex += 1;
             }
-            const end = scanIndex >= length ? length : scanIndex;
+            const end = Math.min(scanIndex, length);
             push({
+                end,
+                start,
                 type: "block-comment",
                 value: source.slice(start, end),
-                start,
-                end,
             });
             index = end;
             continue;
@@ -276,10 +308,10 @@ export function tokenize(source: string): Token[] {
                 index += 1;
             }
             push({
+                end: index,
+                start,
                 type: "comment",
                 value: source.slice(start + 1, index).trimEnd(),
-                start,
-                end: index,
             });
             continue;
         }
@@ -341,10 +373,10 @@ export function tokenize(source: string): Token[] {
                 }
                 const attributeEnd = depth === 0 ? scanIndex : length;
                 push({
+                    end: attributeEnd,
+                    start,
                     type: "attribute",
                     value: source.slice(start, attributeEnd),
-                    start,
-                    end: attributeEnd,
                 });
                 index = attributeEnd;
                 continue;
@@ -390,11 +422,11 @@ export function tokenize(source: string): Token[] {
             }
 
             push({
-                type: "heredoc",
-                value: source.slice(index, end),
-                start,
                 end,
                 quote,
+                start,
+                type: "heredoc",
+                value: source.slice(index, end),
             });
             index = end;
             continue;
@@ -421,11 +453,11 @@ export function tokenize(source: string): Token[] {
                 index += 1;
             }
             push({
-                type: "string",
-                value: source.slice(start, index),
-                start,
                 end: index,
                 quote,
+                start,
+                type: "string",
+                value: source.slice(start, index),
             });
             continue;
         }
@@ -436,7 +468,7 @@ export function tokenize(source: string): Token[] {
         ) {
             const value = `@${source[index + 1]}`;
             index += 2;
-            push({ type: "operator", value, start, end: index });
+            push({ end: index, start, type: "operator", value });
             continue;
         }
 
@@ -458,10 +490,10 @@ export function tokenize(source: string): Token[] {
                 scanIndex += peek.width;
             }
             push({
+                end: scanIndex,
+                start,
                 type: "identifier",
                 value: source.slice(start, scanIndex),
-                start,
-                end: scanIndex,
             });
             index = scanIndex;
             continue;
@@ -469,13 +501,13 @@ export function tokenize(source: string): Token[] {
 
         if (char === ":" && source[index + 1] === ":") {
             index += 2;
-            push({ type: "operator", value: "::", start, end: index });
+            push({ end: index, start, type: "operator", value: "::" });
             continue;
         }
 
         if (PUNCTUATION.has(char)) {
             index += 1;
-            push({ type: "punctuation", value: char, start, end: index });
+            push({ end: index, start, type: "punctuation", value: char });
             continue;
         }
 
@@ -487,14 +519,14 @@ export function tokenize(source: string): Token[] {
             } else {
                 index += 1;
             }
-            push({ type: "operator", value, start, end: index });
+            push({ end: index, start, type: "operator", value });
             continue;
         }
 
         // Pipeline chain operators: && and ||
         if (char === "&" && source[index + 1] === "&") {
             index += 2;
-            push({ type: "operator", value: "&&", start, end: index });
+            push({ end: index, start, type: "operator", value: "&&" });
             continue;
         }
 
@@ -511,16 +543,16 @@ export function tokenize(source: string): Token[] {
                 source[index] === "&" &&
                 /[1-6]/.test(source[index + 1] ?? "")
             ) {
-                value += "&" + source[index + 1];
+                value += `&${  source[index + 1]}`;
                 index += 2;
             }
-            push({ type: "operator", value, start, end: index });
+            push({ end: index, start, type: "operator", value });
             continue;
         }
 
         // Stream redirection operators: 2>, 3>, 4>, 5>, 6>, *>
-        if (/[2-6*]/.test(char) && source[index + 1] === ">") {
-            let value = char + ">";
+        if (/[*2-6]/.test(char) && source[index + 1] === ">") {
+            let value = `${char  }>`;
             index += 2;
             // Check for >> (append)
             if (source[index] === ">") {
@@ -529,16 +561,16 @@ export function tokenize(source: string): Token[] {
             }
             // Check for merging redirection: 2>&1, *>&2, etc.
             if (source[index] === "&" && /[1-6]/.test(source[index + 1])) {
-                value += "&" + source[index + 1];
+                value += `&${  source[index + 1]}`;
                 index += 2;
             }
-            push({ type: "operator", value, start, end: index });
+            push({ end: index, start, type: "operator", value });
             continue;
         }
 
         if (char === "&") {
             index += 1;
-            push({ type: "operator", value: "&", start, end: index });
+            push({ end: index, start, type: "operator", value: "&" });
             continue;
         }
 
@@ -549,9 +581,9 @@ export function tokenize(source: string): Token[] {
             source[index + 2] === "&" &&
             /[2-6]/.test(source[index + 3])
         ) {
-            const value = "1>&" + source[index + 3];
+            const value = `1>&${  source[index + 3]}`;
             index += 4;
-            push({ type: "operator", value, start, end: index });
+            push({ end: index, start, type: "operator", value });
             continue;
         }
 
@@ -565,10 +597,10 @@ export function tokenize(source: string): Token[] {
                 if (nextChar === "$" || nextChar === "^" || nextChar === "?") {
                     index += 1;
                     push({
+                        end: index,
+                        start,
                         type: "variable",
                         value: source.slice(start, index),
-                        start,
-                        end: index,
                     });
                     continue;
                 }
@@ -581,15 +613,15 @@ export function tokenize(source: string): Token[] {
                         // Otherwise, it's the special $_ variable
                         if (peek && UNICODE_VAR_CHAR_PATTERN.test(peek.text)) {
                             // Continue to regular variable parsing below
-                            index += 1; // consume the underscore
+                            index += 1; // Consume the underscore
                         } else {
                             // It's just the special $_ variable
                             index += 1;
                             push({
+                                end: index,
+                                start,
                                 type: "variable",
                                 value: source.slice(start, index),
-                                start,
-                                end: index,
                             });
                             continue;
                         }
@@ -597,10 +629,10 @@ export function tokenize(source: string): Token[] {
                         // $_ at end of source
                         index += 1;
                         push({
+                            end: index,
+                            start,
                             type: "variable",
                             value: source.slice(start, index),
-                            start,
-                            end: index,
                         });
                         continue;
                     }
@@ -632,15 +664,15 @@ export function tokenize(source: string): Token[] {
                 break;
             }
             push({
+                end: index,
+                start,
                 type: "variable",
                 value: source.slice(start, index),
-                start,
-                end: index,
             });
             continue;
         }
 
-        if (/[0-9]/.test(char)) {
+        if (/\d/.test(char)) {
             index += 1;
 
             // Check for hex number (0x...)
@@ -649,7 +681,7 @@ export function tokenize(source: string): Token[] {
                 index < length &&
                 (source[index] === "x" || source[index] === "X")
             ) {
-                index += 1; // consume 'x' or 'X'
+                index += 1; // Consume 'x' or 'X'
                 while (
                     index < length &&
                     HEX_DIGIT_PATTERN.test(source[index])
@@ -671,21 +703,21 @@ export function tokenize(source: string): Token[] {
                     const suffix = source.slice(index, index + 2).toUpperCase();
                     if (
                         [
+                            "GB",
                             "KB",
                             "MB",
-                            "GB",
-                            "TB",
                             "PB",
+                            "TB",
                         ].includes(suffix)
                     ) {
                         index += 2;
                     }
                 }
                 push({
+                    end: index,
+                    start,
                     type: "number",
                     value: source.slice(start, index),
-                    start,
-                    end: index,
                 });
                 continue;
             }
@@ -696,7 +728,7 @@ export function tokenize(source: string): Token[] {
                 index < length &&
                 (source[index] === "b" || source[index] === "B")
             ) {
-                index += 1; // consume 'b' or 'B'
+                index += 1; // Consume 'b' or 'B'
                 while (
                     index < length &&
                     BINARY_DIGIT_PATTERN.test(source[index])
@@ -713,10 +745,10 @@ export function tokenize(source: string): Token[] {
                     index += 1;
                 }
                 push({
+                    end: index,
+                    start,
                     type: "number",
                     value: source.slice(start, index),
-                    start,
-                    end: index,
                 });
                 continue;
             }
@@ -776,11 +808,11 @@ export function tokenize(source: string): Token[] {
                 const suffix = source.slice(index, index + 2).toUpperCase();
                 if (
                     [
+                        "GB",
                         "KB",
                         "MB",
-                        "GB",
-                        "TB",
                         "PB",
+                        "TB",
                     ].includes(suffix)
                 ) {
                     index += 2;
@@ -788,10 +820,10 @@ export function tokenize(source: string): Token[] {
             }
 
             push({
+                end: index,
+                start,
                 type: "number",
                 value: source.slice(start, index),
-                start,
-                end: index,
             });
             continue;
         }
@@ -808,10 +840,10 @@ export function tokenize(source: string): Token[] {
                 endIndex += 1;
             }
             push({
+                end: endIndex,
+                start,
                 type: "operator",
                 value: source.slice(start, endIndex),
-                start,
-                end: endIndex,
             });
             index = endIndex;
             continue;
@@ -833,16 +865,16 @@ export function tokenize(source: string): Token[] {
             const raw = source.slice(start, index);
             const lower = raw.toLowerCase();
             if (KEYWORDS.has(lower)) {
-                push({ type: "keyword", value: raw, start, end: index });
+                push({ end: index, start, type: "keyword", value: raw });
             } else if (POWERSHELL_OPERATORS.has(lower)) {
-                push({ type: "operator", value: raw, start, end: index });
+                push({ end: index, start, type: "operator", value: raw });
             } else {
-                push({ type: "identifier", value: raw, start, end: index });
+                push({ end: index, start, type: "identifier", value: raw });
             }
             continue;
         }
 
-        if (startCodePoint && startCodePoint.text === "-") {
+        if (startCodePoint?.text === "-") {
             const afterDash = readCodePoint(index + startCodePoint.width);
             if (
                 afterDash &&
@@ -862,50 +894,20 @@ export function tokenize(source: string): Token[] {
                 const raw = source.slice(start, index);
                 const lower = raw.toLowerCase();
                 if (KEYWORDS.has(lower)) {
-                    push({ type: "keyword", value: raw, start, end: index });
+                    push({ end: index, start, type: "keyword", value: raw });
                 } else if (POWERSHELL_OPERATORS.has(lower)) {
-                    push({ type: "operator", value: raw, start, end: index });
+                    push({ end: index, start, type: "operator", value: raw });
                 } else {
-                    push({ type: "identifier", value: raw, start, end: index });
+                    push({ end: index, start, type: "identifier", value: raw });
                 }
                 continue;
             }
         }
 
-        // fallback single character token
+        // Fallback single character token
         index += 1;
-        push({ type: "unknown", value: char, start, end: index });
+        push({ end: index, start, type: "unknown", value: char });
     }
 
     return tokens;
-}
-
-/**
- * Normalizes a here-string by removing the opening and closing delimiters.
- *
- * PowerShell here-strings have the format:
- *
- * @param node - The here-string AST node
- *
- * @returns The normalized content without delimiters
- *
- * @"
- * content
- * "@
- *
- * or
- *
- * @'
- * content
- * '@
- *
- * This function extracts just the content between the delimiters.
- * If the here-string is too short (malformed), returns it as-is.
- */
-export function normalizeHereString(node: HereStringNode): string {
-    const lines = node.value.split(/\r?\n/);
-    if (lines.length <= 2) {
-        return node.value;
-    }
-    return lines.slice(1, -1).join("\n");
 }

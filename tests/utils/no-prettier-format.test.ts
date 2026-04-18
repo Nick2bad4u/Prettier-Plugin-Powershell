@@ -14,12 +14,12 @@ describe("enforce formatAndAssert usage", () => {
                 if (entry.isDirectory()) {
                     walk(full);
                 } else if (entry.isFile() && full.endsWith(".ts")) {
-                    // skip the format-and-assert helper itself (normalize path for cross-platform)
+                    // Skip the format-and-assert helper itself (normalize path for cross-platform)
                     const rel = relative(TEST_DIR, full).split(sep).join("/");
                     if (rel === "utils/format-and-assert.ts") {
                         continue;
                     }
-                    // skip this test file itself to avoid matching the literal string we search for
+                    // Skip this test file itself to avoid matching the literal string we search for
                     if (rel === "utils/no-prettier-format.test.ts") {
                         continue;
                     }

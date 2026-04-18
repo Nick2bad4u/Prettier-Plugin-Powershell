@@ -391,7 +391,7 @@ describe("AST utility property-based tests", () => {
                             throw new Error("Location 2 invalid");
                         }
 
-                        // createLocation(a, b) should have start=a and end = max(a, b)
+                        // CreateLocation(a, b) should have start=a and end = max(a, b)
                         // createLocation(b, a) should have start=b and end = max(a, b)
                         if (loc1.start !== a) {
                             throw new Error(

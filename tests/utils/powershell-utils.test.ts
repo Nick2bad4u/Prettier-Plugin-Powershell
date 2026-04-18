@@ -58,7 +58,7 @@ class MockProcess extends EventEmitter {
                 const identifierLength = this.buffer.readInt32LE(0);
                 this.buffer = this.buffer.subarray(4);
                 const scriptLength = this.totalLength - 4 - identifierLength;
-                this.expectedDataLength = identifierLength + scriptLength; // identifier + script
+                this.expectedDataLength = identifierLength + scriptLength; // Identifier + script
                 this.dataCollected = 0;
                 continue;
             }
