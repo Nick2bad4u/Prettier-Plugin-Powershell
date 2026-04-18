@@ -1,5 +1,4 @@
 import { readFile } from "node:fs/promises";
-import { URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import plugin from "../src/plugin.js";
@@ -18,7 +17,7 @@ const readFixture = (relativePath: string) =>
     readFile(new URL(relativePath, import.meta.url), "utf8");
 
 const normalizeNewlines = (text: string): string =>
-    text.replaceAll('\r\n', "\n");
+    text.replaceAll("\r\n", "\n");
 
 describe("ps-color-scripts regressions", () => {
     async function assertFormatting(
@@ -150,4 +149,3 @@ describe("ps-color-scripts regressions", () => {
         );
     });
 });
-

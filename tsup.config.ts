@@ -1,15 +1,14 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/plugin.ts"],
-  format: ["esm", "cjs"],
-  dts: true,
-  sourcemap: true,
-  splitting: false,
-  clean: true,
-  target: "es2020",
-  outDir: "dist",
-  shims: false,
-  external: ["prettier"]
+    clean: true,
+    dts: true,
+    entry: ["src/plugin.ts"],
+    external: ["prettier"],
+    format: ["esm", "cjs"],
+    outDir: "dist",
+    shims: false,
+    sourcemap: true,
+    splitting: false,
+    target: "es2020",
 });
-

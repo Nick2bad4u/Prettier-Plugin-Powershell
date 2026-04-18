@@ -1,7 +1,6 @@
 import type { Options, ParserOptions } from "prettier";
 
 import * as fc from "fast-check";
-import { env } from "node:process";
 import { describe, it } from "vitest";
 
 import type { BaseNode, SourceLocation } from "../src/ast.js";
@@ -15,7 +14,7 @@ import { isPowerShellParsable } from "./utils/powershell.js";
 import { withProgress } from "./utils/progress.js";
 
 const PROPERTY_RUNS = Number.parseInt(
-    env.POWERSHELL_PROPERTY_RUNS ?? "150",
+    globalThis.process.env.POWERSHELL_PROPERTY_RUNS ?? "150",
     10
 );
 
@@ -77,26 +76,21 @@ const assertLocationIntegrity = (
     }
 
     if (parentLoc && (loc.start < parentLoc.start || loc.end > parentLoc.end)) {
-            throw new Error(
-                `child location outside parent range for ${node.type}: child=${JSON.stringify(loc)} parent=${JSON.stringify(parentLoc)}`
-            );
-        }
+        throw new Error(
+            `child location outside parent range for ${node.type}: child=${JSON.stringify(loc)} parent=${JSON.stringify(parentLoc)}`
+        );
+    }
 
     for (const value of Object.values(
         node as unknown as Record<string, unknown>
     )) {
-        if (!value) {
-            continue;
-        }
         if (Array.isArray(value)) {
             for (const element of value) {
                 if (isNode(element)) {
                     assertLocationIntegrity(element, sourceLength, loc);
                 }
             }
-            continue;
-        }
-        if (isNode(value)) {
+        } else if (isNode(value)) {
             assertLocationIntegrity(value, sourceLength, loc);
         }
     }
@@ -110,7 +104,8 @@ const assertParserOutput = (script: string): void => {
 };
 
 describe("PowerShell parser property-based tests", () => {
-    it("parses generated scripts without throwing and maintains location invariants", () => withProgress("parser.location", PROPERTY_RUNS, (tracker) => {
+    it("parses generated scripts without throwing and maintains location invariants", () =>
+        withProgress("parser.location", PROPERTY_RUNS, (tracker) => {
             fc.assert(
                 fc.property(structuredScriptArbitrary, (script) => {
                     tracker.advance();
@@ -133,7 +128,7 @@ describe("PowerShell parser property-based tests", () => {
                     fc.pre(isValidPowerShell);
                     const options = createParserOptions();
                     const hasTryCatch =
-                        /\btry\b/i.test(script) && /\bcatch\b/i.test(script);
+                        /\btry\b/iv.test(script) && /\bcatch\b/iv.test(script);
                     const formatted = await formatAndAssert(
                         script,
                         prettierConfig,
@@ -167,4 +162,3 @@ describe("PowerShell parser property-based tests", () => {
         });
     });
 });
-

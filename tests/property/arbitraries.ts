@@ -63,7 +63,7 @@ const singleQuotedStringArb: fc.Arbitrary<string> = fc
     .array(stringCharArb, { maxLength: 18 })
     .map((chars: string[]) => {
         const content = chars.join("");
-        return `'${content.replaceAll('\'', "''")}'`;
+        return `'${content.replaceAll("'", "''")}'`;
     });
 
 const doubleQuotedStringArb: fc.Arbitrary<string> = fc
@@ -93,11 +93,15 @@ const variableReferenceArb: fc.Arbitrary<string> = variableNameArb;
 
 const arrayLiteralArb: fc.Arbitrary<string> = fc
     .array(simpleValueArb, { maxLength: 5 })
-    .map((elements) =>
-        elements.length === 0
-            ? "@()"
-            : `@(${elements.join(elements.length > 1 ? ", " : "")})`
-    );
+    .map((elements) => {
+        if (elements.length === 0) {
+            return "@()";
+        }
+
+        const separator = elements.length > 1 ? ", " : "";
+
+        return `@(${elements.join(separator)})`;
+    });
 
 interface HashtableEntry {
     key: string;
@@ -586,7 +590,9 @@ const arbitraries = fc.letrec<LetrecShape>((tie) => {
             ]): string => {
                 const joined = [first, ...rest].join("\n");
                 const normalised =
-                    newline === "\n" ? joined : joined.replaceAll('\n', newline);
+                    newline === "\n"
+                        ? joined
+                        : joined.replaceAll("\n", newline);
                 return trailing ? `${normalised}${newline}` : normalised;
             }
         );

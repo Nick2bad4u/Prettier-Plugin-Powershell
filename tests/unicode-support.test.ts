@@ -64,14 +64,14 @@ describe("unicode support in tokenizer", () => {
     });
 
     it("handles braced variable names with spaces and emoji", async () => {
-        const script = "${'var with spaces'} = 1";
+        const script = String.raw`\${'var with spaces'} = 1`;
         const result = await formatAndAssert(
             script,
             baseConfig,
             "unicode-support"
         );
 
-        expect(result).toContain("${'var with spaces'}");
+        expect(result).toContain(String.raw`\${'var with spaces'}`);
     });
 
     it("preserves Unicode in strings", async () => {
@@ -95,4 +95,3 @@ describe("unicode support in tokenizer", () => {
         expect(result.trim()).toBe("$test变量Name = 'mixed'");
     });
 });
-

@@ -339,10 +339,10 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("tokenizes variables with brace and colon syntax", () => {
-        const tokens = tokenize("\${env:PATH}");
+        const tokens = tokenize(String.raw`\${env:PATH}`);
         const variable = tokens.find((token) => token.type === "variable");
 
-        expect(variable?.value).toBe("\${env:PATH}");
+        expect(variable?.value).toBe(String.raw`\${env:PATH}`);
     });
 
     it("tokenizes comments while trimming trailing whitespace", () => {
@@ -354,10 +354,10 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("supports complex variable characters inside braces", () => {
-        const tokens = tokenize("\${user-name_with:parts}");
+        const tokens = tokenize(String.raw`\${user-name_with:parts}`);
         const variable = tokens.find((token) => token.type === "variable");
 
-        expect(variable?.value).toBe("\${user-name_with:parts}");
+        expect(variable?.value).toBe(String.raw`\${user-name_with:parts}`);
     });
 
     it("tokenizes double colon as a single operator", () => {

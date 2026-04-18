@@ -139,14 +139,14 @@ Hello
     });
 
     it("handles variable with braces", async () => {
-        const input = "${my-var}";
+        const input = String.raw`\${my-var}`;
         const result = await formatAndAssert(
             input,
             baseConfig,
             "coverage.result|skipParse"
         );
 
-        expect(result.trim()).toBe("${my-var}");
+        expect(result.trim()).toBe(String.raw`\${my-var}`);
     });
 
     it("handles decimal numbers", () => {
@@ -1555,4 +1555,3 @@ describe("coverage - Index exports", () => {
         expect(plugin.defaultOptions).toBeDefined();
     });
 });
-

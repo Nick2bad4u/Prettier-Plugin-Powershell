@@ -1,7 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const originalEnv = { ...process.env };
-
 async function loadProgressModule() {
     const module = await import("./progress.js");
     return {
@@ -10,17 +8,14 @@ async function loadProgressModule() {
 }
 
 afterEach(() => {
-    process.env = { ...originalEnv };
     vi.clearAllMocks();
     vi.resetModules();
+    vi.unstubAllEnvs();
 });
 
 describe("progress logging behaviour", () => {
     it("logs progress for first run and completion when enabled", async () => {
-        process.env = {
-            ...originalEnv,
-            POWERSHELL_PROPERTY_PROGRESS: "1",
-        };
+        vi.stubEnv("POWERSHELL_PROPERTY_PROGRESS", "1");
         vi.resetModules();
         const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
@@ -42,11 +37,8 @@ describe("progress logging behaviour", () => {
     });
 
     it("logs at configured interval without total hint", async () => {
-        process.env = {
-            ...originalEnv,
-            POWERSHELL_PROPERTY_PROGRESS: "1",
-            POWERSHELL_PROPERTY_PROGRESS_INTERVAL: "2",
-        };
+        vi.stubEnv("POWERSHELL_PROPERTY_PROGRESS", "1");
+        vi.stubEnv("POWERSHELL_PROPERTY_PROGRESS_INTERVAL", "2");
         vi.resetModules();
         const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
@@ -70,11 +62,8 @@ describe("progress logging behaviour", () => {
     });
 
     it("defaults to interval of 50 for invalid environment values", async () => {
-        process.env = {
-            ...originalEnv,
-            POWERSHELL_PROPERTY_PROGRESS: "1",
-            POWERSHELL_PROPERTY_PROGRESS_INTERVAL: "invalid",
-        };
+        vi.stubEnv("POWERSHELL_PROPERTY_PROGRESS", "1");
+        vi.stubEnv("POWERSHELL_PROPERTY_PROGRESS_INTERVAL", "invalid");
         vi.resetModules();
         const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
@@ -94,11 +83,8 @@ describe("progress logging behaviour", () => {
     });
 
     it("treats zero interval as invalid and falls back to default", async () => {
-        process.env = {
-            ...originalEnv,
-            POWERSHELL_PROPERTY_PROGRESS: "1",
-            POWERSHELL_PROPERTY_PROGRESS_INTERVAL: "0",
-        };
+        vi.stubEnv("POWERSHELL_PROPERTY_PROGRESS", "1");
+        vi.stubEnv("POWERSHELL_PROPERTY_PROGRESS_INTERVAL", "0");
         vi.resetModules();
         const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 

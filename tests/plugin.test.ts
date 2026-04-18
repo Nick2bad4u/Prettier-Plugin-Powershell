@@ -1,5 +1,4 @@
 import { readFile } from "node:fs/promises";
-import { URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import plugin from "../src/plugin.js";
@@ -11,7 +10,7 @@ const baseConfig = {
     plugins: [plugin],
 };
 
-const normalize = (text: string) => text.replaceAll('\r\n', "\n");
+const normalize = (text: string) => text.replaceAll("\r\n", "\n");
 
 describe("PowerShell Prettier plugin", () => {
     it("formats the sample fixture as expected", async () => {
@@ -71,7 +70,7 @@ Write-Host "Hello"
 
         expect(lines[0]).toBe("function Test {");
         expect(lines[1]).toMatch(/^ {6}param\($/v);
-        expect(lines[2]).toMatch(/^ {12}\[string\] \$Name$/);
+        expect(lines[2]).toBe("            [string] $Name");
         expect(lines[3]).toBe("      )");
         expect(lines[4]).toBe("");
         expect(lines[5]).toBe("      if ($true) {");
@@ -228,9 +227,9 @@ b = 2
         );
 
         // Arrays should NEVER have trailing commas (PowerShell doesn't support this)
-        expect(arrayResult).not.toMatch(new RegExp(String.raw`,\s*\)`));
+        expect(arrayResult).not.toMatch(/,\s*\)/v);
         // Hashtables CAN have trailing semicolons
-        expect(hashResult).toMatch(new RegExp(String.raw`;\s*\}`));
+        expect(hashResult).toMatch(/;\s*\}/v);
     });
 
     it("wraps pipelines when exceeding the configured line width", async () => {
@@ -418,4 +417,3 @@ begin {
         expect(normalize(result)).toBe(normalize(expected));
     });
 });
-

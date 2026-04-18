@@ -1,28 +1,29 @@
 import { readdirSync, readFileSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
-const TEST_DIR = join(process.cwd(), "tests");
+const TEST_DIR = path.join(process.cwd(), "tests");
 
 describe("enforce formatAndAssert usage", () => {
     it("does not use prettier.format directly in tests", () => {
         const filePaths: string[] = [];
         const walk = (dir: string) => {
             for (const entry of readdirSync(dir, { withFileTypes: true })) {
-                const full = join(dir, entry.name);
+                const full = path.join(dir, entry.name);
                 if (entry.isDirectory()) {
                     walk(full);
                 } else if (entry.isFile() && full.endsWith(".ts")) {
                     // Skip the format-and-assert helper itself (normalize path for cross-platform)
-                    const rel = relative(TEST_DIR, full).split(sep).join("/");
-                    if (rel === "utils/format-and-assert.ts") {
-                        continue;
+                    const rel = path
+                        .relative(TEST_DIR, full)
+                        .split(path.sep)
+                        .join("/");
+                    if (
+                        rel !== "utils/format-and-assert.ts" &&
+                        rel !== "utils/no-prettier-format.test.ts"
+                    ) {
+                        filePaths.push(full);
                     }
-                    // Skip this test file itself to avoid matching the literal string we search for
-                    if (rel === "utils/no-prettier-format.test.ts") {
-                        continue;
-                    }
-                    filePaths.push(full);
                 }
             }
         };
