@@ -2409,7 +2409,7 @@ function printArray(node, options) {
   if (node.elements.length === 0) {
     return [open, close];
   }
-  const groupId = Symbol("array");
+  const groupId = /* @__PURE__ */ Symbol("array");
   const elementDocs = [];
   for (let index = 0; index < node.elements.length; index += 1) {
     const element = node.elements[index];
@@ -2465,7 +2465,7 @@ function printHashtable(node, options) {
   if (entries.length === 0) {
     return "@{}";
   }
-  const groupId = Symbol("hashtable");
+  const groupId = /* @__PURE__ */ Symbol("hashtable");
   const contentDocs = [];
   entries.forEach((entry, index) => {
     const entryDoc = printHashtableEntry(entry, options);
@@ -2542,7 +2542,7 @@ function printParamParenthesis(node, options) {
   if (node.elements.length <= 1 && !node.hasNewline) {
     return printParenthesis(node, options);
   }
-  const groupId = Symbol("param");
+  const groupId = /* @__PURE__ */ Symbol("param");
   const elementDocs = [];
   let pendingAttributes = [];
   const flushAttributes = (nextDoc) => {
@@ -2644,7 +2644,7 @@ function printParenthesis(node, options) {
   if (node.elements.length === 0) {
     return "()";
   }
-  const groupId = Symbol("parenthesis");
+  const groupId = /* @__PURE__ */ Symbol("parenthesis");
   const elementDocs = node.elements.map(
     (element) => printExpression(element, options)
   );

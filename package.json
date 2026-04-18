@@ -46,8 +46,8 @@
         "build": "tsup src/index.ts --format esm,cjs --dts src/index.ts --dts-resolve --clean --sourcemap --tsconfig tsconfig.json --shims --treeshake safest --cjsInterop --metafile",
         "build:watch": "tsup src/index.ts --format esm,cjs --dts --watch",
         "clean": "rimraf dist",
-        "lint": "eslint src tests --cache --cache-strategy content --cache-location .cache/.eslintcache --max-warnings=-1 && echo \"Eslint done!\"",
-        "lint:fix": "eslint src tests --cache --cache-strategy content --cache-location .cache/.eslintcache --max-warnings=-1 --fix && echo \"Eslint done!\"",
+        "lint": "eslint --config eslint.config.mjs src tests --cache --cache-strategy content --cache-location .cache/.eslintcache --max-warnings=-1 && echo \"Eslint done!\"",
+        "lint:fix": "eslint --config eslint.config.mjs src tests --cache --cache-strategy content --cache-location .cache/.eslintcache --max-warnings=-1 --fix && echo \"Eslint done!\"",
         "format": "prettier \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\" --write",
         "test": "vitest run",
         "test:fuzz": "pwsh -NoLogo -NoProfile -Command \"$env:POWERSHELL_PROPERTY_RUNS=2000; npm run test\"",
@@ -62,15 +62,29 @@
         "prepare": "npm run build"
     },
     "devDependencies": {
-        "@types/node": "^25.5.0",
-        "@typescript-eslint/eslint-plugin": "^8.56.1",
-        "@typescript-eslint/parser": "^8.56.1",
-        "@vitest/coverage-v8": "^4.1.2",
-        "eslint": "^10.1.0",
+        "@types/node": "^25.6.0",
+        "@typescript-eslint/eslint-plugin": "^8.58.2",
+        "@typescript-eslint/parser": "^8.58.2",
+        "@vitest/coverage-v8": "^4.1.4",
+        "eslint": "^10.2.1",
         "eslint-config-prettier": "^10.1.8",
         "eslint-import-resolver-typescript": "^4.4.4",
+        "eslint-plugin-array-func": "^5.1.1",
+        "eslint-plugin-canonical": "^5.1.3",
+        "eslint-plugin-case-police": "^2.2.1",
+        "eslint-plugin-comment-length": "^2.3.0",
+        "eslint-plugin-copilot": "^1.0.8",
+        "eslint-plugin-css-modules": "^2.12.0",
+        "eslint-plugin-de-morgan": "^2.1.1",
+        "eslint-plugin-depend": "^1.5.0",
+        "eslint-plugin-docusaurus-2": "^0.1.4",
+        "eslint-plugin-eslint-plugin": "^7.3.2",
+        "eslint-plugin-etc-misc": "^1.0.6",
+        "eslint-plugin-file-progress-2": "^5.0.1",
+        "eslint-plugin-github-actions-2": "^1.0.6",
+        "eslint-plugin-immutable-2": "^1.0.9",
         "eslint-plugin-import": "^2.32.0",
-        "fast-check": "^4.6.0",
+        "fast-check": "^4.7.0",
         "prettier-plugin-ini": "^1.3.0",
         "prettier-plugin-interpolated-html-tags": "^2.0.1",
         "prettier-plugin-jsdoc": "^1.8.0",
@@ -81,17 +95,17 @@
         "prettier-plugin-sort-json": "^4.2.0",
         "prettier-plugin-sql": "^0.20.0",
         "prettier-plugin-tailwindcss": "^0.7.2",
-        "typescript-eslint": "^8.58.0",
-        "vitest": "^4.0.9"
+        "typescript-eslint": "^8.58.2",
+        "vitest": "^4.1.4"
     },
     "engines": {
         "node": ">=18.12.0"
     },
-    "packageManager": "npm@11.6.2",
+    "packageManager": "npm@11.12.1",
     "dependencies": {
-        "prettier": "^3.8.1",
+        "prettier": "^3.8.3",
         "rimraf": "^6.1.3",
         "tsup": "^8.5.1",
-        "typescript": "^6.0.2"
+        "typescript": "^6.0.3"
     }
 }

@@ -1,0 +1,14 @@
+{
+    "$schema": "https://json.schemastore.org/tsconfig",
+    "compilerOptions": {
+        "noEmit": true
+    },
+    "extends": "./tsconfig.json",
+    "include": [
+        "src/**/*.ts",
+        "tests/**/*.ts",
+        "scripts/**/*.js",
+        "eslint.config.mjs",
+        "plugin.mjs"
+    ]
+}
