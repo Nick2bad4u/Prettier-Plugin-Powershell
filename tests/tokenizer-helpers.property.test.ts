@@ -1,21 +1,23 @@
 import * as fc from "fast-check";
+import { env } from "node:process";
 import { describe, it } from "vitest";
 
-import { createLocation } from "../src/ast.js";
 import type { HereStringNode } from "../src/ast.js";
+
+import { createLocation } from "../src/ast.js";
 import { normalizeHereString } from "../src/tokenizer.js";
 
 const PROPERTY_RUNS = Number.parseInt(
-    process.env.POWERSHELL_PROPERTY_RUNS ?? "100",
+    env.POWERSHELL_PROPERTY_RUNS ?? "100",
     10
 );
 
-describe("Tokenizer helper function property tests", () => {
-    describe("normalizeHereString", () => {
+describe("tokenizer helper function property tests", () => {
+    describe(normalizeHereString, () => {
         it("handles here-strings with various line counts", () => {
             fc.assert(
                 fc.property(
-                    fc.integer({ min: 0, max: 10 }),
+                    fc.integer({ max: 10, min: 0 }),
                     fc.constantFrom("\n", "\r\n"),
                     (lineCount, lineEnding) => {
                         const lines = Array.from(
@@ -25,17 +27,17 @@ describe("Tokenizer helper function property tests", () => {
                         const value = lines.join(lineEnding);
 
                         const node: HereStringNode = {
+                            loc: createLocation(0, value.length),
+                            quote: "double",
                             type: "HereString",
                             value,
-                            quote: "double",
-                            loc: createLocation(0, value.length),
                         };
 
                         const result = normalizeHereString(node);
 
                         // Should not throw
                         if (typeof result !== "string") {
-                            throw new Error("Result should be a string");
+                            throw new TypeError("Result should be a string");
                         }
 
                         // If 2 or fewer lines, should return original
@@ -64,33 +66,31 @@ describe("Tokenizer helper function property tests", () => {
             fc.assert(
                 fc.property(
                     fc.array(fc.constantFrom("", "line", "  spaces  "), {
-                        minLength: 0,
                         maxLength: 5,
+                        minLength: 0,
                     }),
                     (lines) => {
                         const value = lines.join("\n");
 
                         const node: HereStringNode = {
+                            loc: createLocation(0, value.length),
+                            quote: "single",
                             type: "HereString",
                             value,
-                            quote: "single",
-                            loc: createLocation(0, value.length),
                         };
 
                         const result = normalizeHereString(node);
 
                         if (typeof result !== "string") {
-                            throw new Error("Result should be a string");
+                            throw new TypeError("Result should be a string");
                         }
 
                         // Should preserve content
-                        if (lines.length <= 2) {
-                            if (result !== value) {
+                        if (lines.length <= 2 && result !== value) {
                                 throw new Error(
                                     "Should preserve short content"
                                 );
                             }
-                        }
                     }
                 ),
                 { numRuns: PROPERTY_RUNS }
@@ -101,8 +101,8 @@ describe("Tokenizer helper function property tests", () => {
             fc.assert(
                 fc.property(
                     fc.array(fc.string({ maxLength: 10 }), {
-                        minLength: 3,
                         maxLength: 5,
+                        minLength: 3,
                     }),
                     (lines) => {
                         // Mix \n and \r\n
@@ -116,23 +116,23 @@ describe("Tokenizer helper function property tests", () => {
                         const value = parts.join("");
 
                         const node: HereStringNode = {
+                            loc: createLocation(0, value.length),
+                            quote: "double",
                             type: "HereString",
                             value,
-                            quote: "double",
-                            loc: createLocation(0, value.length),
                         };
 
                         const result = normalizeHereString(node);
 
                         // Should not throw
                         if (typeof result !== "string") {
-                            throw new Error("Result should be a string");
+                            throw new TypeError("Result should be a string");
                         }
 
                         // Result should always use \n
                         if (result.includes("\r")) {
                             throw new Error(
-                                "Normalized result should not contain \\r"
+                                String.raw`Normalized result should not contain \r`
                             );
                         }
                     }
@@ -158,17 +158,17 @@ describe("Tokenizer helper function property tests", () => {
                     ),
                     (value) => {
                         const node: HereStringNode = {
+                            loc: createLocation(0, value.length),
+                            quote: "double",
                             type: "HereString",
                             value,
-                            quote: "double",
-                            loc: createLocation(0, value.length),
                         };
 
                         // Should not throw
                         const result = normalizeHereString(node);
 
                         if (typeof result !== "string") {
-                            throw new Error("Result should be a string");
+                            throw new TypeError("Result should be a string");
                         }
                     }
                 ),
@@ -183,10 +183,10 @@ describe("Tokenizer helper function property tests", () => {
                     fc.string({ maxLength: 20 }),
                     (quote, value) => {
                         const node: HereStringNode = {
+                            loc: createLocation(0, value.length),
+                            quote,
                             type: "HereString",
                             value,
-                            quote,
-                            loc: createLocation(0, value.length),
                         };
 
                         // Function should not modify the node
@@ -206,10 +206,10 @@ describe("Tokenizer helper function property tests", () => {
             fc.assert(
                 fc.property(fc.string({ maxLength: 50 }), (value) => {
                     const node: HereStringNode = {
+                        loc: createLocation(0, value.length),
+                        quote: "double",
                         type: "HereString",
                         value,
-                        quote: "double",
-                        loc: createLocation(0, value.length),
                     };
 
                     const result1 = normalizeHereString(node);

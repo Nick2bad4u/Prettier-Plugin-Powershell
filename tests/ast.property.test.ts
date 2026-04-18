@@ -1,44 +1,46 @@
 import * as fc from "fast-check";
-import { describe, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
-    cloneNode,
-    createLocation,
-    isNodeType,
     type BaseNode,
     type BlankLineNode,
+    cloneNode,
     type CommentNode,
+    createLocation,
+    isNodeType,
     type SourceLocation,
 } from "../src/ast.js";
 
+const { env: testEnv } = process;
+
 const PROPERTY_RUNS = Number.parseInt(
-    process.env.POWERSHELL_PROPERTY_RUNS ?? "100",
+    testEnv.POWERSHELL_PROPERTY_RUNS ?? "100",
     10
 );
 
 // Arbitraries for AST node creation
 const validSourceLocationArb: fc.Arbitrary<SourceLocation> = fc
     .tuple(
-        fc.integer({ min: 0, max: 10000 }),
-        fc.integer({ min: 0, max: 10000 })
+        fc.integer({ max: 10_000, min: 0 }),
+        fc.integer({ max: 10_000, min: 0 })
     )
     .map(([a, b]) => ({
-        start: Math.min(a, b),
         end: Math.max(a, b),
+        start: Math.min(a, b),
     }));
 
 const commentNodeArb: fc.Arbitrary<CommentNode> = fc.record({
+    inline: fc.boolean(),
+    loc: validSourceLocationArb,
+    style: fc.constantFrom("line" as const, "block" as const),
     type: fc.constant("Comment" as const),
     value: fc.string({ maxLength: 50 }),
-    inline: fc.boolean(),
-    style: fc.constantFrom("line" as const, "block" as const),
-    loc: validSourceLocationArb,
 });
 
 const blankLineNodeArb: fc.Arbitrary<BlankLineNode> = fc.record({
-    type: fc.constant("BlankLine" as const),
-    count: fc.integer({ min: 1, max: 10 }),
+    count: fc.integer({ max: 10, min: 1 }),
     loc: validSourceLocationArb,
+    type: fc.constant("BlankLine" as const),
 });
 
 const baseNodeArb: fc.Arbitrary<BaseNode> = fc.oneof(
@@ -46,20 +48,22 @@ const baseNodeArb: fc.Arbitrary<BaseNode> = fc.oneof(
     blankLineNodeArb
 );
 
-describe("AST utility property-based tests", () => {
-    describe("createLocation", () => {
+describe("aST utility property-based tests", () => {
+    describe(createLocation, () => {
         it("always produces valid SourceLocation", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
-                    fc.integer({ min: -1000, max: 10000 }),
-                    fc.option(fc.integer({ min: -1000, max: 10000 }), {
+                    fc.integer({ max: 10_000, min: -1000 }),
+                    fc.option(fc.integer({ max: 10_000, min: -1000 }), {
                         nil: undefined,
                     }),
                     (start, end) => {
                         const loc =
-                            end !== undefined
-                                ? createLocation(start, end)
-                                : createLocation(start);
+                            end === undefined
+                                ? createLocation(start)
+                                : createLocation(start, end);
 
                         // Start should be non-negative
                         if (loc.start < 0) {
@@ -78,7 +82,9 @@ describe("AST utility property-based tests", () => {
                             !Number.isInteger(loc.start) ||
                             !Number.isInteger(loc.end)
                         ) {
-                            throw new Error("Start and end must be integers");
+                            throw new TypeError(
+                                "Start and end must be integers"
+                            );
                         }
                     }
                 ),
@@ -87,8 +93,11 @@ describe("AST utility property-based tests", () => {
         });
 
         it("handles single argument correctly", () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             fc.assert(
-                fc.property(fc.integer({ min: 0, max: 10000 }), (position) => {
+                fc.property(fc.integer({ max: 10_000, min: 0 }), (position) => {
                     const loc = createLocation(position);
 
                     if (loc.start !== position || loc.end !== position) {
@@ -102,9 +111,12 @@ describe("AST utility property-based tests", () => {
         });
 
         it("normalizes negative start to 0", () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
-                    fc.integer({ min: -1000, max: -1 }),
+                    fc.integer({ max: -1, min: -1000 }),
                     (negativeStart) => {
                         const loc = createLocation(negativeStart);
 
@@ -120,10 +132,13 @@ describe("AST utility property-based tests", () => {
         });
 
         it("ensures end >= start", () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
-                    fc.integer({ min: 0, max: 10000 }),
-                    fc.integer({ min: 0, max: 10000 }),
+                    fc.integer({ max: 10_000, min: 0 }),
+                    fc.integer({ max: 10_000, min: 0 }),
                     (a, b) => {
                         const loc = createLocation(a, b);
 
@@ -139,19 +154,22 @@ describe("AST utility property-based tests", () => {
         });
 
         it("floors non-integer values", () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
-                    fc.double({ min: 0, max: 10000, noNaN: true }),
+                    fc.double({ max: 10_000, min: 0, noNaN: true }),
                     (value) => {
                         const loc = createLocation(value);
 
                         if (!Number.isInteger(loc.start)) {
-                            throw new Error(
+                            throw new TypeError(
                                 `Start should be integer, got ${loc.start}`
                             );
                         }
                         if (!Number.isInteger(loc.end)) {
-                            throw new Error(
+                            throw new TypeError(
                                 `End should be integer, got ${loc.end}`
                             );
                         }
@@ -162,24 +180,30 @@ describe("AST utility property-based tests", () => {
         });
 
         it("handles NaN and Infinity gracefully", () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
-                    fc.constantFrom(NaN, Infinity, -Infinity),
-                    fc.option(fc.constantFrom(NaN, Infinity, -Infinity), {
-                        nil: undefined,
-                    }),
+                    fc.constantFrom(Number.NaN, Infinity, -Infinity),
+                    fc.option(
+                        fc.constantFrom(Number.NaN, Infinity, -Infinity),
+                        {
+                            nil: undefined,
+                        }
+                    ),
                     (start, end) => {
                         const loc =
-                            end !== undefined
-                                ? createLocation(start, end)
-                                : createLocation(start);
+                            end === undefined
+                                ? createLocation(start)
+                                : createLocation(start, end);
 
                         // Should produce valid location even with invalid input
                         if (
                             !Number.isFinite(loc.start) ||
                             !Number.isFinite(loc.end)
                         ) {
-                            throw new Error(
+                            throw new TypeError(
                                 "createLocation should handle NaN/Infinity"
                             );
                         }
@@ -196,8 +220,10 @@ describe("AST utility property-based tests", () => {
         });
     });
 
-    describe("isNodeType", () => {
+    describe(isNodeType, () => {
         it("correctly identifies node types", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(baseNodeArb, (node) => {
                     if (node.type === "Comment") {
@@ -227,6 +253,9 @@ describe("AST utility property-based tests", () => {
         });
 
         it("returns false for null and undefined", () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.constantFrom("Comment", "BlankLine", "Pipeline"),
@@ -248,11 +277,14 @@ describe("AST utility property-based tests", () => {
         });
 
         it("handles objects without type property", () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.record({
-                        value: fc.string(),
                         loc: validSourceLocationArb,
+                        value: fc.string(),
                     }),
                     (obj) => {
                         if (isNodeType(obj as never, "Comment")) {
@@ -267,8 +299,10 @@ describe("AST utility property-based tests", () => {
         });
     });
 
-    describe("cloneNode", () => {
+    describe(cloneNode, () => {
         it("creates a shallow copy of the node", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(baseNodeArb, (node) => {
                     const cloned = cloneNode(node);
@@ -301,6 +335,9 @@ describe("AST utility property-based tests", () => {
         });
 
         it("preserves all node properties", () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(commentNodeArb, (node) => {
                     const cloned = cloneNode(node);
@@ -320,16 +357,22 @@ describe("AST utility property-based tests", () => {
         });
 
         it("mutating clone does not affect original", () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(commentNodeArb, (node) => {
                     const cloned = cloneNode(node);
 
                     // Mutate the clone
-                    cloned.loc.start = 999999;
-                    cloned.loc.end = 999999;
+                    cloned.loc.start = 999_999;
+                    cloned.loc.end = 999_999;
 
                     // Original should be unchanged
-                    if (node.loc.start === 999999 || node.loc.end === 999999) {
+                    if (
+                        node.loc.start === 999_999 ||
+                        node.loc.end === 999_999
+                    ) {
                         throw new Error("Mutating clone affected original");
                     }
                 }),
@@ -338,6 +381,9 @@ describe("AST utility property-based tests", () => {
         });
 
         it("works with BlankLine nodes", () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(blankLineNodeArb, (node) => {
                     const cloned = cloneNode(node);
@@ -357,8 +403,10 @@ describe("AST utility property-based tests", () => {
         });
     });
 
-    describe("Location invariants", () => {
+    describe("location invariants", () => {
         it("valid locations maintain their properties through operations", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(validSourceLocationArb, (loc) => {
                     // Creating a new location from valid values should preserve validity
@@ -375,10 +423,13 @@ describe("AST utility property-based tests", () => {
         });
 
         it("locations are always valid regardless of input order", () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
-                    fc.integer({ min: 0, max: 10000 }),
-                    fc.integer({ min: 0, max: 10000 }),
+                    fc.integer({ max: 10_000, min: 0 }),
+                    fc.integer({ max: 10_000, min: 0 }),
                     (a, b) => {
                         const loc1 = createLocation(a, b);
                         const loc2 = createLocation(b, a);

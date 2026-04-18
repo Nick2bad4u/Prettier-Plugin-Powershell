@@ -7,8 +7,8 @@ const baseConfig = {
     plugins: ["./dist/index.cjs"],
 };
 
-describe("Advanced Printer Features", () => {
-    describe("Multi-line Condition Alignment", () => {
+describe("advanced Printer Features", () => {
+    describe("multi-line Condition Alignment", () => {
         it("handles multi-line if conditions", async () => {
             const input = `if ($value -gt 10 -and $name -like "*test*" -or $status -eq "active") { Write-Output "matched" }`;
             const result = await formatAndAssert(
@@ -16,6 +16,7 @@ describe("Advanced Printer Features", () => {
                 baseConfig,
                 "advanced-printer.unclosed-braces|skipParse"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("-gt");
             expect(result).toContain("-like");
@@ -29,6 +30,7 @@ describe("Advanced Printer Features", () => {
                 baseConfig,
                 "advanced-printer.unclosed-parens|skipParse"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("-gt");
             expect(result).toContain("-eq");
@@ -41,13 +43,14 @@ describe("Advanced Printer Features", () => {
                 baseConfig,
                 "advanced-printer.unclosed-strings|skipParse"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("-gt");
             expect(result).toContain("-like");
         });
     });
 
-    describe("Error Recovery", () => {
+    describe("error Recovery", () => {
         it("recovers from unclosed braces", async () => {
             const input = `function Test { Write-Output "test"`;
             const result = await formatAndAssert(
@@ -55,6 +58,7 @@ describe("Advanced Printer Features", () => {
                 baseConfig,
                 "advanced-printer.mixed-valid-invalid|skipParse"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("function Test");
         });
@@ -66,6 +70,7 @@ describe("Advanced Printer Features", () => {
                 baseConfig,
                 "advanced-printer.malformed-hashtables|skipParse"
             );
+
             expect(result).toBeTruthy();
         });
 
@@ -76,6 +81,7 @@ describe("Advanced Printer Features", () => {
                 baseConfig,
                 "advanced-printer.unclosed-string|skipParse"
             );
+
             expect(result).toBeTruthy();
         });
 
@@ -86,6 +92,7 @@ describe("Advanced Printer Features", () => {
                 baseConfig,
                 "advanced-printer.mixed-syntax|skipParse"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("$valid = 1");
             expect(result).toContain("$alsoValid = 2");
@@ -98,11 +105,12 @@ describe("Advanced Printer Features", () => {
                 baseConfig,
                 "advanced-printer.malformed-hash|skipParse"
             );
+
             expect(result).toBeTruthy();
         });
     });
 
-    describe("Command Parameter Handling", () => {
+    describe("command Parameter Handling", () => {
         it("formats short parameters correctly", async () => {
             const input = `Get-Process -Name "powershell" -Id 1234`;
             const result = await formatAndAssert(
@@ -110,6 +118,7 @@ describe("Advanced Printer Features", () => {
                 baseConfig,
                 "advanced-printer.result"
             );
+
             expect(result).toContain("-Name");
             expect(result).toContain("-Id");
         });
@@ -121,6 +130,7 @@ describe("Advanced Printer Features", () => {
                 baseConfig,
                 "advanced-printer.result"
             );
+
             expect(result).toContain("--name");
             expect(result).toContain("--detach");
             expect(result).toContain("--publish");
@@ -133,18 +143,20 @@ describe("Advanced Printer Features", () => {
                 baseConfig,
                 "advanced-printer.result"
             );
+
             expect(result).toContain("--verbose");
             expect(result).toContain("-p");
             expect(result).toContain("--config");
         });
 
         it("handles parameters with values", async () => {
-            const input = `Get-ChildItem -Path C:\\Windows -Filter *.log -Recurse -ErrorAction SilentlyContinue`;
+            const input = String.raw`Get-ChildItem -Path C:\Windows -Filter *.log -Recurse -ErrorAction SilentlyContinue`;
             const result = await formatAndAssert(
                 input,
                 baseConfig,
                 "advanced-printer.result"
             );
+
             expect(result).toContain("-Path");
             expect(result).toContain("-Filter");
             expect(result).toContain("-Recurse");
@@ -152,7 +164,7 @@ describe("Advanced Printer Features", () => {
         });
     });
 
-    describe("Incremental Parsing Simulation", () => {
+    describe("incremental Parsing Simulation", () => {
         it("handles very long scripts efficiently", async () => {
             // Generate a large script
             const functions = [];
@@ -190,6 +202,7 @@ describe("Advanced Printer Features", () => {
                 baseConfig,
                 "advanced-printer.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("deep");
         });

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import plugin from "../src/index.js";
-
+import plugin from "../src/plugin.js";
 import { formatAndAssert } from "./utils/format-and-assert.js";
 
 const baseConfig = {
@@ -9,7 +8,7 @@ const baseConfig = {
     plugins: [plugin],
 };
 
-describe("Parser inline comment detection", () => {
+describe("parser inline comment detection", () => {
     it("treats comment at position 0 as non-inline", async () => {
         const script = "# Comment at start\n$a = 1";
         const result = await formatAndAssert(
@@ -17,6 +16,7 @@ describe("Parser inline comment detection", () => {
             baseConfig,
             "parser-edge-cases.result"
         );
+
         // Comment at position 0 should be on its own line
         expect(result).toContain("# Comment at start\n");
     });
@@ -28,6 +28,7 @@ describe("Parser inline comment detection", () => {
             baseConfig,
             "parser-edge-cases.result"
         );
+
         expect(result.trim()).toBe("");
     });
 
@@ -38,21 +39,22 @@ describe("Parser inline comment detection", () => {
             baseConfig,
             "parser-edge-cases.result"
         );
+
         // Inline comment should stay on same line
         expect(result).toContain("# inline comment");
     });
 });
 
-describe("Parser empty array element handling", () => {
+describe("parser empty array element handling", () => {
     it("does not create empty array elements with consecutive commas", async () => {
         // This would be invalid PowerShell anyway, but our parser shouldn't crash
         const script = "@(1,, 2)";
         // Just ensure it doesn't crash
         try {
             await formatAndAssert(script, baseConfig, { skipParse: true });
-        } catch (e) {
+        } catch (error) {
             // Expected to fail during parsing or formatting, but not crash
-            expect(e).toBeDefined();
+            expect(error).toBeDefined();
         }
     });
 
@@ -63,7 +65,9 @@ describe("Parser empty array element handling", () => {
             baseConfig,
             "parser-edge-cases.result"
         );
+
         expect(result).toContain("@(");
         expect(result).toContain(")");
     });
 });
+

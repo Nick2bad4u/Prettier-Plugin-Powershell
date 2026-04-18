@@ -1,8 +1,23 @@
 import type { ParserOptions, SupportOptions } from "prettier";
 
+/**
+ * Brace placement styles supported by the plugin.
+ */
 export type BraceStyleOption = "1tbs" | "allman";
+
+/**
+ * Indentation mode for formatted output.
+ */
 export type IndentStyleOption = "spaces" | "tabs";
+
+/**
+ * Keyword casing normalization mode.
+ */
 export type KeywordCaseOption = "lower" | "pascal" | "preserve" | "upper";
+
+/**
+ * Full PowerShell-specific option bag accepted by the plugin.
+ */
 export interface PluginConfiguration {
     powershellBlankLineAfterParam: boolean;
     powershellBlankLinesBetweenFunctions: number;
@@ -18,10 +33,20 @@ export interface PluginConfiguration {
     powershellSortHashtableKeys: boolean;
     powershellTrailingComma: TrailingCommaOption;
 }
+
+/**
+ * Named preset modes that apply grouped defaults.
+ */
 export type PresetOption = "invoke-formatter" | "none";
 
+/**
+ * Trailing delimiter behavior for multiline literals.
+ */
 export type TrailingCommaOption = "all" | "multiline" | "none";
 
+/**
+ * Prettier option descriptors exposed by the plugin.
+ */
 export const pluginOptions: SupportOptions = {
     powershellBlankLineAfterParam: {
         category: "PowerShell",
@@ -170,10 +195,16 @@ export const pluginOptions: SupportOptions = {
     },
 };
 
+/**
+ * Plugin-level default options merged by Prettier.
+ */
 export const defaultOptions = {
     tabWidth: 4,
 };
 
+/**
+ * Fully-resolved runtime options consumed by parser/printer code.
+ */
 export interface ResolvedOptions {
     blankLineAfterParam: boolean;
     blankLinesBetweenFunctions: number;
@@ -193,6 +224,25 @@ type PresetDefaults = Partial<
     Record<"tabWidth" | keyof PluginConfiguration, unknown>
 >;
 
+const PRESET_DEFAULTS: Record<PresetOption, PresetDefaults> = {
+    "invoke-formatter": {
+        powershellBlankLineAfterParam: true,
+        powershellBlankLinesBetweenFunctions: 1,
+        powershellBraceStyle: "1tbs",
+        powershellIndentSize: 4,
+        powershellIndentStyle: "spaces",
+        powershellKeywordCase: "lower",
+        powershellLineWidth: 120,
+        powershellPreferSingleQuote: false,
+        powershellRewriteAliases: false,
+        powershellRewriteWriteHost: false,
+        powershellSortHashtableKeys: false,
+        powershellTrailingComma: "none",
+        tabWidth: 4,
+    },
+    none: {},
+};
+
 /**
  * Resolves PowerShell-specific options and normalizes Prettier options.
  *
@@ -210,7 +260,7 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
         "spaces";
     const rawIndentOverride = options.powershellIndentSize;
     const normalizedIndentOverride = Number(rawIndentOverride);
-    const normalizedTabWidth = Number(options.tabWidth);
+    const normalizedTabWidth = options.tabWidth;
     const indentSize =
         Number.isFinite(normalizedIndentOverride) &&
         normalizedIndentOverride > 0
@@ -275,33 +325,21 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
     } satisfies ResolvedOptions;
 }
 
-const PRESET_DEFAULTS: Record<PresetOption, PresetDefaults> = {
-    "invoke-formatter": {
-        powershellBlankLineAfterParam: true,
-        powershellBlankLinesBetweenFunctions: 1,
-        powershellBraceStyle: "1tbs",
-        powershellIndentSize: 4,
-        powershellIndentStyle: "spaces",
-        powershellKeywordCase: "lower",
-        powershellLineWidth: 120,
-        powershellPreferSingleQuote: false,
-        powershellRewriteAliases: false,
-        powershellRewriteWriteHost: false,
-        powershellSortHashtableKeys: false,
-        powershellTrailingComma: "none",
-        tabWidth: 4,
-    },
-    none: {},
-};
-
+/**
+ * Applies preset defaults for missing options only.
+ *
+ * @param options - Mutable parser options object.
+ * @param preset - Selected preset name.
+ */
 function applyPresetDefaults(
     options: ParserOptions,
     preset: PresetOption
 ): void {
     const overrides = PRESET_DEFAULTS[preset];
-    if (!overrides) {
+    if (overrides === undefined) {
         return;
     }
+
     const target = options as Record<string, unknown>;
     for (const [key, value] of Object.entries(overrides)) {
         if (target[key] === undefined) {

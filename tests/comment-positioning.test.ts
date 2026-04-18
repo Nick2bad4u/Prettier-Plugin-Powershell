@@ -7,8 +7,8 @@ const baseConfig = {
     plugins: ["./dist/index.cjs"],
 };
 
-describe("Comment Positioning Improvements", () => {
-    describe("Inline Comments", () => {
+describe("comment Positioning Improvements", () => {
+    describe("inline Comments", () => {
         it("preserves inline comments after statements", async () => {
             const input = `$x = 1 # This is a comment`;
             const result = await formatAndAssert(
@@ -16,6 +16,7 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             expect(result).toContain("#");
             expect(result).toContain("This is a comment");
         });
@@ -27,6 +28,7 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             expect(result).toContain("# Get all processes");
             expect(result).toContain("# Filter by CPU");
         });
@@ -38,13 +40,14 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             expect(result).toContain("# Comment 1");
             expect(result).toContain("# Comment 2");
             expect(result).toContain("# Comment 3");
         });
     });
 
-    describe("Block Comments", () => {
+    describe("block Comments", () => {
         it("preserves block comments in functions", async () => {
             const input = `function Test {\n<# This is a block comment #>\nparam($x)\n}`;
             const result = await formatAndAssert(
@@ -52,6 +55,7 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             expect(result).toContain("<#");
             expect(result).toContain("This is a block comment");
             expect(result).toContain("#>");
@@ -64,6 +68,7 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             expect(result).toContain("Line 1");
             expect(result).toContain("Line 2");
             expect(result).toContain("Line 3");
@@ -76,12 +81,13 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             expect(result).toContain(".SYNOPSIS");
             expect(result).toContain(".DESCRIPTION");
         });
     });
 
-    describe("Comment Positioning in Complex Structures", () => {
+    describe("comment Positioning in Complex Structures", () => {
         it("handles comments in hashtables", async () => {
             const input = `@{ Key1 = "value1"; Key2 = "value2" } # Hashtable comment`;
             const result = await formatAndAssert(
@@ -89,6 +95,7 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             // Inline comments after hashtables work
             expect(result).toContain("# Hashtable comment");
         });
@@ -108,6 +115,7 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             expect(result).toContain("# Leading comment for Key1");
             expect(result).toContain("# Inline comment for Key1");
             expect(result).toContain("# Leading comment for Key2");
@@ -121,6 +129,7 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             // Inline comments after arrays work
             expect(result).toContain("# Array comment");
         });
@@ -132,13 +141,14 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             expect(result).toContain("# Start of block");
             expect(result).toContain("# Middle comment");
             expect(result).toContain("# End comment");
         });
     });
 
-    describe("Edge Cases", () => {
+    describe("edge Cases", () => {
         it("handles empty inline comments", async () => {
             const input = `$x = 1 #`;
             const result = await formatAndAssert(
@@ -146,6 +156,7 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             expect(result).toContain("#");
         });
 
@@ -156,6 +167,7 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             expect(result).toContain("$special");
             expect(result).toContain("@chars");
         });
@@ -167,6 +179,7 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             // Should handle gracefully
             expect(result).toBeTruthy();
         });
@@ -178,13 +191,14 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             expect(result).toContain("# Step 1");
             expect(result).toContain("# Step 2");
             expect(result).toContain("# Final step");
         });
     });
 
-    describe("Comment Preservation During Formatting", () => {
+    describe("comment Preservation During Formatting", () => {
         it("maintains comment position after function params", async () => {
             const input = `function Test {\nparam([string]$Name)\n} # Function comment`;
             const result = await formatAndAssert(
@@ -192,6 +206,7 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             expect(result).toContain("# Function comment");
         });
 
@@ -202,6 +217,7 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             expect(result).toContain("# Condition is always true");
         });
 
@@ -212,12 +228,13 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             expect(result).toContain("# Filter step");
             expect(result).toContain("# Sort step");
         });
     });
 
-    describe("Documentation Comments", () => {
+    describe("documentation Comments", () => {
         it("preserves region markers", async () => {
             const input = `#region Main\n$x = 1\n#endregion`;
             const result = await formatAndAssert(
@@ -225,6 +242,7 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             expect(result).toContain("#region");
             expect(result).toContain("#endregion");
         });
@@ -236,6 +254,7 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             expect(result).toContain("# TODO:");
         });
 
@@ -246,12 +265,13 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.result"
             );
+
             expect(result).toContain("# FIXME:");
             expect(result).toContain("# NOTE:");
         });
     });
 
-    describe("Mixed documentation styles (TSDoc/JSDoc-like)", () => {
+    describe("mixed documentation styles (TSDoc/JSDoc-like)", () => {
         it("preserves TSDoc-style tags inside line comments", async () => {
             const input = `# /** Summary of the function */\n# @param foo Description of foo\n# @returns Result description\nfunction Test-Doc { }`;
             const result = await formatAndAssert(
@@ -259,6 +279,7 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.tsdoc-line"
             );
+
             expect(result).toContain("/** Summary of the function */");
             expect(result).toContain("@param foo Description of foo");
             expect(result).toContain("@returns Result description");
@@ -271,6 +292,7 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.tsdoc-block"
             );
+
             expect(result).toContain("/**");
             expect(result).toContain("@param bar Description of bar");
             expect(result).toContain("@returns Result description");
@@ -284,6 +306,7 @@ describe("Comment Positioning Improvements", () => {
                 baseConfig,
                 "comment-positioning.jsdoc-heredoc"
             );
+
             expect(result).toContain("/**");
             expect(result).toContain("@param baz Description of baz");
             expect(result).toContain("@returns Something interesting");

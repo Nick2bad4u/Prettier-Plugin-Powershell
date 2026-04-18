@@ -36,6 +36,9 @@ const printers: Plugin["printers"] = {
     "powershell-ast": powerShellPrinter,
 };
 
+/**
+ * Prettier plugin entry object exported for runtime registration.
+ */
 const plugin: Plugin = {
     defaultOptions,
     languages,

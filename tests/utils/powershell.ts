@@ -1,14 +1,13 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { type ChildProcess, spawn } from "node:child_process";
+import { resolve } from "node:path";
 
 const shouldVerify = process.env.POWERSHELL_VERIFY_SYNTAX !== "0";
 const shouldTrace = process.env.POWERSHELL_SYNTAX_TRACE === "1";
 const maxChecksEnv = process.env.POWERSHELL_MAX_SYNTAX_CHECKS;
 const defaultMaxChecks = shouldVerify
-    ? maxChecksEnv !== undefined
-        ? Number.parseInt(maxChecksEnv, 10)
-        : -1
+    ? maxChecksEnv === undefined
+        ? -1
+        : Number.parseInt(maxChecksEnv, 10)
     : 0;
 
 let checksRemaining = Number.isNaN(defaultMaxChecks)
@@ -34,7 +33,7 @@ const shouldRunValidation = (): boolean => {
 };
 
 const validateScriptPath = resolve(
-    dirname(fileURLToPath(import.meta.url)),
+    import.meta.dirname,
     "validate-syntax.ps1"
 );
 
@@ -42,21 +41,21 @@ const missingPwshMessage =
     "PowerShell executable 'pwsh' was not found. Install PowerShell 7+ or set POWERSHELL_VERIFY_SYNTAX=0 to disable syntax validation.";
 
 type ParseOutcome =
-    | { ok: true }
     | {
-          ok: false;
           exitCode: number;
-          stdout: string;
+          ok: false;
           stderr: string;
-      };
+          stdout: string;
+      }
+    | { ok: true };
 
 // Persistent PowerShell process for syntax validation
 let persistentProcess: ChildProcess | null = null;
 const pendingValidations = new Map<
     number,
     {
-        resolve: (outcome: ParseOutcome) => void;
         reject: (error: Error) => void;
+        resolve: (outcome: ParseOutcome) => void;
     }
 >();
 let validationCounter = 0;
@@ -161,10 +160,10 @@ function initPersistentProcess(): void {
                 const [[id, pending]] = pendingValidations.entries();
                 pendingValidations.delete(id);
                 pending.resolve({
-                    ok: false,
                     exitCode: 1,
-                    stdout: "",
+                    ok: false,
                     stderr: errorMessage,
+                    stdout: "",
                 });
             }
         }
@@ -191,8 +190,7 @@ function initPersistentProcess(): void {
 const runPowerShellParser = async (
     script: string,
     identifier: string
-): Promise<ParseOutcome> => {
-    return new Promise((resolve, reject) => {
+): Promise<ParseOutcome> => new Promise((resolve, reject) => {
         totalInvocations += 1;
         if (shouldTrace) {
             const remaining =
@@ -211,13 +209,13 @@ const runPowerShellParser = async (
             return;
         }
 
-        if (!persistentProcess || !persistentProcess.stdin) {
+        if (!persistentProcess?.stdin) {
             reject(new Error("PowerShell process not available"));
             return;
         }
 
         const validationId = validationCounter++;
-        pendingValidations.set(validationId, { resolve, reject });
+        pendingValidations.set(validationId, { reject, resolve });
 
         // Encode message: [length][id_length][identifier][script]
         const identifierBuffer = Buffer.from(identifier, "utf8");
@@ -241,18 +239,6 @@ const runPowerShellParser = async (
             reject(error instanceof Error ? error : new Error(String(error)));
         }
     });
-};
-
-export async function isPowerShellParsable(
-    script: string,
-    identifier: string
-): Promise<boolean> {
-    if (!shouldRunValidation()) {
-        return true;
-    }
-    const outcome = await runPowerShellParser(script, identifier);
-    return outcome.ok;
-}
 
 export async function assertPowerShellParses(
     script: string,
@@ -271,4 +257,15 @@ export async function assertPowerShellParses(
             `PowerShell parser reported errors (exit ${outcome.exitCode}) for ${identifier}:\n${message}`
         );
     }
+}
+
+export async function isPowerShellParsable(
+    script: string,
+    identifier: string
+): Promise<boolean> {
+    if (!shouldRunValidation()) {
+        return true;
+    }
+    const outcome = await runPowerShellParser(script, identifier);
+    return outcome.ok;
 }

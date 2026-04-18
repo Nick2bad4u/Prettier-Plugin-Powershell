@@ -7,8 +7,8 @@ import {
     type WarningType,
 } from "../src/errors.js";
 
-describe("Error and warning classes", () => {
-    describe("PowerShellParseError", () => {
+describe("error and warning classes", () => {
+    describe(PowerShellParseError, () => {
         it("creates error with all parameters", () => {
             const error = new PowerShellParseError(
                 "Test error",
@@ -36,6 +36,7 @@ describe("Error and warning classes", () => {
             );
 
             const str = error.toString();
+
             expect(str).toContain("PowerShellParseError");
             expect(str).toContain("Unexpected token");
             expect(str).toContain("at line 1, column 11");
@@ -54,6 +55,7 @@ describe("Error and warning classes", () => {
             );
 
             const str = error.toString();
+
             expect(str).toContain("Write-Host 'hello'");
             expect(str).toContain("at line 2, column 12");
         });
@@ -70,6 +72,7 @@ describe("Error and warning classes", () => {
             const error = new PowerShellParseError("Error", source, 15, 3, 5);
 
             const context = error.getContext();
+
             expect(context).toContain("line1");
             expect(context).toContain("line2");
             expect(context).toContain("line3");
@@ -89,6 +92,7 @@ describe("Error and warning classes", () => {
             const error = new PowerShellParseError("Error", source, 15, 3, 5);
 
             const context = error.getContext(1);
+
             expect(context).toContain("line2");
             expect(context).toContain("line3");
             expect(context).toContain("line4");
@@ -101,6 +105,7 @@ describe("Error and warning classes", () => {
             const error = new PowerShellParseError("Error", source, 3, 1, 4);
 
             const context = error.getContext(2);
+
             expect(context).toContain("line1");
             expect(context).toContain(">");
         });
@@ -110,6 +115,7 @@ describe("Error and warning classes", () => {
             const error = new PowerShellParseError("Error", source, 15, 3, 3);
 
             const context = error.getContext(2);
+
             expect(context).toContain("line3");
             expect(context).toContain(">");
         });
@@ -124,6 +130,7 @@ describe("Error and warning classes", () => {
             );
 
             const str = error.toString();
+
             expect(str).toContain("line 5, column 2");
             expect(str).toContain("^");
         });
@@ -144,8 +151,8 @@ describe("Error and warning classes", () => {
             );
 
             Object.defineProperty(Error, "captureStackTrace", {
-                value: undefined,
                 configurable: true,
+                value: undefined,
                 writable: true,
             });
 
@@ -173,7 +180,7 @@ describe("Error and warning classes", () => {
         });
     });
 
-    describe("PowerShellWarning", () => {
+    describe(PowerShellWarning, () => {
         it("creates warning with basic information", () => {
             const warning = new PowerShellWarning(
                 "This syntax is deprecated",
@@ -215,6 +222,7 @@ describe("Error and warning classes", () => {
             );
 
             const str = warning.toString();
+
             expect(str).toContain("Warning [performance]");
             expect(str).toContain("Performance issue");
             expect(str).toContain("at line 2, column 5");
@@ -232,6 +240,7 @@ describe("Error and warning classes", () => {
             );
 
             const str = warning.toString();
+
             expect(str).toContain("Warning [anti-pattern]");
             expect(str).toContain("Anti-pattern detected");
             expect(str).toContain("Suggestion: Consider using foreach instead");
@@ -247,7 +256,7 @@ describe("Error and warning classes", () => {
                 "best-practice",
             ];
 
-            types.forEach((type) => {
+            for (const type of types) {
                 const warning = new PowerShellWarning(
                     "Test warning",
                     type,
@@ -255,44 +264,51 @@ describe("Error and warning classes", () => {
                     1,
                     1
                 );
+
                 expect(warning.type).toBe(type);
                 expect(warning.toString()).toContain(`[${type}]`);
-            });
+            }
         });
     });
 
-    describe("getLineAndColumn", () => {
+    describe(getLineAndColumn, () => {
         it("calculates position 0", () => {
             const result = getLineAndColumn("test", 0);
-            expect(result).toEqual({ line: 1, column: 1 });
+
+            expect(result).toEqual({ column: 1, line: 1 });
         });
 
         it("calculates position in single line", () => {
             const result = getLineAndColumn("Hello World", 6);
-            expect(result).toEqual({ line: 1, column: 7 });
+
+            expect(result).toEqual({ column: 7, line: 1 });
         });
 
         it("calculates position in multiline text", () => {
             const source = "line1\nline2\nline3";
             const result = getLineAndColumn(source, 6);
-            expect(result).toEqual({ line: 2, column: 1 });
+
+            expect(result).toEqual({ column: 1, line: 2 });
         });
 
         it("calculates position mid-line", () => {
             const source = "line1\nline2\nline3";
             const result = getLineAndColumn(source, 9);
-            expect(result).toEqual({ line: 2, column: 4 });
+
+            expect(result).toEqual({ column: 4, line: 2 });
         });
 
         it("handles position at end of file", () => {
             const source = "line1\nline2";
             const result = getLineAndColumn(source, source.length);
-            expect(result).toEqual({ line: 2, column: 6 });
+
+            expect(result).toEqual({ column: 6, line: 2 });
         });
 
         it("handles empty string", () => {
             const result = getLineAndColumn("", 0);
-            expect(result).toEqual({ line: 1, column: 1 });
+
+            expect(result).toEqual({ column: 1, line: 1 });
         });
     });
 });

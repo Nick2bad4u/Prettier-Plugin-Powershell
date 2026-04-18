@@ -1,21 +1,21 @@
 import * as fc from "fast-check";
+import { env } from "node:process";
 import { describe, it } from "vitest";
 
-import plugin from "../src/index.js";
 import { parsePowerShell } from "../src/parser.js";
+import plugin from "../src/plugin.js";
 import { tokenize } from "../src/tokenizer.js";
-
 import { formatAndAssert } from "./utils/format-and-assert.js";
 import { assertPowerShellParses } from "./utils/powershell.js";
 import { withProgress } from "./utils/progress.js";
 
 const PROPERTY_RUNS = Number.parseInt(
-    process.env.POWERSHELL_PROPERTY_RUNS ?? "100",
+    env.POWERSHELL_PROPERTY_RUNS ?? "100",
     10
 );
 
-describe("Integration property tests", () => {
-    describe("Round-trip preservation", () => {
+describe("integration property tests", () => {
+    describe("round-trip preservation", () => {
         it("preserves semantic structure through tokenize -> parse -> format cycle", async () => {
             await withProgress(
                 "integration.roundTrip",
@@ -48,16 +48,16 @@ describe("Integration property tests", () => {
                                 const ast = parsePowerShell(script, {
                                     tabWidth: 2,
                                 } as never);
-                                if (!ast || ast.type !== "Script") {
+                                if (ast?.type !== "Script") {
                                     throw new Error("Parsing failed");
                                 }
 
                                 const formatted = await formatAndAssert(
                                     script,
                                     {
+                                        filepath: "test.ps1",
                                         parser: "powershell",
                                         plugins: [plugin],
-                                        filepath: "test.ps1",
                                     },
                                     "integration.property.formatted"
                                 );
@@ -77,8 +77,7 @@ describe("Integration property tests", () => {
                                     } as never
                                 );
                                 if (
-                                    !formattedAst ||
-                                    formattedAst.type !== "Script"
+                                    formattedAst?.type !== "Script"
                                 ) {
                                     throw new Error(
                                         "Re-parsing formatted output failed"
@@ -117,8 +116,8 @@ describe("Integration property tests", () => {
                     await fc.assert(
                         fc.asyncProperty(
                             fc.record({
-                                indentSize: fc.integer({ min: 2, max: 4 }),
                                 braceStyle: fc.constantFrom("1tbs", "allman"),
+                                indentSize: fc.integer({ max: 4, min: 2 }),
                                 keywordCase: fc.constantFrom(
                                     "preserve",
                                     "lower",
@@ -137,13 +136,13 @@ describe("Integration property tests", () => {
                                 const formatted = await formatAndAssert(
                                     script,
                                     {
+                                        filepath: "test.ps1",
                                         parser: "powershell",
                                         plugins: [plugin],
-                                        filepath: "test.ps1",
-                                        powershellIndentSize:
-                                            options.indentSize,
                                         powershellBraceStyle:
                                             options.braceStyle,
+                                        powershellIndentSize:
+                                            options.indentSize,
                                         powershellKeywordCase:
                                             options.keywordCase,
                                         powershellPreferSingleQuote:
@@ -159,7 +158,7 @@ describe("Integration property tests", () => {
                                 const ast = parsePowerShell(formatted, {
                                     tabWidth: 2,
                                 } as never);
-                                if (!ast || ast.type !== "Script") {
+                                if (ast?.type !== "Script") {
                                     throw new Error(
                                         `Failed with options: ${JSON.stringify(options)}`
                                     );
@@ -168,13 +167,13 @@ describe("Integration property tests", () => {
                                 const formatted2 = await formatAndAssert(
                                     formatted,
                                     {
+                                        filepath: "test.ps1",
                                         parser: "powershell",
                                         plugins: [plugin],
-                                        filepath: "test.ps1",
-                                        powershellIndentSize:
-                                            options.indentSize,
                                         powershellBraceStyle:
                                             options.braceStyle,
+                                        powershellIndentSize:
+                                            options.indentSize,
                                         powershellKeywordCase:
                                             options.keywordCase,
                                         powershellPreferSingleQuote:
@@ -201,9 +200,8 @@ describe("Integration property tests", () => {
         });
     });
 
-    describe("Cross-module consistency", () => {
-        it("ensures tokenizer and parser agree on locations", () => {
-            return withProgress(
+    describe("cross-module consistency", () => {
+        it("ensures tokenizer and parser agree on locations", () => withProgress(
                 "integration.tokenizerLocations",
                 PROPERTY_RUNS,
                 (tracker) => {
@@ -238,28 +236,24 @@ describe("Integration property tests", () => {
                                     const firstNonNewline = tokens.find(
                                         (t) => t.type !== "newline"
                                     );
-                                    const lastNonNewline = tokens
-                                        .slice()
+                                    const lastNonNewline = [...tokens]
                                         .reverse()
                                         .find((t) => t.type !== "newline");
 
-                                    if (firstNonNewline && lastNonNewline) {
-                                        if (
+                                    if (firstNonNewline && lastNonNewline && (
                                             ast.loc.start >
                                                 firstNonNewline.start ||
                                             ast.loc.end < lastNonNewline.end
-                                        ) {
+                                        )) {
                                             // Acceptable deviation noted
                                         }
-                                    }
                                 }
                             }
                         ),
                         { numRuns: PROPERTY_RUNS }
                     );
                 }
-            );
-        });
+            ));
 
         it("ensures printer output can be re-tokenized and re-parsed", async () => {
             await withProgress(
@@ -280,9 +274,9 @@ describe("Integration property tests", () => {
                                 const formatted = await formatAndAssert(
                                     script,
                                     {
+                                        filepath: "test.ps1",
                                         parser: "powershell",
                                         plugins: [plugin],
-                                        filepath: "test.ps1",
                                     },
                                     "integration.property.formatted"
                                 );
@@ -292,7 +286,7 @@ describe("Integration property tests", () => {
                                     tabWidth: 2,
                                 } as never);
 
-                                if (!ast || ast.type !== "Script") {
+                                if (ast?.type !== "Script") {
                                     throw new Error(
                                         "Failed to re-parse formatted output"
                                     );
@@ -318,7 +312,7 @@ describe("Integration property tests", () => {
         });
     });
 
-    describe("Error resilience", () => {
+    describe("error resilience", () => {
         it("handles concatenated valid scripts gracefully", async () => {
             await withProgress(
                 "integration.concatenated",
@@ -332,7 +326,7 @@ describe("Integration property tests", () => {
                                     "Write-Output 'test'",
                                     "# comment"
                                 ),
-                                { minLength: 2, maxLength: 5 }
+                                { maxLength: 5, minLength: 2 }
                             ),
                             async (scripts) => {
                                 tracker.advance();
@@ -341,7 +335,7 @@ describe("Integration property tests", () => {
                                 const ast = parsePowerShell(combined, {
                                     tabWidth: 2,
                                 } as never);
-                                if (!ast || ast.type !== "Script") {
+                                if (ast?.type !== "Script") {
                                     throw new Error(
                                         "Failed to parse combined scripts"
                                     );
@@ -350,9 +344,9 @@ describe("Integration property tests", () => {
                                 const formatted = await formatAndAssert(
                                     combined,
                                     {
+                                        filepath: "test.ps1",
                                         parser: "powershell",
                                         plugins: [plugin],
-                                        filepath: "test.ps1",
                                     },
                                     "integration.property.formatted"
                                 );
@@ -368,8 +362,7 @@ describe("Integration property tests", () => {
                                     } as never
                                 );
                                 if (
-                                    !formattedAst ||
-                                    formattedAst.type !== "Script"
+                                    formattedAst?.type !== "Script"
                                 ) {
                                     throw new Error(
                                         "Failed to re-parse formatted combined scripts"
@@ -395,7 +388,7 @@ describe("Integration property tests", () => {
                                 "function Test { 'hello' }",
                                 "1, 2, 3 | Sort-Object"
                             ),
-                            fc.integer({ min: 2, max: 5 }),
+                            fc.integer({ max: 5, min: 2 }),
                             async (script, iterations) => {
                                 tracker.advance();
                                 let current: string = script;
@@ -404,9 +397,9 @@ describe("Integration property tests", () => {
                                     const formatted = await formatAndAssert(
                                         current,
                                         {
+                                            filepath: "test.ps1",
                                             parser: "powershell",
                                             plugins: [plugin],
-                                            filepath: "test.ps1",
                                         },
                                         "integration.property.formatted|skipParse"
                                     );
@@ -426,9 +419,9 @@ describe("Integration property tests", () => {
                                 const finalFormat = await formatAndAssert(
                                     current,
                                     {
+                                        filepath: "test.ps1",
                                         parser: "powershell",
                                         plugins: [plugin],
-                                        filepath: "test.ps1",
                                     },
                                     "integration.property.finalFormat|skipParse"
                                 );
@@ -451,9 +444,8 @@ describe("Integration property tests", () => {
         });
     });
 
-    describe("Plugin interface contracts", () => {
-        it("locStart and locEnd return valid positions", () => {
-            return withProgress(
+    describe("plugin interface contracts", () => {
+        it("locStart and locEnd return valid positions", () => withProgress(
                 "integration.locBounds",
                 PROPERTY_RUNS,
                 (tracker) => {
@@ -470,7 +462,7 @@ describe("Integration property tests", () => {
                                     tabWidth: 2,
                                 } as never);
 
-                                const { locStart, locEnd } =
+                                const { locEnd, locStart } =
                                     plugin.parsers!.powershell;
 
                                 const start = locStart(ast);
@@ -490,11 +482,9 @@ describe("Integration property tests", () => {
                         { numRuns: PROPERTY_RUNS }
                     );
                 }
-            );
-        });
+            ));
 
-        it("hasPragma always returns false", () => {
-            return withProgress(
+        it("hasPragma always returns false", () => withProgress(
                 "integration.hasPragma",
                 PROPERTY_RUNS,
                 (tracker) => {
@@ -520,11 +510,10 @@ describe("Integration property tests", () => {
                         { numRuns: PROPERTY_RUNS }
                     );
                 }
-            );
-        });
+            ));
     });
 
-    describe("File extension handling", () => {
+    describe("file extension handling", () => {
         it("formats all supported extensions identically", async () => {
             await withProgress(
                 "integration.extensions",
@@ -544,9 +533,9 @@ describe("Integration property tests", () => {
                                 const formatted1 = await formatAndAssert(
                                     script,
                                     {
+                                        filepath: `test${ext1}`,
                                         parser: "powershell",
                                         plugins: [plugin],
-                                        filepath: `test${ext1}`,
                                     },
                                     "integration.property.formatted1"
                                 );
@@ -558,9 +547,9 @@ describe("Integration property tests", () => {
                                 const formatted2 = await formatAndAssert(
                                     script,
                                     {
+                                        filepath: `test${ext2}`,
                                         parser: "powershell",
                                         plugins: [plugin],
-                                        filepath: `test${ext2}`,
                                     },
                                     "integration.property.formatted2"
                                 );
@@ -583,3 +572,4 @@ describe("Integration property tests", () => {
         });
     });
 });
+

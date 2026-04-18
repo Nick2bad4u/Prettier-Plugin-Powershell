@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { parsePowerShell } from "../../src/parser.js";
 
 // We'll test the arbitraries by generating samples and verifying they're valid
-describe("Property test arbitraries", () => {
+describe("property test arbitraries", () => {
     it("generates valid hashtable literals", () => {
         fc.assert(
             fc.property(
@@ -25,7 +25,9 @@ describe("Property test arbitraries", () => {
                     if (entries.length === 0) {
                         const script = "@{}";
                         const ast = parsePowerShell(script, {} as never);
+
                         expect(ast.type).toBe("Script");
+
                         return;
                     }
 
@@ -34,14 +36,7 @@ describe("Property test arbitraries", () => {
                         value.includes("\n")
                     );
 
-                    if (!hasMultiline) {
-                        const inlineEntries = entries
-                            .map(({ key, value }) => `${key} = ${value}`)
-                            .join("; ");
-                        const script = `@{ ${inlineEntries} }`;
-                        const ast = parsePowerShell(script, {} as never);
-                        expect(ast.type).toBe("Script");
-                    } else {
+                    if (hasMultiline) {
                         // Test multiline hashtable
                         const blockEntries = entries
                             .map(({ key, value }) => {
@@ -69,6 +64,15 @@ describe("Property test arbitraries", () => {
                             .join("\n");
                         const script = `@{\n${blockEntries}\n}`;
                         const ast = parsePowerShell(script, {} as never);
+
+                        expect(ast.type).toBe("Script");
+                    } else {
+                        const inlineEntries = entries
+                            .map(({ key, value }) => `${key} = ${value}`)
+                            .join("; ");
+                        const script = `@{ ${inlineEntries} }`;
+                        const ast = parsePowerShell(script, {} as never);
+
                         expect(ast.type).toBe("Script");
                     }
                 }
@@ -87,6 +91,7 @@ line3
 '@
 }`;
         const ast = parsePowerShell(script, {} as never);
+
         expect(ast.type).toBe("Script");
     });
 
@@ -98,6 +103,7 @@ content
 '@
 }`;
         const ast = parsePowerShell(script, {} as never);
+
         expect(ast.type).toBe("Script");
     });
 
@@ -109,6 +115,7 @@ content
 "@
 }`;
         const ast = parsePowerShell(script, {} as never);
+
         expect(ast.type).toBe("Script");
     });
 
@@ -120,6 +127,7 @@ content
   }
 }`;
         const ast = parsePowerShell(script, {} as never);
+
         expect(ast.type).toBe("Script");
     });
 
@@ -133,10 +141,12 @@ content
                     if (elements.length === 0) {
                         const script = "@()";
                         const ast = parsePowerShell(script, {} as never);
+
                         expect(ast.type).toBe("Script");
                     } else {
                         const script = elements.join(", ");
                         const ast = parsePowerShell(script, {} as never);
+
                         expect(ast.type).toBe("Script");
                     }
                 }
@@ -155,13 +165,14 @@ content
                         "Where-Object"
                     ),
                     {
-                        minLength: 1,
                         maxLength: 3,
+                        minLength: 1,
                     }
                 ),
                 (commands) => {
                     const script = commands.join(" | ");
                     const ast = parsePowerShell(script, {} as never);
+
                     expect(ast.type).toBe("Script");
                 }
             ),
@@ -180,6 +191,7 @@ content
                 ),
                 (str) => {
                     const ast = parsePowerShell(str, {} as never);
+
                     expect(ast.type).toBe("Script");
                 }
             ),
@@ -193,6 +205,7 @@ content
                 fc.constantFrom("$x", "$test", "$_", "$args"),
                 (varName) => {
                     const ast = parsePowerShell(varName, {} as never);
+
                     expect(ast.type).toBe("Script");
                 }
             ),

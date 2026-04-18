@@ -7,8 +7,8 @@ const baseConfig = {
     plugins: ["./dist/index.cjs"],
 };
 
-describe("Advanced PowerShell Features", () => {
-    describe("Expandable Strings", () => {
+describe("advanced PowerShell Features", () => {
+    describe("expandable Strings", () => {
         it("formats expandable strings with subexpressions", async () => {
             const input = `$message = "Today is $(Get-Date -Format yyyy-MM-dd)"`;
             const result = await formatAndAssert(
@@ -16,6 +16,7 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.configuration|skipParse"
             );
+
             expect(result).toContain("$(Get-Date -Format yyyy-MM-dd)");
         });
 
@@ -26,6 +27,7 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.workflow|skipParse"
             );
+
             expect(result).toContain("$env:USERNAME");
             expect(result).toContain("$env:COMPUTERNAME");
         });
@@ -37,11 +39,12 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.workflow-parallel|skipParse"
             );
+
             expect(result).toContain("$(Get-Process");
         });
     });
 
-    describe("Here-Strings", () => {
+    describe("here-Strings", () => {
         it("formats double-quoted here-strings", async () => {
             const input = `$text = @"\nLine 1\nLine 2\n"@`;
             const result = await formatAndAssert(
@@ -49,6 +52,7 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.workflow-sequence|skipParse"
             );
+
             expect(result).toContain('@"');
             expect(result).toContain('"@');
         });
@@ -60,6 +64,7 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.workflow-inlinescript|skipParse"
             );
+
             expect(result).toContain("@'");
             expect(result).toContain("'@");
         });
@@ -71,11 +76,12 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.result"
             );
+
             expect(result).toBeTruthy();
         });
     });
 
-    describe("Script Blocks with Param", () => {
+    describe("script Blocks with Param", () => {
         it("formats script blocks with param in pipelines", async () => {
             const input = `Get-Process | ForEach-Object { param($p) Write-Output $p.Name }`;
             const result = await formatAndAssert(
@@ -83,6 +89,7 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.result"
             );
+
             expect(result).toContain("param($p)");
         });
 
@@ -93,11 +100,12 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.result"
             );
+
             expect(result).toContain("param");
         });
     });
 
-    describe("Class Definitions", () => {
+    describe("class Definitions", () => {
         it("formats simple class definitions", async () => {
             const input = `class Person { [string]$Name; [int]$Age }`;
             const result = await formatAndAssert(
@@ -105,6 +113,7 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.result"
             );
+
             expect(result).toContain("class Person");
             expect(result).toContain("[string]");
             expect(result).toContain("$Name");
@@ -117,6 +126,7 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.result"
             );
+
             expect(result).toContain("Person");
             expect(result).toContain("$this.Name");
         });
@@ -128,12 +138,13 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.result"
             );
+
             expect(result).toContain("Add");
             expect(result).toContain("return");
         });
     });
 
-    describe("Enum Definitions", () => {
+    describe("enum Definitions", () => {
         it("formats simple enum", async () => {
             const input = `enum Status { Running; Stopped; Paused }`;
             const result = await formatAndAssert(
@@ -141,6 +152,7 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.result"
             );
+
             expect(result).toContain("enum Status");
             expect(result).toContain("Running");
             expect(result).toContain("Stopped");
@@ -153,13 +165,14 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.result"
             );
+
             expect(result).toContain("Low");
             expect(result).toContain("Medium");
             expect(result).toContain("High");
         });
     });
 
-    describe("Attributes", () => {
+    describe("attributes", () => {
         it("formats function with CmdletBinding attribute", async () => {
             const input = `function Test { [CmdletBinding()] param([string]$Name) }`;
             const result = await formatAndAssert(
@@ -167,6 +180,7 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.result"
             );
+
             expect(result).toContain("[CmdletBinding()]");
         });
 
@@ -177,6 +191,7 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.result"
             );
+
             expect(result).toContain("[Parameter(Mandatory=$true)]");
             expect(result).toContain("[ValidateNotNullOrEmpty()]");
         });
@@ -188,11 +203,12 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.result"
             );
+
             expect(result).toContain("[ValidateSet");
         });
     });
 
-    describe("DSC and Workflow", () => {
+    describe("dSC and Workflow", () => {
         it("formats configuration blocks", async () => {
             const input = `configuration WebServer { Node localhost { WindowsFeature IIS { Name = "Web-Server" } } }`;
             const result = await formatAndAssert(
@@ -200,6 +216,7 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.result"
             );
+
             expect(result).toContain("configuration");
         });
 
@@ -209,6 +226,7 @@ describe("Advanced PowerShell Features", () => {
                 id: "advanced-features.result",
                 skipParse: true,
             });
+
             expect(result).toContain("workflow");
         });
 
@@ -218,6 +236,7 @@ describe("Advanced PowerShell Features", () => {
                 id: "advanced-features.result",
                 skipParse: true,
             });
+
             expect(result).toContain("parallel");
         });
 
@@ -227,6 +246,7 @@ describe("Advanced PowerShell Features", () => {
                 id: "advanced-features.result",
                 skipParse: true,
             });
+
             expect(result).toContain("sequence");
         });
 
@@ -236,11 +256,12 @@ describe("Advanced PowerShell Features", () => {
                 id: "advanced-features.result",
                 skipParse: true,
             });
+
             expect(result).toContain("inlinescript");
         });
     });
 
-    describe("Command Parameters", () => {
+    describe("command Parameters", () => {
         it("formats short parameters", async () => {
             const input = `Get-Process -Name powershell -Id 1234`;
             const result = await formatAndAssert(
@@ -248,6 +269,7 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.result"
             );
+
             expect(result).toContain("-Name");
             expect(result).toContain("-Id");
         });
@@ -259,24 +281,26 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.result"
             );
+
             expect(result).toContain("--version");
             expect(result).toContain("--list-sdks");
         });
 
         it("preserves parameter values", async () => {
-            const input = `Get-ChildItem -Path "C:\\Windows" -Filter "*.log" -Recurse`;
+            const input = String.raw`Get-ChildItem -Path "C:\Windows" -Filter "*.log" -Recurse`;
             const result = await formatAndAssert(
                 input,
                 baseConfig,
                 "advanced-features.result"
             );
+
             expect(result).toContain("-Path");
             expect(result).toContain("-Filter");
             expect(result).toContain("-Recurse");
         });
     });
 
-    describe("Advanced Formatting", () => {
+    describe("advanced Formatting", () => {
         it("formats long pipeline chains", async () => {
             const input = `Get-Process | Where-Object { $_.CPU -gt 10 } | Select-Object Name, CPU | Sort-Object CPU -Descending | Format-Table -AutoSize`;
             const result = await formatAndAssert(
@@ -284,6 +308,7 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.result"
             );
+
             expect(result).toContain("Get-Process");
             expect(result).toContain("Format-Table");
         });
@@ -295,6 +320,7 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.result"
             );
+
             expect(result).toContain("Server");
             expect(result).toContain("Client");
         });
@@ -306,6 +332,7 @@ describe("Advanced PowerShell Features", () => {
                 baseConfig,
                 "advanced-features.result"
             );
+
             expect(result).toContain("@params");
         });
     });

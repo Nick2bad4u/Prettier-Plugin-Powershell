@@ -1,70 +1,102 @@
 import * as fc from "fast-check";
-import { describe, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { tokenize } from "../src/tokenizer.js";
 
+const { env: testEnv } = process;
+
 const PROPERTY_RUNS = Number.parseInt(
-    process.env.POWERSHELL_PROPERTY_RUNS ?? "100",
+    testEnv.POWERSHELL_PROPERTY_RUNS ?? "100",
     10
+);
+
+const lowerAlphabet = Array.from({ length: 26 }, (_, index) =>
+    String.fromCodePoint(97 + index)
+);
+const upperAlphabet = Array.from({ length: 26 }, (_, index) =>
+    String.fromCodePoint(65 + index)
+);
+const digits = Array.from({ length: 10 }, (_, index) =>
+    String.fromCodePoint(48 + index)
 );
 
 // Arbitraries for token generation
 const whitespaceArb = fc.constantFrom(" ", "\t", "\f");
 const newlineArb = fc.constantFrom("\n", "\r\n");
 const identifierCharArb = fc.constantFrom(
-    ..."abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"
+    ...lowerAlphabet,
+    ...upperAlphabet,
+    ...digits,
+    "_",
+    "-"
 );
 const identifierArb = fc
     .tuple(
-        fc.constantFrom(
-            ..."abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
-        ),
+        fc.constantFrom(...lowerAlphabet, ...upperAlphabet, "_"),
         fc.array(identifierCharArb, { maxLength: 10 })
     )
     .map(([first, rest]) => `${first}${rest.join("")}`);
 
 const variableArb = fc.oneof(
     identifierArb.map((id) => `$${id}`),
-    identifierArb.map((id) => `$\{${id}}`)
+    identifierArb.map((id) => `\${${id}}`)
 );
 
 const numberArb = fc.oneof(
-    fc.integer({ min: 0, max: 999999 }).map(String),
-    fc.double({ min: 0, max: 999.999, noNaN: true }).map(String)
+    fc.integer({ max: 999_999, min: 0 }).map(String),
+    fc.double({ max: 999.999, min: 0, noNaN: true }).map(String)
 );
 
 const stringContentArb = fc
-    .array(fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz0123456789 .,!?"), {
-        maxLength: 20,
-    })
+    .array(
+        fc.constantFrom(...lowerAlphabet, ...digits, " ", ".", ",", "!", "?"),
+        {
+            maxLength: 20,
+        }
+    )
     .map((chars) => chars.join(""));
 
 const singleQuotedStringArb = stringContentArb.map(
-    (content) => `'${content.replace(/'/g, "''")}'`
+    (content) => `'${content.replaceAll("'", "''")}'`
 );
 
 const doubleQuotedStringArb = stringContentArb.map(
-    (content) => `"${content.replace(/"/g, '`"')}"`
+    (content) => `"${content.replaceAll('"', '`"')}"`
 );
 
 const commentArb = fc
-    .array(fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz0123456789 .,!?"), {
-        maxLength: 30,
-    })
+    .array(
+        fc.constantFrom(...lowerAlphabet, ...digits, " ", ".", ",", "!", "?"),
+        {
+            maxLength: 30,
+        }
+    )
     .map((chars) => `# ${chars.join("")}`);
 
 const blockCommentArb = fc
-    .array(fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz0123456789 \n.,!?"), {
-        maxLength: 40,
-    })
+    .array(
+        fc.constantFrom(
+            ...lowerAlphabet,
+            ...digits,
+            " ",
+            "\n",
+            ".",
+            ",",
+            "!",
+            "?"
+        ),
+        {
+            maxLength: 40,
+        }
+    )
     .map((chars) => `<#${chars.join("")}#>`);
 
 const hereStringArb = fc.oneof(
     fc
-        .array(stringContentArb, { minLength: 1, maxLength: 3 })
+        .array(stringContentArb, { maxLength: 3, minLength: 1 })
         .map((lines) => `@"\n${lines.join("\n")}\n"@`),
     fc
-        .array(stringContentArb, { minLength: 1, maxLength: 3 })
+        .array(stringContentArb, { maxLength: 3, minLength: 1 })
         .map((lines) => `@'\n${lines.join("\n")}\n'@`)
 );
 
@@ -127,11 +159,13 @@ const tokenArb = fc.oneof(
 );
 
 const scriptArb = fc
-    .array(tokenArb, { minLength: 1, maxLength: 30 })
+    .array(tokenArb, { maxLength: 30, minLength: 1 })
     .map((tokens) => tokens.join(" "));
 
-describe("Tokenizer property-based tests", () => {
+describe("tokenizer property-based tests", () => {
     it("tokenize never throws and produces valid tokens", () => {
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(scriptArb, (script) => {
                 const tokens = tokenize(script);
@@ -169,16 +203,15 @@ describe("Tokenizer property-based tests", () => {
                 // Token values should match source
                 for (const token of tokens) {
                     const extracted = script.slice(token.start, token.end);
-                    if (token.type !== "comment" && token.value !== extracted) {
-                        // Comments are trimmed, so we skip exact match
-                        if (
-                            token.type !== "newline" ||
-                            !extracted.match(/^[\r\n]+$/)
-                        ) {
-                            throw new Error(
-                                `Token value mismatch: expected ${JSON.stringify(extracted)}, got ${JSON.stringify(token.value)}`
-                            );
-                        }
+                    if (
+                        token.type !== "comment" &&
+                        token.value !== extracted && // Comments are trimmed, so we skip exact match
+                        (token.type !== "newline" ||
+                            !/^[\n\r]+$/v.test(extracted))
+                    ) {
+                        throw new Error(
+                            `Token value mismatch: expected ${JSON.stringify(extracted)}, got ${JSON.stringify(token.value)}`
+                        );
                     }
                 }
             }),
@@ -187,6 +220,9 @@ describe("Tokenizer property-based tests", () => {
     });
 
     it("tokenization is deterministic", () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(scriptArb, (script) => {
                 const tokens1 = tokenize(script);
@@ -198,8 +234,7 @@ describe("Tokenizer property-based tests", () => {
                     );
                 }
 
-                for (let i = 0; i < tokens1.length; i++) {
-                    const t1 = tokens1[i];
+                for (const [i, t1] of tokens1.entries()) {
                     const t2 = tokens2[i];
                     if (
                         t1.type !== t2.type ||
@@ -216,6 +251,9 @@ describe("Tokenizer property-based tests", () => {
     });
 
     it("handles empty and whitespace-only input", () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(
                 fc
@@ -224,7 +262,7 @@ describe("Tokenizer property-based tests", () => {
                 (whitespace) => {
                     const tokens = tokenize(whitespace);
                     // Should produce no tokens (whitespace is skipped)
-                    if (tokens.length !== 0) {
+                    if (tokens.length > 0) {
                         throw new Error(
                             `Expected no tokens for whitespace, got ${tokens.length}`
                         );
@@ -236,10 +274,13 @@ describe("Tokenizer property-based tests", () => {
     });
 
     it("handles newline-only input", () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(
                 fc
-                    .array(newlineArb, { minLength: 1, maxLength: 10 })
+                    .array(newlineArb, { maxLength: 10, minLength: 1 })
                     .map((chars) => chars.join("")),
                 (newlines) => {
                     const tokens = tokenize(newlines);
@@ -258,6 +299,9 @@ describe("Tokenizer property-based tests", () => {
     });
 
     it("correctly identifies keywords vs identifiers", () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(keywordArb, (keyword) => {
                 const tokens = tokenize(keyword);
@@ -277,6 +321,9 @@ describe("Tokenizer property-based tests", () => {
     });
 
     it("correctly tokenizes variables", () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(variableArb, (variable) => {
                 const tokens = tokenize(variable);
@@ -292,6 +339,9 @@ describe("Tokenizer property-based tests", () => {
     });
 
     it("correctly tokenizes numbers", () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(numberArb, (number) => {
                 const tokens = tokenize(number);
@@ -307,6 +357,9 @@ describe("Tokenizer property-based tests", () => {
     });
 
     it("correctly tokenizes strings", () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(
                 fc.oneof(singleQuotedStringArb, doubleQuotedStringArb),
@@ -325,6 +378,9 @@ describe("Tokenizer property-based tests", () => {
     });
 
     it("correctly tokenizes comments", () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(commentArb, (comment) => {
                 const tokens = tokenize(comment);
@@ -340,9 +396,12 @@ describe("Tokenizer property-based tests", () => {
     });
 
     it("tokenizes concatenated scripts consistently", () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(
-                fc.array(scriptArb, { minLength: 2, maxLength: 5 }),
+                fc.array(scriptArb, { maxLength: 5, minLength: 2 }),
                 (scripts) => {
                     const concatenated = scripts.join("\n");
                     const tokens = tokenize(concatenated);

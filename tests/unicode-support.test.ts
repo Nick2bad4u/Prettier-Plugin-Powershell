@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import plugin from "../src/index.js";
-
+import plugin from "../src/plugin.js";
 import { formatAndAssert } from "./utils/format-and-assert.js";
 
 const baseConfig = {
@@ -9,13 +8,14 @@ const baseConfig = {
     plugins: [plugin],
 };
 
-describe("Unicode support in tokenizer", () => {
+describe("unicode support in tokenizer", () => {
     it("supports Unicode variable names (Greek)", async () => {
         const script = "$π = 3.14";
         const result = await formatAndAssert(script, baseConfig, {
             id: "unicode-support.test.ts.result",
             skipParse: true,
         });
+
         expect(result.trim()).toBe("$π = 3.14");
     });
 
@@ -25,6 +25,7 @@ describe("Unicode support in tokenizer", () => {
             id: "unicode-support.test.ts.result",
             skipParse: true,
         });
+
         expect(result.trim()).toBe("$变量 = 'value'");
     });
 
@@ -34,6 +35,7 @@ describe("Unicode support in tokenizer", () => {
             id: "unicode-support.test.ts.result",
             skipParse: true,
         });
+
         expect(result.trim()).toBe("$ответ = 42");
     });
 
@@ -44,6 +46,7 @@ describe("Unicode support in tokenizer", () => {
             baseConfig,
             "unicode-support"
         );
+
         expect(result).toContain("function Δ");
     });
 
@@ -55,6 +58,7 @@ describe("Unicode support in tokenizer", () => {
             id: "unicode-support.test.ts.result",
             skipParse: true,
         });
+
         // The $ and emoji should be separate tokens (not a valid variable name)
         expect(result).not.toBe("$😺 = 'cat'");
     });
@@ -66,6 +70,7 @@ describe("Unicode support in tokenizer", () => {
             baseConfig,
             "unicode-support"
         );
+
         expect(result).toContain("${'var with spaces'}");
     });
 
@@ -76,6 +81,7 @@ describe("Unicode support in tokenizer", () => {
             baseConfig,
             "unicode-support"
         );
+
         expect(result).toContain("世界 🌍");
     });
 
@@ -85,6 +91,8 @@ describe("Unicode support in tokenizer", () => {
             id: "unicode-support.test.ts.result",
             skipParse: true,
         });
+
         expect(result.trim()).toBe("$test变量Name = 'mixed'");
     });
 });
+

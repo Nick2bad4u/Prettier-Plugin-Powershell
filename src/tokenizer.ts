@@ -1,5 +1,8 @@
 import type { HereStringNode } from "./ast.js";
 
+/**
+ * Lexical token produced by the PowerShell tokenizer.
+ */
 export interface Token {
     end: number;
     quote?: "double" | "single";
@@ -8,6 +11,9 @@ export interface Token {
     value: string;
 }
 
+/**
+ * Supported token categories emitted by tokenizer.
+ */
 export type TokenType =
     | "attribute"
     | "block-comment"
@@ -150,8 +156,8 @@ const PUNCTUATION = new Set([
 
 // Cached regex patterns for performance
 // These are defined at module level to avoid recreation in the tokenize loop
-const WHITESPACE_PATTERN = /[\s\u200B\u2060]/;
-const IDENTIFIER_START_PATTERN = /[_a-z]/i;
+const WHITESPACE_PATTERN = /\s/u;
+const IDENTIFIER_START_PATTERN = /\p{L}|_/u;
 const UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}\-:_]$/u;
 const HEX_DIGIT_PATTERN = /[\da-f]/i;
 const BINARY_DIGIT_PATTERN = /[01]/;
@@ -159,29 +165,17 @@ const DECIMAL_DIGIT_PATTERN = /\d/;
 const NUMBER_SUFFIX_PATTERN = /[dflu]/i;
 const UNICODE_IDENTIFIER_START_PATTERN = /[\p{L}_]/u;
 const UNICODE_IDENTIFIER_CHAR_PATTERN = /[\p{L}\p{N}\-_]/u;
-const UNICODE_IDENTIFIER_AFTER_DASH_PATTERN = /[\p{L}\-]/u;
+const UNICODE_IDENTIFIER_AFTER_DASH_PATTERN = /[\p{L}-]/u;
 
 /**
  * Normalizes a here-string by removing the opening and closing delimiters.
- *
- * PowerShell here-strings have the format:
  *
  * @param node - The here-string AST node
  *
  * @returns The normalized content without delimiters
  *
- * @"
- * content
- * "@
- *
- * or
- *
- * @'
- * content
- * '@
- *
- * This function extracts just the content between the delimiters.
- * If the here-string is too short (malformed), returns it as-is.
+ *   This function extracts just the content between the delimiters. If the
+ *   here-string is too short (malformed), returns it as-is.
  */
 export function normalizeHereString(node: HereStringNode): string {
     const lines = node.value.split(/\r?\n/);
@@ -202,8 +196,8 @@ export function normalizeHereString(node: HereStringNode): string {
  * - Variables ($var, $$, $global:name, etc.)
  * - Numbers (42, 0xFF, 1.5e10, 100MB, etc.)
  * - Strings (single, double, here-strings)
- * - Comments (# line, <# block #>)
- * - Punctuation ({, }, [, ], etc.)
+ * - Comments (line comments and block comments)
+ * - Punctuation (braces, brackets, commas, and operators)
  *
  * The tokenizer is designed to be resilient - it will tokenize even malformed
  * PowerShell to allow the formatter to work on incomplete code.
@@ -252,6 +246,187 @@ export function tokenize(source: string): Token[] {
                 return false;
             }
         }
+    };
+
+    const consumeVariableToken = (startPosition: number): number => {
+        let scanIndex = startPosition + 1;
+
+        if (scanIndex < length) {
+            const nextChar = source[scanIndex];
+            if (nextChar === "$" || nextChar === "^" || nextChar === "?") {
+                return scanIndex + 1;
+            }
+
+            if (nextChar === "_") {
+                const afterUnderscore = scanIndex + 1;
+                if (afterUnderscore >= length) {
+                    return scanIndex + 1;
+                }
+                const peek = readCodePoint(afterUnderscore);
+                if (!peek || !UNICODE_VAR_CHAR_PATTERN.test(peek.text)) {
+                    return scanIndex + 1;
+                }
+                scanIndex += 1;
+            }
+        }
+
+        while (scanIndex < length) {
+            const peek = readCodePoint(scanIndex);
+            if (!peek) {
+                break;
+            }
+
+            const currentChar = peek.text;
+            if (UNICODE_VAR_CHAR_PATTERN.test(currentChar)) {
+                scanIndex += peek.width;
+                continue;
+            }
+
+            if (currentChar === "{") {
+                scanIndex += 1;
+                while (scanIndex < length && source[scanIndex] !== "}") {
+                    scanIndex += 1;
+                }
+                if (source[scanIndex] === "}") {
+                    scanIndex += 1;
+                }
+                continue;
+            }
+
+            break;
+        }
+
+        return scanIndex;
+    };
+
+    const consumeNumberToken = (startPosition: number): number => {
+        let scanIndex = startPosition + 1;
+        const firstChar = source[startPosition];
+
+        if (
+            firstChar === "0" &&
+            scanIndex < length &&
+            (source[scanIndex] === "x" || source[scanIndex] === "X")
+        ) {
+            scanIndex += 1;
+            while (
+                scanIndex < length &&
+                HEX_DIGIT_PATTERN.test(source[scanIndex])
+            ) {
+                scanIndex += 1;
+            }
+            if (scanIndex < length && /[lu]/i.test(source[scanIndex])) {
+                scanIndex += 1;
+            }
+        } else if (
+            firstChar === "0" &&
+            scanIndex < length &&
+            (source[scanIndex] === "b" || source[scanIndex] === "B")
+        ) {
+            scanIndex += 1;
+            while (
+                scanIndex < length &&
+                BINARY_DIGIT_PATTERN.test(source[scanIndex])
+            ) {
+                scanIndex += 1;
+            }
+            if (scanIndex < length && /[lu]/i.test(source[scanIndex])) {
+                scanIndex += 1;
+            }
+            return scanIndex;
+        } else {
+            while (
+                scanIndex < length &&
+                DECIMAL_DIGIT_PATTERN.test(source[scanIndex])
+            ) {
+                scanIndex += 1;
+            }
+
+            if (
+                scanIndex + 1 < length &&
+                source[scanIndex] === "." &&
+                DECIMAL_DIGIT_PATTERN.test(source[scanIndex + 1])
+            ) {
+                scanIndex += 2;
+                while (
+                    scanIndex < length &&
+                    DECIMAL_DIGIT_PATTERN.test(source[scanIndex])
+                ) {
+                    scanIndex += 1;
+                }
+            }
+
+            if (
+                scanIndex < length &&
+                (source[scanIndex] === "e" || source[scanIndex] === "E")
+            ) {
+                scanIndex += 1;
+                if (
+                    scanIndex < length &&
+                    (source[scanIndex] === "+" || source[scanIndex] === "-")
+                ) {
+                    scanIndex += 1;
+                }
+                while (
+                    scanIndex < length &&
+                    DECIMAL_DIGIT_PATTERN.test(source[scanIndex])
+                ) {
+                    scanIndex += 1;
+                }
+            }
+
+            if (
+                scanIndex < length &&
+                NUMBER_SUFFIX_PATTERN.test(source[scanIndex])
+            ) {
+                scanIndex += 1;
+            }
+        }
+
+        if (scanIndex + 1 < length) {
+            const suffix = source.slice(scanIndex, scanIndex + 2).toUpperCase();
+            if (
+                [
+                    "GB",
+                    "KB",
+                    "MB",
+                    "PB",
+                    "TB",
+                ].includes(suffix)
+            ) {
+                scanIndex += 2;
+            }
+        }
+
+        return scanIndex;
+    };
+
+    const readQuotedString = (
+        startIndex: number,
+        quoteChar: string
+    ): number => {
+        let scanIndex = startIndex;
+        let escaped = false;
+        while (scanIndex < length) {
+            const current = source[scanIndex];
+            if (escaped) {
+                escaped = false;
+            } else if (current === "`") {
+                escaped = true;
+            } else if (current === quoteChar) {
+                if (
+                    scanIndex + 1 < length &&
+                    source[scanIndex + 1] === quoteChar
+                ) {
+                    scanIndex += 2;
+                    continue;
+                }
+                scanIndex += 1;
+                break;
+            }
+            scanIndex += 1;
+        }
+        return scanIndex;
     };
 
     while (index < length) {
@@ -317,61 +492,8 @@ export function tokenize(source: string): Token[] {
         }
 
         if (char === "[") {
-            let lookahead = index + 1;
-            while (
-                lookahead < length &&
-                WHITESPACE_PATTERN.test(source[lookahead])
-            ) {
-                lookahead += 1;
-            }
-            if (
-                lookahead < length &&
-                IDENTIFIER_START_PATTERN.test(source[lookahead])
-            ) {
-                let depth = 1;
-                let scanIndex = index + 1;
-                while (scanIndex < length && depth > 0) {
-                    const current = source[scanIndex];
-                    if (current === "'" || current === '"') {
-                        const quote = current;
-                        scanIndex += 1;
-                        while (scanIndex < length) {
-                            const currentChar = source[scanIndex];
-                            if (currentChar === "`") {
-                                // Only advance by 2 if there is a character after the backtick
-                                if (scanIndex + 1 < length) {
-                                    scanIndex += 2;
-                                } else {
-                                    // Backtick is the last character, advance by 1 and exit loop
-                                    scanIndex += 1;
-                                    break;
-                                }
-                                continue;
-                            }
-                            if (currentChar === quote) {
-                                scanIndex += 1;
-                                break;
-                            }
-                            scanIndex += 1;
-                        }
-                        continue;
-                    }
-                    if (current === "[") {
-                        depth += 1;
-                        scanIndex += 1;
-                        continue;
-                    }
-                    if (current === "]") {
-                        depth -= 1;
-                        scanIndex += 1;
-                        if (depth === 0) {
-                            break;
-                        }
-                        continue;
-                    }
-                    scanIndex += 1;
-                }
-                const attributeEnd = depth === 0 ? scanIndex : length;
+            const attributeEnd = readAttributeEnd(source, index);
+            if (attributeEnd !== null) {
                 push({
                     end: attributeEnd,
                     start,
@@ -389,37 +511,7 @@ export function tokenize(source: string): Token[] {
         ) {
             const quoteChar = source[index + 1];
             const quote = quoteChar === '"' ? "double" : "single";
-            let scanIndex = index + 2;
-            let closing = -1;
-            while (scanIndex < length) {
-                if (
-                    scanIndex + 1 < length &&
-                    source[scanIndex] === quoteChar &&
-                    source[scanIndex + 1] === "@"
-                ) {
-                    const prevChar = source[scanIndex - 1];
-                    const prevPrev = source[scanIndex - 2];
-                    const atImmediateClosing = scanIndex === index + 2;
-                    const atUnixLineStart = prevChar === "\n";
-                    const atWindowsLineStart =
-                        prevChar === "\n" && prevPrev === "\r";
-                    if (
-                        atImmediateClosing ||
-                        atUnixLineStart ||
-                        atWindowsLineStart
-                    ) {
-                        closing = scanIndex;
-                        break;
-                    }
-                }
-                scanIndex += 1;
-            }
-
-            let end = length;
-            /* c8 ignore next */
-            if (closing !== -1) {
-                end = closing + 2;
-            }
+            const end = readHereStringEnd(source, index);
 
             push({
                 end,
@@ -434,24 +526,7 @@ export function tokenize(source: string): Token[] {
 
         if (char === "'" || char === '"') {
             const quote = char === '"' ? "double" : "single";
-            index += 1;
-            let escaped = false;
-            while (index < length) {
-                const current = source[index];
-                if (escaped) {
-                    escaped = false;
-                } else if (current === "`") {
-                    escaped = true;
-                } else if (current === char) {
-                    if (index + 1 < length && source[index + 1] === char) {
-                        index += 2;
-                        continue;
-                    }
-                    index += 1;
-                    break;
-                }
-                index += 1;
-            }
+            index = readQuotedString(index + 1, char);
             push({
                 end: index,
                 quote,
@@ -543,7 +618,7 @@ export function tokenize(source: string): Token[] {
                 source[index] === "&" &&
                 /[1-6]/.test(source[index + 1] ?? "")
             ) {
-                value += `&${  source[index + 1]}`;
+                value += `&${source[index + 1]}`;
                 index += 2;
             }
             push({ end: index, start, type: "operator", value });
@@ -552,7 +627,7 @@ export function tokenize(source: string): Token[] {
 
         // Stream redirection operators: 2>, 3>, 4>, 5>, 6>, *>
         if (/[*2-6]/.test(char) && source[index + 1] === ">") {
-            let value = `${char  }>`;
+            let value = `${char}>`;
             index += 2;
             // Check for >> (append)
             if (source[index] === ">") {
@@ -561,7 +636,7 @@ export function tokenize(source: string): Token[] {
             }
             // Check for merging redirection: 2>&1, *>&2, etc.
             if (source[index] === "&" && /[1-6]/.test(source[index + 1])) {
-                value += `&${  source[index + 1]}`;
+                value += `&${source[index + 1]}`;
                 index += 2;
             }
             push({ end: index, start, type: "operator", value });
@@ -581,88 +656,14 @@ export function tokenize(source: string): Token[] {
             source[index + 2] === "&" &&
             /[2-6]/.test(source[index + 3])
         ) {
-            const value = `1>&${  source[index + 3]}`;
+            const value = `1>&${source[index + 3]}`;
             index += 4;
             push({ end: index, start, type: "operator", value });
             continue;
         }
 
         if (char === "$") {
-            index += 1;
-
-            // Special variables: $$, $^, $?
-            // Note: $_ is special only when NOT followed by additional variable chars
-            if (index < length) {
-                const nextChar = source[index];
-                if (nextChar === "$" || nextChar === "^" || nextChar === "?") {
-                    index += 1;
-                    push({
-                        end: index,
-                        start,
-                        type: "variable",
-                        value: source.slice(start, index),
-                    });
-                    continue;
-                }
-                // For $_, check if followed by valid variable chars
-                if (nextChar === "_") {
-                    const afterUnderscore = index + 1;
-                    if (afterUnderscore < length) {
-                        const peek = readCodePoint(afterUnderscore);
-                        // If $_ is followed by a valid variable char, treat as regular variable
-                        // Otherwise, it's the special $_ variable
-                        if (peek && UNICODE_VAR_CHAR_PATTERN.test(peek.text)) {
-                            // Continue to regular variable parsing below
-                            index += 1; // Consume the underscore
-                        } else {
-                            // It's just the special $_ variable
-                            index += 1;
-                            push({
-                                end: index,
-                                start,
-                                type: "variable",
-                                value: source.slice(start, index),
-                            });
-                            continue;
-                        }
-                    } else {
-                        // $_ at end of source
-                        index += 1;
-                        push({
-                            end: index,
-                            start,
-                            type: "variable",
-                            value: source.slice(start, index),
-                        });
-                        continue;
-                    }
-                }
-            }
-
-            while (index < length) {
-                const peek = readCodePoint(index);
-                if (!peek) {
-                    break;
-                }
-                const currentChar = peek.text;
-                // PowerShell supports Unicode variable names
-                // Match Unicode letters, numbers, underscore, colon, and hyphen
-                if (UNICODE_VAR_CHAR_PATTERN.test(currentChar)) {
-                    index += peek.width;
-                    continue;
-                }
-                if (currentChar === "{") {
-                    index += 1;
-                    while (index < length && source[index] !== "}") {
-                        index += 1;
-                    }
-                    if (source[index] === "}") {
-                        index += 1;
-                    }
-                    continue;
-                }
-                break;
-            }
+            index = consumeVariableToken(start);
             push({
                 end: index,
                 start,
@@ -673,152 +674,7 @@ export function tokenize(source: string): Token[] {
         }
 
         if (/\d/.test(char)) {
-            index += 1;
-
-            // Check for hex number (0x...)
-            if (
-                char === "0" &&
-                index < length &&
-                (source[index] === "x" || source[index] === "X")
-            ) {
-                index += 1; // Consume 'x' or 'X'
-                while (
-                    index < length &&
-                    HEX_DIGIT_PATTERN.test(source[index])
-                ) {
-                    index += 1;
-                }
-                // Check for unsigned/long suffixes (U/u/L/l)
-                if (
-                    index < length &&
-                    (source[index] === "L" ||
-                        source[index] === "l" ||
-                        source[index] === "U" ||
-                        source[index] === "u")
-                ) {
-                    index += 1;
-                }
-                // Check for multiplier suffixes (KB, MB, GB, TB, PB)
-                if (index + 1 < length) {
-                    const suffix = source.slice(index, index + 2).toUpperCase();
-                    if (
-                        [
-                            "GB",
-                            "KB",
-                            "MB",
-                            "PB",
-                            "TB",
-                        ].includes(suffix)
-                    ) {
-                        index += 2;
-                    }
-                }
-                push({
-                    end: index,
-                    start,
-                    type: "number",
-                    value: source.slice(start, index),
-                });
-                continue;
-            }
-
-            // Check for binary number (0b...)
-            if (
-                char === "0" &&
-                index < length &&
-                (source[index] === "b" || source[index] === "B")
-            ) {
-                index += 1; // Consume 'b' or 'B'
-                while (
-                    index < length &&
-                    BINARY_DIGIT_PATTERN.test(source[index])
-                ) {
-                    index += 1;
-                }
-                if (
-                    index < length &&
-                    (source[index] === "U" ||
-                        source[index] === "u" ||
-                        source[index] === "L" ||
-                        source[index] === "l")
-                ) {
-                    index += 1;
-                }
-                push({
-                    end: index,
-                    start,
-                    type: "number",
-                    value: source.slice(start, index),
-                });
-                continue;
-            }
-
-            // Regular decimal number
-            while (
-                index < length &&
-                DECIMAL_DIGIT_PATTERN.test(source[index])
-            ) {
-                index += 1;
-            }
-
-            // Check for decimal point
-            if (
-                index + 1 < length &&
-                source[index] === "." &&
-                DECIMAL_DIGIT_PATTERN.test(source[index + 1])
-            ) {
-                index += 2;
-                while (
-                    index < length &&
-                    DECIMAL_DIGIT_PATTERN.test(source[index])
-                ) {
-                    index += 1;
-                }
-            }
-
-            // Check for scientific notation (e or E)
-            if (
-                index < length &&
-                (source[index] === "e" || source[index] === "E")
-            ) {
-                index += 1;
-                // Optional sign
-                if (
-                    index < length &&
-                    (source[index] === "+" || source[index] === "-")
-                ) {
-                    index += 1;
-                }
-                // Exponent digits
-                while (
-                    index < length &&
-                    DECIMAL_DIGIT_PATTERN.test(source[index])
-                ) {
-                    index += 1;
-                }
-            }
-
-            // Check for type suffixes (d/D for decimal, f/F for float, l/L for long)
-            if (index < length && NUMBER_SUFFIX_PATTERN.test(source[index])) {
-                index += 1;
-            }
-
-            // Check for multiplier suffixes (KB, MB, GB, TB, PB)
-            if (index + 1 < length) {
-                const suffix = source.slice(index, index + 2).toUpperCase();
-                if (
-                    [
-                        "GB",
-                        "KB",
-                        "MB",
-                        "PB",
-                        "TB",
-                    ].includes(suffix)
-                ) {
-                    index += 2;
-                }
-            }
-
+            index = consumeNumberToken(start);
             push({
                 end: index,
                 start,
@@ -910,4 +766,87 @@ export function tokenize(source: string): Token[] {
     }
 
     return tokens;
+}
+
+function readAttributeEnd(source: string, startIndex: number): null | number {
+    let lookahead = startIndex + 1;
+    while (
+        lookahead < source.length &&
+        WHITESPACE_PATTERN.test(source[lookahead])
+    ) {
+        lookahead += 1;
+    }
+
+    if (
+        lookahead >= source.length ||
+        !IDENTIFIER_START_PATTERN.test(source[lookahead])
+    ) {
+        return null;
+    }
+
+    let depth = 1;
+    let scanIndex = startIndex + 1;
+    while (scanIndex < source.length && depth > 0) {
+        const current = source[scanIndex];
+        if (current === "'" || current === '"') {
+            scanIndex += 1;
+            while (scanIndex < source.length) {
+                const quotedChar = source[scanIndex];
+                if (quotedChar === "`") {
+                    scanIndex += scanIndex + 1 < source.length ? 2 : 1;
+                    continue;
+                }
+                if (quotedChar === current) {
+                    scanIndex += 1;
+                    break;
+                }
+                scanIndex += 1;
+            }
+            continue;
+        }
+        if (current === "[") {
+            depth += 1;
+            scanIndex += 1;
+            continue;
+        }
+        if (current === "]") {
+            depth -= 1;
+            scanIndex += 1;
+            continue;
+        }
+        scanIndex += 1;
+    }
+
+    return depth === 0 ? scanIndex : source.length;
+}
+
+function readHereStringEnd(source: string, startIndex: number): number {
+    const quoteChar = source[startIndex + 1];
+    let scanIndex = startIndex + 2;
+
+    while (scanIndex < source.length) {
+        const maybeClosing =
+            scanIndex + 1 < source.length &&
+            source[scanIndex] === quoteChar &&
+            source[scanIndex + 1] === "@";
+
+        if (!maybeClosing) {
+            scanIndex += 1;
+            continue;
+        }
+
+        const prevChar = source[scanIndex - 1];
+        const prevPrev = source[scanIndex - 2];
+        const atImmediateClosing = scanIndex === startIndex + 2;
+        const atUnixLineStart = prevChar === "\n";
+        const atWindowsLineStart = prevChar === "\n" && prevPrev === "\r";
+
+        if (atImmediateClosing || atUnixLineStart || atWindowsLineStart) {
+            return scanIndex + 2;
+        }
+
+        scanIndex += 1;
+    }
+
+    return source.length;
 }

@@ -1,17 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import plugin from "../src/index.js";
+import plugin from "../src/plugin.js";
 import { tokenize } from "../src/tokenizer.js";
-
 import { formatAndAssert } from "./utils/format-and-assert.js";
 
 const baseConfig = {
+    filepath: "test.ps1",
     parser: "powershell",
     plugins: [plugin],
-    filepath: "test.ps1",
 };
 
-describe("Coverage - Tokenizer edge cases", () => {
+describe("coverage - Tokenizer edge cases", () => {
     it("handles carriage return only newlines", async () => {
         const input = "function Foo {\r$x = 1\r}";
         const result = await formatAndAssert(
@@ -19,6 +18,7 @@ describe("Coverage - Tokenizer edge cases", () => {
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("function Foo");
     });
 
@@ -26,6 +26,7 @@ describe("Coverage - Tokenizer edge cases", () => {
         const input = `@"\r\nHello\r\n"@`;
         const tokens = tokenize(input);
         const heredoc = tokens.find((t) => t.type === "heredoc");
+
         expect(heredoc).toBeDefined();
     });
 
@@ -33,53 +34,60 @@ describe("Coverage - Tokenizer edge cases", () => {
         const input = `@"\nHello world"@`;
         const tokens = tokenize(input);
         const heredoc = tokens.find((t) => t.type === "heredoc");
+
         expect(heredoc).toBeDefined();
     });
 
     it("handles normalizeHereString with 2 or fewer lines", async () => {
         const { normalizeHereString } = await import("../src/tokenizer.js");
         const node = {
-            type: "HereString" as const,
+            loc: { end: 5, start: 0 },
             quote: "double" as const,
+            type: "HereString" as const,
             value: '@"\n"@',
-            loc: { start: 0, end: 5 },
         };
         const result = normalizeHereString(node);
+
         expect(result).toBe('@"\n"@');
     });
 
     it("handles string with escape at end", () => {
         const tokens = tokenize('"test`"');
         const string = tokens.find((t) => t.type === "string");
+
         expect(string).toBeDefined();
     });
 
     it("handles variable with unclosed braces", () => {
         const tokens = tokenize("${unclosed");
         const variable = tokens.find((t) => t.type === "variable");
+
         expect(variable).toBeDefined();
     });
 
     it("handles number without decimal part", () => {
         const tokens = tokenize("42.");
-        expect(tokens.some((t) => t.type === "number")).toBe(true);
+
+        expect(tokens.some((t) => t.type === "number")).toBeTruthy();
     });
 
     it("handles identifier starting with dash", () => {
         const tokens = tokenize("-Parameter");
         const identifier = tokens.find((t) => t.type === "identifier");
+
         expect(identifier?.value).toBe("-Parameter");
     });
 
     it("handles normalizeHereString with multiple lines", async () => {
         const { normalizeHereString } = await import("../src/tokenizer.js");
         const node = {
-            type: "HereString" as const,
+            loc: { end: 20, start: 0 },
             quote: "double" as const,
+            type: "HereString" as const,
             value: '@"\nLine1\nLine2\nLine3\n"@',
-            loc: { start: 0, end: 20 },
         };
         const result = normalizeHereString(node);
+
         expect(result).toBe("Line1\nLine2\nLine3");
     });
 
@@ -88,12 +96,14 @@ describe("Coverage - Tokenizer edge cases", () => {
         const identifiers = tokens.filter(
             (t) => t.type === "variable" || t.type === "operator"
         );
+
         expect(identifiers.length).toBeGreaterThan(0);
     });
 
     it("handles unterminated here-string", () => {
         const tokens = tokenize('@"\nHello');
         const heredoc = tokens.find((t) => t.type === "heredoc");
+
         expect(heredoc).toBeDefined();
     });
 
@@ -103,24 +113,28 @@ Hello
 '@`;
         const tokens = tokenize(input);
         const heredoc = tokens.find((t) => t.type === "heredoc");
+
         expect(heredoc?.quote).toBe("single");
     });
 
     it("handles unterminated string with escape", () => {
         const tokens = tokenize('"Hello`');
         const string = tokens.find((t) => t.type === "string");
+
         expect(string).toBeDefined();
     });
 
     it("handles double equals operator", () => {
         const tokens = tokenize("$x == 1");
         const operator = tokens.find((t) => t.value === "==");
+
         expect(operator?.type).toBe("operator");
     });
 
     it("handles double pipe operator", () => {
         const tokens = tokenize("$x || $y");
         const operator = tokens.find((t) => t.value === "||");
+
         expect(operator?.type).toBe("operator");
     });
 
@@ -131,24 +145,28 @@ Hello
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result.trim()).toBe("${my-var}");
     });
 
     it("handles decimal numbers", () => {
         const tokens = tokenize("3.14");
         const number = tokens.find((t) => t.type === "number");
+
         expect(number?.value).toBe("3.14");
     });
 
     it("handles unknown characters", () => {
         const tokens = tokenize("~");
         const unknown = tokens.find((t) => t.type === "unknown");
+
         expect(unknown?.value).toBe("~");
     });
 
     it("handles here-string without closing delimiter found", () => {
         const tokens = tokenize('@"\nHello world');
         const heredoc = tokens.find((t) => t.type === "heredoc");
+
         expect(heredoc).toBeDefined();
         expect(heredoc?.value.length).toBeGreaterThan(0);
     });
@@ -156,11 +174,12 @@ Hello
     it("handles single character variable", () => {
         const tokens = tokenize("$x");
         const variable = tokens.find((t) => t.type === "variable");
+
         expect(variable?.value).toBe("$x");
     });
 });
 
-describe("Coverage - Parser edge cases", () => {
+describe("coverage - Parser edge cases", () => {
     it("handles empty script blocks", async () => {
         const input = "function Foo {}";
         const result = await formatAndAssert(
@@ -168,6 +187,7 @@ describe("Coverage - Parser edge cases", () => {
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result.trim()).toBe("function Foo {}");
     });
 
@@ -181,6 +201,7 @@ Write-Host "test"`;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("# comment");
     });
 
@@ -193,6 +214,7 @@ Write-Host "test"`;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("|");
     });
 
@@ -203,6 +225,7 @@ Write-Host "test"`;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("my-key");
     });
 
@@ -213,6 +236,7 @@ Write-Host "test"`;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -223,6 +247,7 @@ Write-Host "test"`;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("nested");
     });
 
@@ -237,6 +262,7 @@ Write-Host "test"`;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("1");
     });
 
@@ -250,6 +276,7 @@ Write-Host "test"`;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("a");
     });
 
@@ -263,6 +290,7 @@ b = 2
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("a");
     });
 
@@ -273,6 +301,7 @@ b = 2
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -283,6 +312,7 @@ b = 2
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result.trim()).toBe("");
     });
 
@@ -296,6 +326,7 @@ Write-Host "Hi"
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("# comment");
     });
 
@@ -308,6 +339,7 @@ $x = 1;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -318,6 +350,7 @@ $x = 1;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("if");
     });
 
@@ -328,6 +361,7 @@ $x = 1;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("[");
     });
 
@@ -338,6 +372,7 @@ $x = 1;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result.trim()).toBe("@{}");
     });
 
@@ -348,6 +383,7 @@ $x = 1;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("()");
     });
 
@@ -358,11 +394,12 @@ $x = 1;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 });
 
-describe("Coverage - Printer edge cases", () => {
+describe("coverage - Printer edge cases", () => {
     it("handles tab indentation style", async () => {
         const input = `function Foo {
 Write-Host "Hi"
@@ -375,6 +412,7 @@ Write-Host "Hi"
             },
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("\t");
     });
 
@@ -385,6 +423,7 @@ Write-Host "Hi"
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result.trim()).toBe("-eq");
     });
 
@@ -395,6 +434,7 @@ Write-Host "Hi"
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain(".");
     });
 
@@ -405,6 +445,7 @@ Write-Host "Hi"
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("($x)");
     });
 
@@ -415,6 +456,7 @@ Write-Host "Hi"
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("[0]");
     });
 
@@ -425,6 +467,7 @@ Write-Host "Hi"
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("::");
     });
 
@@ -435,6 +478,7 @@ Write-Host "Hi"
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -448,6 +492,7 @@ Write-Host "Hi"
             },
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("FUNCTION");
         expect(result).toContain("IF");
     });
@@ -462,6 +507,7 @@ Write-Host "Hi"
             },
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("Function");
         expect(result).toContain("If");
     });
@@ -476,6 +522,7 @@ Write-Host "Hi"
             },
             "coverage.result|skipParse"
         );
+
         expect(result.trim()).toBe(`"It's working"`);
     });
 
@@ -489,6 +536,7 @@ Write-Host "Hi"
             },
             "coverage.result|skipParse"
         );
+
         expect(result).toContain('"');
     });
 
@@ -502,6 +550,7 @@ Write-Host "Hi"
             },
             "coverage.result|skipParse"
         );
+
         expect(result.trim()).toBe("$var");
     });
 
@@ -515,6 +564,7 @@ Write-Host "Hi"
             },
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("Get-Item");
         expect(result).toContain("Get-ChildItem");
         expect(result).toContain("Get-Content");
@@ -533,8 +583,9 @@ Write-Host "Hi"
             },
             "coverage.result|skipParse"
         );
+
         // PowerShell arrays don't support trailing commas
-        expect(result).not.toMatch(/,\s*\)/);
+        expect(result).not.toMatch(/,\s*\)/v);
     });
 
     it("handles trailing comma set to none", async () => {
@@ -550,7 +601,8 @@ Write-Host "Hi"
             },
             "coverage.result|skipParse"
         );
-        expect(result).not.toMatch(/2,/);
+
+        expect(result).not.toMatch(/2,/v);
     });
 
     it("handles hashtable with trailing semicolon set to all", async () => {
@@ -563,7 +615,8 @@ Write-Host "Hi"
             },
             "coverage.result|skipParse"
         );
-        expect(result).toMatch(/2;/);
+
+        expect(result).toMatch(/2;/v);
     });
 
     it("handles zero blank lines between functions", async () => {
@@ -577,6 +630,7 @@ function B {}`;
             },
             "coverage.result|skipParse"
         );
+
         expect(
             result.split("\n").filter((l) => l.trim() === "").length
         ).toBeGreaterThanOrEqual(0);
@@ -592,6 +646,7 @@ function B {}`;
             },
             "coverage.result1|skipParse"
         );
+
         expect(result1).toBeDefined();
 
         const result2 = await formatAndAssert(
@@ -602,6 +657,7 @@ function B {}`;
             },
             "coverage.result2|skipParse"
         );
+
         expect(result2).toBeDefined();
     });
 
@@ -612,6 +668,7 @@ function B {}`;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("Where-Object");
     });
 
@@ -622,6 +679,7 @@ function B {}`;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("@(");
     });
 
@@ -632,6 +690,7 @@ function B {}`;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("@{");
     });
 
@@ -642,6 +701,7 @@ function B {}`;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain(".");
     });
 
@@ -652,6 +712,7 @@ function B {}`;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("$x = {");
     });
 
@@ -662,6 +723,7 @@ function B {}`;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain(" = ");
     });
 
@@ -672,6 +734,7 @@ function B {}`;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result.trim()).toBe("@(1)");
     });
 
@@ -682,6 +745,7 @@ function B {}`;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result.trim()).toBe("[1]");
     });
 
@@ -695,6 +759,7 @@ function B {}`;
             },
             "coverage.result|skipParse"
         );
+
         expect(result.trim()).toBe("");
     });
 
@@ -704,11 +769,12 @@ function B {}`;
             input,
             {
                 ...baseConfig,
-                printWidth: 200,
                 powershellLineWidth: 100,
+                printWidth: 200,
             },
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -719,6 +785,7 @@ function B {}`;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result.trim()).toBe("# This is a comment");
     });
 
@@ -729,6 +796,7 @@ function B {}`;
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("Write-Host");
     });
 
@@ -742,6 +810,7 @@ function B {}`;
             },
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("function Test\n{");
     });
 
@@ -755,6 +824,7 @@ function B {}`;
             },
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -769,6 +839,7 @@ param(
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("param");
     });
 
@@ -779,6 +850,7 @@ param(
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -789,6 +861,7 @@ param(
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -799,6 +872,7 @@ param(
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result.trim()).toBe("@()");
     });
 
@@ -809,6 +883,7 @@ param(
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result.trim()).toBe("[]");
     });
 
@@ -819,6 +894,7 @@ param(
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result.trim()).toBe("@(1)");
     });
 
@@ -832,6 +908,7 @@ b = 2
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("a");
     });
 
@@ -845,6 +922,7 @@ b = 2
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("a");
     });
 
@@ -858,6 +936,7 @@ b = 2
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("b");
     });
 
@@ -868,6 +947,7 @@ b = 2
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -878,6 +958,7 @@ b = 2
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -892,6 +973,7 @@ a = 1
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("a");
     });
 
@@ -902,6 +984,7 @@ a = 1
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).not.toContain("`");
     });
 
@@ -912,6 +995,7 @@ a = 1
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("|");
     });
 
@@ -922,6 +1006,7 @@ a = 1
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("# comment1");
         expect(result).toContain("# comment2");
     });
@@ -933,6 +1018,7 @@ a = 1
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("|");
     });
 
@@ -943,6 +1029,7 @@ a = 1
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("quoted-key");
         expect(result).toContain("single-key");
     });
@@ -954,6 +1041,7 @@ a = 1
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("a");
     });
 
@@ -964,6 +1052,7 @@ a = 1
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -974,6 +1063,7 @@ a = 1
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result.trim()).toBe("()");
     });
 
@@ -984,6 +1074,7 @@ a = 1
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toContain(".");
     });
 
@@ -997,6 +1088,7 @@ $y
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -1010,6 +1102,7 @@ $y
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -1020,6 +1113,7 @@ $y
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -1037,6 +1131,7 @@ c = 3
             },
             "coverage.result|skipParse"
         );
+
         expect(result).toContain("a");
     });
 
@@ -1047,6 +1142,7 @@ c = 3
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -1060,6 +1156,7 @@ c = 3
             },
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -1070,6 +1167,7 @@ c = 3
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result.trim()).toBe("($single)");
     });
 
@@ -1080,6 +1178,7 @@ c = 3
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -1093,6 +1192,7 @@ $b
             baseConfig,
             "coverage.result1|skipParse"
         );
+
         expect(result1).toBeDefined();
 
         const input2 = "($a, $b)";
@@ -1101,6 +1201,7 @@ $b
             baseConfig,
             "coverage.result2|skipParse"
         );
+
         expect(result2).toBeDefined();
     });
 
@@ -1111,6 +1212,7 @@ $b
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result.trim()).toBe("@(42)");
     });
 
@@ -1124,6 +1226,7 @@ $b
             },
             "coverage.result|skipParse"
         );
+
         expect(result.trim()).toBe("$variable");
     });
 
@@ -1137,6 +1240,7 @@ $b
             },
             "coverage.result|skipParse"
         );
+
         expect(result).toContain('"');
     });
 
@@ -1147,11 +1251,12 @@ $b
             baseConfig,
             "coverage.result|skipParse"
         );
+
         expect(result).not.toContain("`");
     });
 });
 
-describe("Coverage - Options edge cases", () => {
+describe("coverage - Options edge cases", () => {
     it("handles invalid blank lines between functions (too high)", async () => {
         const input = "function A {}\nfunction B {}";
         const result = await formatAndAssert(
@@ -1162,6 +1267,7 @@ describe("Coverage - Options edge cases", () => {
             },
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -1175,6 +1281,7 @@ describe("Coverage - Options edge cases", () => {
             },
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -1183,12 +1290,13 @@ describe("Coverage - Options edge cases", () => {
         const result = await formatAndAssert(
             input,
             {
+                filepath: "test.ps1",
                 parser: "powershell",
                 plugins: [plugin],
-                filepath: "test.ps1",
             },
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -1210,6 +1318,7 @@ describe("Coverage - Options edge cases", () => {
                 },
                 "coverage.result|skipParse"
             );
+
             expect(result).toBeDefined();
         }
     });
@@ -1230,6 +1339,7 @@ describe("Coverage - Options edge cases", () => {
                 },
                 "coverage.result|skipParse"
             );
+
             expect(result).toBeDefined();
         }
     });
@@ -1239,13 +1349,14 @@ describe("Coverage - Options edge cases", () => {
         const result = await formatAndAssert(
             input,
             {
+                filepath: "test.ps1",
                 parser: "powershell",
                 plugins: [plugin],
-                filepath: "test.ps1",
                 powershellLineWidth: 80,
             },
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -1254,14 +1365,15 @@ describe("Coverage - Options edge cases", () => {
         const result = await formatAndAssert(
             input,
             {
+                filepath: "test.ps1",
                 parser: "powershell",
                 plugins: [plugin],
-                filepath: "test.ps1",
-                printWidth: 60,
                 powershellLineWidth: 120,
+                printWidth: 60,
             },
             "coverage.result|skipParse"
         );
+
         expect(result).toBeDefined();
     });
 
@@ -1273,28 +1385,30 @@ describe("Coverage - Options edge cases", () => {
             input,
             {
                 ...baseConfig,
-                powershellSortHashtableKeys: true,
                 powershellBlankLineAfterParam: true,
                 powershellPreferSingleQuote: true,
                 powershellRewriteAliases: true,
                 powershellRewriteWriteHost: true,
+                powershellSortHashtableKeys: true,
             },
             "coverage.result1|skipParse"
         );
+
         expect(result1).toBeDefined();
 
         const result2 = await formatAndAssert(
             input,
             {
                 ...baseConfig,
-                powershellSortHashtableKeys: false,
                 powershellBlankLineAfterParam: false,
                 powershellPreferSingleQuote: false,
                 powershellRewriteAliases: false,
                 powershellRewriteWriteHost: false,
+                powershellSortHashtableKeys: false,
             },
             "coverage.result2|skipParse"
         );
+
         expect(result2).toBeDefined();
     });
 
@@ -1309,7 +1423,8 @@ describe("Coverage - Options edge cases", () => {
             },
             "coverage.spacesResult"
         );
-        expect(spacesResult).not.toMatch(/\t/);
+
+        expect(spacesResult).not.toMatch(/\t/v);
 
         const tabsResult = await formatAndAssert(
             input,
@@ -1319,7 +1434,8 @@ describe("Coverage - Options edge cases", () => {
             },
             "coverage.tabsResult"
         );
-        expect(tabsResult).toMatch(/\t/);
+
+        expect(tabsResult).toMatch(/\t/v);
     });
 
     it("handles all trailingComma option values", async () => {
@@ -1333,6 +1449,7 @@ describe("Coverage - Options edge cases", () => {
             },
             "coverage.noneResult"
         );
+
         expect(noneResult).toBeDefined();
 
         const multilineResult = await formatAndAssert(
@@ -1343,6 +1460,7 @@ describe("Coverage - Options edge cases", () => {
             },
             "coverage.multilineResult"
         );
+
         expect(multilineResult).toBeDefined();
 
         const allResult = await formatAndAssert(
@@ -1353,6 +1471,7 @@ describe("Coverage - Options edge cases", () => {
             },
             "coverage.allResult"
         );
+
         expect(allResult).toBeDefined();
     });
 
@@ -1367,6 +1486,7 @@ describe("Coverage - Options edge cases", () => {
             },
             "coverage.oneTbsResult"
         );
+
         expect(oneTbsResult).toBeDefined();
 
         const allmanResult = await formatAndAssert(
@@ -1377,6 +1497,7 @@ describe("Coverage - Options edge cases", () => {
             },
             "coverage.allmanResult"
         );
+
         expect(allmanResult).toBeDefined();
     });
 
@@ -1397,23 +1518,25 @@ describe("Coverage - Options edge cases", () => {
                 },
                 "coverage.result|skipParse"
             );
+
             expect(result).toBeDefined();
         }
     });
 });
 
-describe("Coverage - Index exports", () => {
+describe("coverage - Index exports", () => {
     it("exports plugin with hasPragma function", () => {
         expect(plugin.parsers?.powershell?.hasPragma).toBeDefined();
+
         const hasPragma = plugin.parsers?.powershell?.hasPragma;
         if (hasPragma) {
-            expect(hasPragma("")).toBe(false);
+            expect(hasPragma("")).toBeFalsy();
         }
     });
 
     it("exports languages array", () => {
         expect(plugin.languages).toBeDefined();
-        expect(Array.isArray(plugin.languages)).toBe(true);
+        expect(Array.isArray(plugin.languages)).toBeTruthy();
     });
 
     it("exports parsers object", () => {
@@ -1432,3 +1555,4 @@ describe("Coverage - Index exports", () => {
         expect(plugin.defaultOptions).toBeDefined();
     });
 });
+

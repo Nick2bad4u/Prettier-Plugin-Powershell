@@ -7,7 +7,7 @@ const baseConfig = {
     plugins: ["./dist/index.cjs"],
 };
 
-describe("Delimited sequence handling", () => {
+describe("delimited sequence handling", () => {
     it("keeps array elements stable across commas and newlines", async () => {
         const input = "@(1, 2, 3,\n4, 5)";
         const result = await formatAndAssert(
@@ -15,6 +15,7 @@ describe("Delimited sequence handling", () => {
             baseConfig,
             "delimited-sequences.result"
         );
+
         expect(result).toBe("@( 1, 2, 3, 4, 5 )\n");
     });
 
@@ -42,6 +43,7 @@ describe("Delimited sequence handling", () => {
             "}",
             "",
         ].join("\n");
+
         expect(result).toBe(expected);
     });
 
@@ -65,6 +67,7 @@ describe("Delimited sequence handling", () => {
             "}",
             "",
         ].join("\n");
+
         expect(result).toBe(expected);
     });
 });

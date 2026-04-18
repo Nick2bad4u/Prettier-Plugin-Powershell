@@ -1,28 +1,26 @@
 import { readFile } from "node:fs/promises";
 import { URL } from "node:url";
-
 import { describe, expect, it } from "vitest";
 
-import plugin from "../src/index.js";
-
+import plugin from "../src/plugin.js";
 import { formatAndAssert } from "./utils/format-and-assert.js";
 
 const baseConfig = {
+    filepath: "test.ps1",
     parser: "powershell",
     plugins: [plugin],
-    filepath: "test.ps1",
 };
 
-const normalize = (text: string) => text.replace(/\r\n/g, "\n");
+const normalize = (text: string) => text.replaceAll('\r\n', "\n");
 
 describe("PowerShell Prettier plugin", () => {
     it("formats the sample fixture as expected", async () => {
         const input = await readFile(
-            new URL("./fixtures/sample-unformatted.ps1", import.meta.url),
+            new URL("fixtures/sample-unformatted.ps1", import.meta.url),
             "utf8"
         );
         const expected = await readFile(
-            new URL("./fixtures/sample-formatted.ps1", import.meta.url),
+            new URL("fixtures/sample-formatted.ps1", import.meta.url),
             "utf8"
         );
 
@@ -31,12 +29,13 @@ describe("PowerShell Prettier plugin", () => {
             baseConfig,
             "plugin.result"
         );
+
         expect(normalize(result)).toBe(normalize(expected));
     });
 
     it("is idempotent on formatted output", async () => {
         const formatted = await readFile(
-            new URL("./fixtures/sample-formatted.ps1", import.meta.url),
+            new URL("fixtures/sample-formatted.ps1", import.meta.url),
             "utf8"
         );
 
@@ -46,6 +45,7 @@ describe("PowerShell Prettier plugin", () => {
             "plugin.once"
         );
         const twice = await formatAndAssert(once, baseConfig, "plugin.twice");
+
         expect(twice).toBe(once);
     });
 
@@ -68,8 +68,9 @@ Write-Host "Hello"
             "plugin.result"
         );
         const lines = normalize(result).trimEnd().split("\n");
+
         expect(lines[0]).toBe("function Test {");
-        expect(lines[1]).toMatch(/^ {6}param\($/);
+        expect(lines[1]).toMatch(/^ {6}param\($/v);
         expect(lines[2]).toMatch(/^ {12}\[string\] \$Name$/);
         expect(lines[3]).toBe("      )");
         expect(lines[4]).toBe("");
@@ -89,6 +90,7 @@ Write-Host "Hello"
             },
             "plugin.result"
         );
+
         expect(result.trim()).toBe(`@{ a = 2; m = 3; z = 1 }`);
     });
 
@@ -157,6 +159,7 @@ return $here
             baseConfig,
             "plugin.result"
         );
+
         expect(result).toContain(`\n    return $here\n`);
     });
 
@@ -178,6 +181,7 @@ Write-Host "Hi"
             },
             "plugin.allmanResult"
         );
+
         expect(defaultResult.trim()).toBe(
             [
                 "function Foo {",
@@ -222,10 +226,11 @@ b = 2
             },
             "plugin.hashResult"
         );
+
         // Arrays should NEVER have trailing commas (PowerShell doesn't support this)
-        expect(arrayResult).not.toMatch(new RegExp(",\\s*\\)"));
+        expect(arrayResult).not.toMatch(new RegExp(String.raw`,\s*\)`));
         // Hashtables CAN have trailing semicolons
-        expect(hashResult).toMatch(new RegExp(";\\s*\\}"));
+        expect(hashResult).toMatch(new RegExp(String.raw`;\s*\}`));
     });
 
     it("wraps pipelines when exceeding the configured line width", async () => {
@@ -239,10 +244,11 @@ b = 2
             },
             "plugin.result"
         );
+
         expect(result).toContain("|");
         expect(
             result.split("\n").some((line) => line.trimStart().startsWith("|"))
-        ).toBe(true);
+        ).toBeTruthy();
     });
 
     it("prefers single quotes for simple strings when enabled", async () => {
@@ -256,6 +262,7 @@ b = 2
             },
             "plugin.result"
         );
+
         expect(result.trim()).toBe("Write-Host 'Hello'");
     });
 
@@ -270,6 +277,7 @@ b = 2
             },
             "plugin.result"
         );
+
         expect(result).toContain("Get-ChildItem");
         expect(result).toContain("ForEach-Object");
     });
@@ -285,6 +293,7 @@ b = 2
             },
             "plugin.result"
         );
+
         expect(result.trim()).toBe("Write-Output $Message");
     });
 
@@ -301,12 +310,13 @@ $value`;
             baseConfig,
             "plugin.result"
         );
+
         expect(result).not.toContain("`");
         expect(
             result
                 .split("\n")
                 .some((line) => line.trim() === "Write-Host $value")
-        ).toBe(true);
+        ).toBeTruthy();
     });
 
     it("normalises keyword casing by default", async () => {
@@ -322,6 +332,7 @@ Write-Output "hi"
             "plugin.result"
         );
         const lines = result.split("\n");
+
         expect(lines[0]).toBe("function Foo {");
         expect(lines[1].trim()).toBe("if ($true) {");
     });
@@ -342,6 +353,7 @@ Write-Output "hi"
             "plugin.result"
         );
         const lines = result.split("\n");
+
         expect(lines[0]).toBe("FUNCTION Foo {");
         expect(lines[1].trim()).toBe("IF ($true) {");
     });
@@ -354,6 +366,7 @@ Write-Output "hi"
             baseConfig,
             "plugin.result"
         );
+
         expect(result.trim()).toBe("Write-Host $value");
     });
 
@@ -401,6 +414,8 @@ begin {
             baseConfig,
             "plugin.result"
         );
+
         expect(normalize(result)).toBe(normalize(expected));
     });
 });
+

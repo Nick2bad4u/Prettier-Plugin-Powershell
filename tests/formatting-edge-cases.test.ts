@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import plugin from "../src/index.js";
-
+import plugin from "../src/plugin.js";
 import { formatAndAssert } from "./utils/format-and-assert.js";
 
 const baseConfig = {
@@ -9,7 +8,7 @@ const baseConfig = {
     plugins: [plugin],
 };
 
-describe("Formatting edge cases", () => {
+describe("formatting edge cases", () => {
     it("formats static member access (::) without spaces", async () => {
         const script = "[System.IO.Path] :: PathSeparator";
         const result = await formatAndAssert(
@@ -17,6 +16,7 @@ describe("Formatting edge cases", () => {
             baseConfig,
             "formatting-edge-cases.result"
         );
+
         expect(result.trim()).toBe("[System.IO.Path]::PathSeparator");
     });
 
@@ -27,6 +27,7 @@ describe("Formatting edge cases", () => {
             baseConfig,
             "formatting-edge-cases.result"
         );
+
         expect(result.trim()).toBe("Get-Module -Name:$ModuleName");
     });
 
@@ -37,6 +38,7 @@ describe("Formatting edge cases", () => {
             baseConfig,
             "formatting-edge-cases.result"
         );
+
         expect(result.trim()).toBe("Add-Profile @profileArguments");
     });
 
@@ -47,6 +49,7 @@ describe("Formatting edge cases", () => {
             baseConfig,
             "formatting-edge-cases.result"
         );
+
         expect(result).toContain("-not (Test-Path $path)");
     });
 
@@ -57,6 +60,7 @@ describe("Formatting edge cases", () => {
             baseConfig,
             "formatting-edge-cases.result"
         );
+
         expect(result).toContain("-and ($b)");
     });
 
@@ -67,6 +71,7 @@ describe("Formatting edge cases", () => {
             baseConfig,
             "formatting-edge-cases.result"
         );
+
         expect(result).toContain("-or ($b)");
     });
 
@@ -83,6 +88,7 @@ if (-not(Test-Path $path)) { }
             baseConfig,
             "formatting-edge-cases.result"
         );
+
         expect(result).toContain("[System.IO.Path]::PathSeparator");
         expect(result).toContain(
             "[System.Text.RegularExpressions.Regex]::Escape"
@@ -99,6 +105,7 @@ if (-not(Test-Path $path)) { }
             baseConfig,
             "formatting-edge-cases.result"
         );
+
         expect(result.trim()).toBe("$h = ($Hue % 1) * 6");
     });
 
@@ -109,6 +116,7 @@ if (-not(Test-Path $path)) { }
             baseConfig,
             "formatting-edge-cases.result"
         );
+
         expect(result.trim()).toBe("Write-Host ($message)");
     });
 
@@ -119,6 +127,7 @@ if (-not(Test-Path $path)) { }
             baseConfig,
             "formatting-edge-cases.result"
         );
+
         expect(result.trim()).toBe("$obj.ContainsKey($key)");
     });
 
@@ -129,6 +138,7 @@ if (-not(Test-Path $path)) { }
             baseConfig,
             "formatting-edge-cases.result"
         );
+
         expect(result.trim()).toBe("[Math]::Round($value)");
     });
 
@@ -139,6 +149,7 @@ if (-not(Test-Path $path)) { }
             baseConfig,
             "formatting-edge-cases.result"
         );
+
         expect(result.trim()).toBe("$mode.Value = 0x0004");
     });
 
@@ -154,6 +165,7 @@ $d = 0X1234
             baseConfig,
             "formatting-edge-cases.result"
         );
+
         expect(result).toContain("0x00");
         expect(result).toContain("0xFF");
         expect(result).toContain("0xDEADBEEF");
@@ -167,6 +179,7 @@ $d = 0X1234
             baseConfig,
             "formatting-edge-cases.result"
         );
+
         expect(result.trim()).toBe("$binary = 0b1010");
     });
 
@@ -183,6 +196,7 @@ $pb = 1PB
             baseConfig,
             "formatting-edge-cases.result"
         );
+
         expect(result).toContain("10KB");
         expect(result).toContain("5MB");
         expect(result).toContain("2GB");
@@ -202,6 +216,7 @@ $d = 2.5E-3
             baseConfig,
             "formatting-edge-cases.result"
         );
+
         expect(result).toContain("1e10");
         expect(result).toContain("1e-5");
         expect(result).toContain("1.5e10");
@@ -222,6 +237,7 @@ $floatUpper = 2.5F
             baseConfig,
             "formatting-edge-cases.result"
         );
+
         expect(result).toContain("100L");
         expect(result).toContain("200l");
         expect(result).toContain("1.5d");
@@ -241,8 +257,10 @@ $scientificFloat = 1.5e10f
             baseConfig,
             "formatting-edge-cases.result"
         );
+
         expect(result).toContain("0x10L");
         expect(result).toContain("0xFFMB");
         expect(result).toContain("1.5e10f");
     });
 });
+

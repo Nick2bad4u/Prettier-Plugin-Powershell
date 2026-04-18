@@ -1,9 +1,8 @@
 import * as fc from "fast-check";
-import { describe, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import plugin from "../src/index.js";
 import { parsePowerShell } from "../src/parser.js";
-
+import plugin from "../src/plugin.js";
 import {
     formatAndAssert,
     formatAndAssertRoundTrip,
@@ -11,16 +10,35 @@ import {
 import { assertPowerShellParses } from "./utils/powershell.js";
 import { withProgress } from "./utils/progress.js";
 
+const { env: testEnv } = process;
+
 const PROPERTY_RUNS = Number.parseInt(
-    process.env.POWERSHELL_PROPERTY_RUNS ?? "100",
+    testEnv.POWERSHELL_PROPERTY_RUNS ?? "100",
     10
 );
+
+const lowerAlphabet = Array.from({ length: 26 }, (_, index) =>
+    String.fromCodePoint(97 + index)
+);
+const digits = Array.from({ length: 10 }, (_, index) =>
+    String.fromCodePoint(48 + index)
+);
+const identifierChars = [
+    ...lowerAlphabet,
+    ...digits,
+    "_",
+];
+const printableChars = [
+    ...lowerAlphabet,
+    ...digits,
+    " ",
+];
 
 // Import arbitraries from parser tests
 const simpleIdentifierArb = fc
     .tuple(
-        fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz"),
-        fc.array(fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz0123456789_"), {
+        fc.constantFrom(...lowerAlphabet),
+        fc.array(fc.constantFrom(...identifierChars), {
             maxLength: 8,
         })
     )
@@ -28,16 +46,16 @@ const simpleIdentifierArb = fc
 
 const variableArb = simpleIdentifierArb.map((id) => `$${id}`);
 
-const numberArb = fc.integer({ min: 0, max: 9999 }).map(String);
+const numberArb = fc.integer({ max: 9999, min: 0 }).map(String);
 
 const stringArb = fc
-    .array(fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz0123456789 "), {
+    .array(fc.constantFrom(...printableChars), {
         maxLength: 20,
     })
     .map((chars) => `'${chars.join("")}'`);
 
 const commentArb = fc
-    .array(fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz0123456789 "), {
+    .array(fc.constantFrom(...printableChars), {
         maxLength: 20,
     })
     .map((chars) => `# ${chars.join("")}`);
@@ -62,11 +80,13 @@ const simpleStatementArb = fc.oneof(
 );
 
 const simpleScriptArb = fc
-    .array(simpleStatementArb, { minLength: 1, maxLength: 10 })
+    .array(simpleStatementArb, { maxLength: 10, minLength: 1 })
     .map((statements) => statements.join("\n"));
 
-describe("Printer property-based tests", () => {
+describe("printer property-based tests", () => {
     it("printer never throws on valid AST", async () => {
+        expect.hasAssertions();
+
         await withProgress(
             "printer.noThrow",
             PROPERTY_RUNS,
@@ -77,9 +97,9 @@ describe("Printer property-based tests", () => {
                         await formatAndAssert(
                             script,
                             {
+                                filepath: "test.ps1",
                                 parser: "powershell",
                                 plugins: [plugin],
-                                filepath: "test.ps1",
                             },
                             { id: "printer.noThrow", skipParse: true }
                         );
@@ -91,6 +111,9 @@ describe("Printer property-based tests", () => {
     });
 
     it("formatted output is valid PowerShell", async () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         await withProgress(
             "printer.validPowerShell",
             PROPERTY_RUNS,
@@ -101,9 +124,9 @@ describe("Printer property-based tests", () => {
                         const formatted = await formatAndAssert(
                             script,
                             {
+                                filepath: "test.ps1",
                                 parser: "powershell",
                                 plugins: [plugin],
-                                filepath: "test.ps1",
                             },
                             "printer.property.formatted"
                         );
@@ -114,7 +137,7 @@ describe("Printer property-based tests", () => {
 
                         const ast = parsePowerShell(formatted, {} as never);
 
-                        if (!ast || ast.type !== "Script") {
+                        if (ast?.type !== "Script") {
                             throw new Error(
                                 "Formatted output did not produce valid AST"
                             );
@@ -127,6 +150,9 @@ describe("Printer property-based tests", () => {
     });
 
     it("formatting is idempotent", async () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         await withProgress(
             "printer.idempotent",
             PROPERTY_RUNS,
@@ -137,9 +163,9 @@ describe("Printer property-based tests", () => {
                         await formatAndAssertRoundTrip(
                             script,
                             {
+                                filepath: "test.ps1",
                                 parser: "powershell",
                                 plugins: [plugin],
-                                filepath: "test.ps1",
                             },
                             "printer.property.idempotent"
                         );
@@ -151,6 +177,9 @@ describe("Printer property-based tests", () => {
     });
 
     it("preserves semantic meaning (same number of statements)", async () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         await withProgress(
             "printer.semantic",
             PROPERTY_RUNS,
@@ -165,9 +194,9 @@ describe("Printer property-based tests", () => {
                         const formatted = await formatAndAssert(
                             script,
                             {
+                                filepath: "test.ps1",
                                 parser: "powershell",
                                 plugins: [plugin],
-                                filepath: "test.ps1",
                             },
                             "printer.property.formatted"
                         );
@@ -203,13 +232,16 @@ describe("Printer property-based tests", () => {
     });
 
     it("respects indentSize option", async () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         await withProgress(
             "printer.indentSize",
             PROPERTY_RUNS,
             async (tracker) => {
                 await fc.assert(
                     fc.asyncProperty(
-                        fc.integer({ min: 1, max: 8 }),
+                        fc.integer({ max: 8, min: 1 }),
                         async (indentSize) => {
                             tracker.advance();
                             const script =
@@ -217,9 +249,9 @@ describe("Printer property-based tests", () => {
                             const formatted = await formatAndAssert(
                                 script,
                                 {
+                                    filepath: "test.ps1",
                                     parser: "powershell",
                                     plugins: [plugin],
-                                    filepath: "test.ps1",
                                     powershellIndentSize: indentSize,
                                     tabWidth: indentSize,
                                 },
@@ -239,7 +271,7 @@ describe("Printer property-based tests", () => {
 
                             if (indentedLine) {
                                 const leadingSpaces =
-                                    indentedLine.match(/^ */)?.[0].length ?? 0;
+                                    /^ */v.exec(indentedLine)?.[0].length ?? 0;
                                 if (leadingSpaces !== indentSize) {
                                     throw new Error(
                                         `Expected ${indentSize} spaces, got ${leadingSpaces}\nFormatted:\n${formatted}`
@@ -255,6 +287,9 @@ describe("Printer property-based tests", () => {
     });
 
     it("respects braceStyle option", async () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         await withProgress(
             "printer.braceStyle",
             PROPERTY_RUNS,
@@ -269,9 +304,9 @@ describe("Printer property-based tests", () => {
                             const formatted = await formatAndAssert(
                                 script,
                                 {
+                                    filepath: "test.ps1",
                                     parser: "powershell",
                                     plugins: [plugin],
-                                    filepath: "test.ps1",
                                     powershellBraceStyle: braceStyle,
                                 },
                                 "printer.property.formatted"
@@ -282,17 +317,30 @@ describe("Printer property-based tests", () => {
                             );
 
                             if (braceStyle === "1tbs") {
-                                if (!/function\s+\S+\s+\{/.test(formatted)) {
+                                if (
+                                    !formatted.includes("function Test-Func {")
+                                ) {
                                     throw new Error(
                                         `Expected 1tbs style (brace on same line)\nFormatted:\n${formatted}`
                                     );
                                 }
-                            } else if (
-                                !/function\s+\S+\s*\n\s*\{/.test(formatted)
-                            ) {
-                                throw new Error(
-                                    `Expected allman style (brace on next line)\nFormatted:\n${formatted}`
+                            } else {
+                                const lines = formatted.split(/\r?\n/v);
+                                const functionLineIndex = lines.findIndex(
+                                    (line) =>
+                                        line.includes("function Test-Func")
                                 );
+                                const nextNonEmptyLine = lines
+                                    .slice(functionLineIndex + 1)
+                                    .find((line) => line.trim().length > 0);
+                                if (
+                                    functionLineIndex === -1 ||
+                                    nextNonEmptyLine?.trim() !== "{"
+                                ) {
+                                    throw new Error(
+                                        `Expected allman style (brace on next line)\nFormatted:\n${formatted}`
+                                    );
+                                }
                             }
                         }
                     ),
@@ -303,6 +351,9 @@ describe("Printer property-based tests", () => {
     });
 
     it("respects keywordCase option", async () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         await withProgress(
             "printer.keywordCase",
             PROPERTY_RUNS,
@@ -316,9 +367,9 @@ describe("Printer property-based tests", () => {
                             const formatted = await formatAndAssert(
                                 script,
                                 {
+                                    filepath: "test.ps1",
                                     parser: "powershell",
                                     plugins: [plugin],
-                                    filepath: "test.ps1",
                                     powershellKeywordCase: keywordCase,
                                 },
                                 "printer.property.formatted"
@@ -329,20 +380,20 @@ describe("Printer property-based tests", () => {
                             );
 
                             if (keywordCase === "lower") {
-                                if (!/\bif\b/.test(formatted)) {
+                                if (!/\bif\b/v.test(formatted)) {
                                     throw new Error(
                                         `Expected lowercase 'if'\nFormatted:\n${formatted}`
                                     );
                                 }
                             } else if (keywordCase === "upper") {
-                                if (!/\bIF\b/.test(formatted)) {
+                                if (!/\bIF\b/v.test(formatted)) {
                                     throw new Error(
                                         `Expected uppercase 'IF'\nFormatted:\n${formatted}`
                                     );
                                 }
                             } else if (
                                 keywordCase === "pascal" &&
-                                !/\bIf\b/.test(formatted)
+                                !/\bIf\b/v.test(formatted)
                             ) {
                                 throw new Error(
                                     `Expected PascalCase 'If'\nFormatted:\n${formatted}`
@@ -357,6 +408,9 @@ describe("Printer property-based tests", () => {
     });
 
     it("does not change static method identifier case when keywordCase is set", async () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         await withProgress(
             "printer.keywordCase.staticMethod",
             PROPERTY_RUNS,
@@ -371,9 +425,9 @@ describe("Printer property-based tests", () => {
                             const formatted = await formatAndAssert(
                                 script,
                                 {
+                                    filepath: "test.ps1",
                                     parser: "powershell",
                                     plugins: [plugin],
-                                    filepath: "test.ps1",
                                     powershellKeywordCase: keywordCase,
                                 },
                                 "printer.property.staticMethodKeywordCase"
@@ -397,6 +451,9 @@ describe("Printer property-based tests", () => {
     });
 
     it("handles empty scripts", async () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         await withProgress("printer.empty", PROPERTY_RUNS, async (tracker) => {
             await fc.assert(
                 fc.asyncProperty(fc.constant(""), async (script) => {
@@ -404,9 +461,9 @@ describe("Printer property-based tests", () => {
                     const formatted = await formatAndAssert(
                         script,
                         {
+                            filepath: "test.ps1",
                             parser: "powershell",
                             plugins: [plugin],
-                            filepath: "test.ps1",
                         },
                         "printer.property.formatted"
                     );
@@ -427,6 +484,9 @@ describe("Printer property-based tests", () => {
     });
 
     it("preserves comments", async () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         await withProgress(
             "printer.comment",
             PROPERTY_RUNS,
@@ -437,9 +497,9 @@ describe("Printer property-based tests", () => {
                         const formatted = await formatAndAssert(
                             comment,
                             {
+                                filepath: "test.ps1",
                                 parser: "powershell",
                                 plugins: [plugin],
-                                filepath: "test.ps1",
                             },
                             "printer.property.formatted"
                         );
@@ -461,6 +521,9 @@ describe("Printer property-based tests", () => {
     });
 
     it("handles scripts with only comments", async () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         await withProgress(
             "printer.commentOnly",
             PROPERTY_RUNS,
@@ -468,16 +531,16 @@ describe("Printer property-based tests", () => {
                 await fc.assert(
                     fc.asyncProperty(
                         fc
-                            .array(commentArb, { minLength: 1, maxLength: 5 })
+                            .array(commentArb, { maxLength: 5, minLength: 1 })
                             .map((comments) => comments.join("\n")),
                         async (script) => {
                             tracker.advance();
                             const formatted = await formatAndAssert(
                                 script,
                                 {
+                                    filepath: "test.ps1",
                                     parser: "powershell",
                                     plugins: [plugin],
-                                    filepath: "test.ps1",
                                 },
                                 "printer.property.formatted"
                             );
@@ -486,12 +549,10 @@ describe("Printer property-based tests", () => {
                                 "printer.property.commentOnly"
                             );
 
-                            const originalCommentCount = (
-                                script.match(/#/g) || []
-                            ).length;
-                            const formattedCommentCount = (
-                                formatted.match(/#/g) || []
-                            ).length;
+                            const originalCommentCount =
+                                script.split("#").length - 1;
+                            const formattedCommentCount =
+                                formatted.split("#").length - 1;
 
                             if (
                                 originalCommentCount !== formattedCommentCount
@@ -509,6 +570,9 @@ describe("Printer property-based tests", () => {
     });
 
     it("output has consistent line endings", async () => {
+        expect.hasAssertions();
+        expect.hasAssertions();
+
         await withProgress(
             "printer.lineEndings",
             PROPERTY_RUNS,
@@ -519,9 +583,9 @@ describe("Printer property-based tests", () => {
                         const formatted = await formatAndAssert(
                             script,
                             {
+                                filepath: "test.ps1",
                                 parser: "powershell",
                                 plugins: [plugin],
-                                filepath: "test.ps1",
                             },
                             "printer.property.formatted"
                         );

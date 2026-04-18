@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { formatAndAssert } from "./utils/format-and-assert.js";
+
 const baseConfig = {
     parser: "powershell" as const,
     plugins: ["./dist/index.cjs"],
@@ -8,7 +9,7 @@ const baseConfig = {
 
 const joinLines = (...values: string[]): string => values.join("\n");
 
-describe("Statement terminator handling", () => {
+describe("statement terminator handling", () => {
     it("formats semicolon-separated script blocks and commands", async () => {
         const input = joinLines(
             "$scriptBlock = {",
@@ -28,6 +29,7 @@ describe("Statement terminator handling", () => {
             'Write-Output "After"',
             ""
         );
+
         expect(result).toBe(expected);
     });
 
@@ -46,6 +48,7 @@ describe("Statement terminator handling", () => {
         );
 
         expect(result).toContain("# trailing comment");
+
         const expected = joinLines(
             "$scriptBlock = {",
             '    Write-Output "Hello"',
@@ -53,6 +56,7 @@ describe("Statement terminator handling", () => {
             'Write-Output "After"',
             ""
         );
+
         expect(result).toBe(expected);
     });
 
@@ -70,6 +74,7 @@ describe("Statement terminator handling", () => {
             'Write-Output "three"',
             ""
         );
+
         expect(result).toBe(expected);
     });
 });

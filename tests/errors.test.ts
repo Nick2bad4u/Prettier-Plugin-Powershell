@@ -7,38 +7,42 @@ import {
     PowerShellParseError,
 } from "../src/errors.js";
 
-describe("Error Handling System", () => {
-    describe("Line and Column Calculation", () => {
+describe("error Handling System", () => {
+    describe("line and Column Calculation", () => {
         it("calculates line and column for first character", () => {
             const source = "Hello World";
-            const { line, column } = getLineAndColumn(source, 0);
+            const { column, line } = getLineAndColumn(source, 0);
+
             expect(line).toBe(1);
             expect(column).toBe(1);
         });
 
         it("calculates line and column for middle of first line", () => {
             const source = "Hello World";
-            const { line, column } = getLineAndColumn(source, 6);
+            const { column, line } = getLineAndColumn(source, 6);
+
             expect(line).toBe(1);
             expect(column).toBe(7);
         });
 
         it("calculates line and column for second line", () => {
             const source = "Line 1\nLine 2";
-            const { line, column } = getLineAndColumn(source, 7);
+            const { column, line } = getLineAndColumn(source, 7);
+
             expect(line).toBe(2);
             expect(column).toBe(1);
         });
 
         it("calculates line and column for third line", () => {
             const source = "Line 1\nLine 2\nLine 3";
-            const { line, column } = getLineAndColumn(source, 14);
+            const { column, line } = getLineAndColumn(source, 14);
+
             expect(line).toBe(3);
             expect(column).toBe(1);
         });
     });
 
-    describe("PowerShellParseError", () => {
+    describe(PowerShellParseError, () => {
         it("creates error with source location", () => {
             const source = "function Test {\n  Write-Output";
             const error = createParseError(
@@ -58,6 +62,7 @@ describe("Error Handling System", () => {
             const error = createParseError("Missing value", source, 28);
 
             const message = error.toString();
+
             expect(message).toContain("Missing value");
             expect(message).toContain("line 3");
         });
@@ -67,6 +72,7 @@ describe("Error Handling System", () => {
             const error = createParseError("Test error", source, 21);
 
             const context = error.getContext(1);
+
             expect(context).toContain("line 2");
             expect(context).toContain("line 3 ERROR");
             expect(context).toContain("line 4");
@@ -74,15 +80,17 @@ describe("Error Handling System", () => {
         });
     });
 
-    describe("Anti-Pattern Detection", () => {
+    describe("anti-Pattern Detection", () => {
         it("detects Write-Host usage", () => {
             const source = `Write-Host "Hello"`;
             const warnings = detectIssues(source);
 
             expect(warnings.length).toBeGreaterThan(0);
+
             const writeHostWarning = warnings.find((w) =>
                 w.message.includes("Write-Host")
             );
+
             expect(writeHostWarning).toBeDefined();
             expect(writeHostWarning?.type).toBe("anti-pattern");
         });
@@ -94,6 +102,7 @@ describe("Error Handling System", () => {
             const ieWarning = warnings.find((w) =>
                 w.message.includes("Invoke-Expression")
             );
+
             expect(ieWarning).toBeDefined();
             expect(ieWarning?.type).toBe("anti-pattern");
             expect(ieWarning?.suggestion).toBeTruthy();
@@ -104,6 +113,7 @@ describe("Error Handling System", () => {
             const warnings = detectIssues(source);
 
             const perfWarning = warnings.find((w) => w.type === "performance");
+
             expect(perfWarning).toBeDefined();
         });
 
@@ -114,6 +124,7 @@ describe("Error Handling System", () => {
             const foreachWarning = warnings.find((w) =>
                 w.message.includes("ForEach-Object")
             );
+
             expect(foreachWarning).toBeDefined();
         });
 
@@ -122,17 +133,19 @@ describe("Error Handling System", () => {
             const warnings = detectIssues(source);
 
             const warning = warnings[0];
+
             expect(warning.suggestion).toBeTruthy();
             expect(warning.suggestion).toContain("Write-Output");
         });
     });
 
-    describe("Warning Formatting", () => {
+    describe("warning Formatting", () => {
         it("formats warning message", () => {
             const source = `Write-Host "test"`;
             const warnings = detectIssues(source);
 
             const message = warnings[0].toString();
+
             expect(message).toContain("Warning");
             expect(message).toContain("anti-pattern");
             expect(message).toContain("Suggestion:");
@@ -143,12 +156,13 @@ describe("Error Handling System", () => {
             const warnings = detectIssues(source);
 
             const warning = warnings[0];
+
             expect(warning.line).toBe(2);
             expect(warning.column).toBeGreaterThan(0);
         });
     });
 
-    describe("Multiple Issues Detection", () => {
+    describe("multiple Issues Detection", () => {
         it("detects multiple issues in same file", () => {
             const source = `
                 Write-Host "test1"

@@ -1,3 +1,4 @@
+import * as fc from "fast-check";
 import { createHash } from "node:crypto";
 import {
     existsSync,
@@ -6,62 +7,59 @@ import {
     readFileSync,
     writeFileSync,
 } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-
-import * as fc from "fast-check";
+import { join, resolve } from "node:path";
+import { env } from "node:process";
 import { beforeAll, describe, it } from "vitest";
 
-import plugin from "../src/index.js";
 import { parsePowerShell } from "../src/parser.js";
-
+import plugin from "../src/plugin.js";
 import { formatAndAssertRoundTrip } from "./utils/format-and-assert.js";
 import { withProgress } from "./utils/progress.js";
 
-type GitHubCodeItem = {
+interface GitHubCodeItem {
     name: string;
     path: string;
-    sha: string;
-    url: string;
     repository: {
         full_name: string;
     };
-};
+    sha: string;
+    url: string;
+}
 
-type GitHubSearchResponse = {
+interface GitHubSearchResponse {
     items: GitHubCodeItem[];
-};
+}
 
-type SampledScript = {
-    identifier: string;
+interface SampledScript {
     content: string;
-};
+    identifier: string;
+}
 
 const PROPERTY_RUNS = Number.parseInt(
-    process.env.POWERSHELL_PROPERTY_RUNS ?? "25",
+    env.POWERSHELL_PROPERTY_RUNS ?? "25",
     10
 );
 const ENABLE_GITHUB_SAMPLES =
-    process.env.POWERSHELL_ENABLE_GITHUB_SAMPLES === "1";
+    env.POWERSHELL_ENABLE_GITHUB_SAMPLES === "1";
 const CACHE_GITHUB_SAMPLES =
-    process.env.POWERSHELL_CACHE_GITHUB_SAMPLES === "1";
+    env.POWERSHELL_CACHE_GITHUB_SAMPLES === "1";
 const GITHUB_QUERY =
-    process.env.POWERSHELL_GITHUB_QUERY ??
+    env.POWERSHELL_GITHUB_QUERY ??
     "extension:ps1 language:PowerShell size:1000..50000";
 const GITHUB_SAMPLE_COUNT = Number.parseInt(
-    process.env.POWERSHELL_GITHUB_SAMPLE_COUNT ?? "8",
+    env.POWERSHELL_GITHUB_SAMPLE_COUNT ?? "8",
     10
 );
 const MAX_CANDIDATES = Number.parseInt(
-    process.env.POWERSHELL_GITHUB_MAX_CANDIDATES ?? "50",
+    env.POWERSHELL_GITHUB_MAX_CANDIDATES ?? "50",
     10
 );
 const MAX_LENGTH = Number.parseInt(
-    process.env.POWERSHELL_GITHUB_MAX_LENGTH ?? "200000",
+    env.POWERSHELL_GITHUB_MAX_LENGTH ?? "200000",
     10
 );
 const MIN_LENGTH = Number.parseInt(
-    process.env.POWERSHELL_GITHUB_MIN_LENGTH ?? "500",
+    env.POWERSHELL_GITHUB_MIN_LENGTH ?? "500",
     10
 );
 
@@ -71,16 +69,16 @@ const fallbackSamplePaths = [
     "./fixtures/sample-formatted.ps1",
 ];
 
-describe("Real-world GitHub PowerShell samples", () => {
+describe("real-world GitHub PowerShell samples", () => {
     const samples: SampledScript[] = [];
-    const baseDir = dirname(fileURLToPath(import.meta.url));
+    const baseDir = import.meta.dirname;
     const cacheDir = join(baseDir, "fixtures", "github-cache");
 
     const githubHeaders: Record<string, string> = {
         Accept: "application/vnd.github+json",
         "User-Agent": "prettier-plugin-powershell-tests",
     };
-    const githubToken = process.env.GITHUB_TOKEN;
+    const githubToken = env.GITHUB_TOKEN;
     if (githubToken) {
         githubHeaders.Authorization = `token ${githubToken}`;
     }
@@ -91,12 +89,12 @@ describe("Real-world GitHub PowerShell samples", () => {
             .digest("hex")
             .slice(0, 16);
         const safeName = identifier
-            .replace(/[^a-zA-Z0-9.-]/g, "_")
+            .replaceAll(/[^\d\-.a-z]/gi, "_")
             .slice(0, 50);
         return `${safeName}-${hash}.ps1`;
     };
 
-    const loadFromCache = (identifier: string): string | null => {
+    const loadFromCache = (identifier: string): null | string => {
         if (!CACHE_GITHUB_SAMPLES) {
             return null;
         }
@@ -168,8 +166,8 @@ describe("Real-world GitHub PowerShell samples", () => {
                         continue;
                     }
                     samples.push({
-                        identifier: `local:${relativePath}`,
                         content,
+                        identifier: `local:${relativePath}`,
                     });
                     remaining -= 1;
                 } catch (error) {
@@ -201,8 +199,8 @@ describe("Real-world GitHub PowerShell samples", () => {
                             continue;
                         }
                         samples.push({
-                            identifier: `cached:${file}`,
                             content,
+                            identifier: `cached:${file}`,
                         });
                     }
                     if (samples.length >= GITHUB_SAMPLE_COUNT) {
@@ -218,9 +216,9 @@ describe("Real-world GitHub PowerShell samples", () => {
             // Fetch from GitHub if we need more samples
             if (samples.length < GITHUB_SAMPLE_COUNT) {
                 const searchUrl =
-                    "https://api.github.com/search/code?q=" +
-                    encodeURIComponent(GITHUB_QUERY) +
-                    `&per_page=${Math.max(MAX_CANDIDATES, GITHUB_SAMPLE_COUNT)}&sort=indexed&order=desc`;
+                    `https://api.github.com/search/code?q=${ 
+                    encodeURIComponent(GITHUB_QUERY) 
+                    }&per_page=${Math.max(MAX_CANDIDATES, GITHUB_SAMPLE_COUNT)}&sort=indexed&order=desc`;
                 let candidates: GitHubCodeItem[] = [];
                 try {
                     const searchResults =
@@ -245,7 +243,7 @@ describe("Real-world GitHub PowerShell samples", () => {
                     // Check cache first
                     const cached = loadFromCache(identifier);
                     if (cached) {
-                        samples.push({ identifier, content: cached });
+                        samples.push({ content: cached, identifier });
                         continue;
                     }
 
@@ -255,7 +253,7 @@ describe("Real-world GitHub PowerShell samples", () => {
                         "refs/heads/master",
                         candidate.sha,
                     ];
-                    let content: string | null = null;
+                    let content: null | string = null;
 
                     for (const ref of possibleRefs) {
                         const rawUrl = `https://raw.githubusercontent.com/${candidate.repository.full_name}/${ref}/${candidate.path}`;
@@ -282,7 +280,7 @@ describe("Real-world GitHub PowerShell samples", () => {
                         ) {
                             continue;
                         }
-                        samples.push({ identifier, content });
+                        samples.push({ content, identifier });
                         saveToCache(identifier, content);
                     } catch (error) {
                         console.warn(`Skipping ${identifier}:`, error);
@@ -322,9 +320,9 @@ describe("Real-world GitHub PowerShell samples", () => {
                         const formatted = await formatAndAssertRoundTrip(
                             sample.content,
                             {
+                                filepath: sample.identifier,
                                 parser: "powershell",
                                 plugins: [plugin],
-                                filepath: sample.identifier,
                             },
                             `githubSamples.formatted:${sample.identifier}`
                         );
@@ -346,3 +344,4 @@ describe("Real-world GitHub PowerShell samples", () => {
         });
     });
 });
+

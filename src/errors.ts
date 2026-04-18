@@ -1,5 +1,5 @@
 /**
- * Common PowerShell anti-patterns to detect and warn about.
+ * Shape describing one anti-pattern detection rule.
  */
 export type AntiPatternSpec = {
     message: string;
@@ -8,6 +8,18 @@ export type AntiPatternSpec = {
     type: WarningType;
 };
 
+/**
+ * Deprecated syntax detection rule.
+ */
+export type DeprecatedSyntaxSpec = {
+    message: string;
+    modern: string;
+    pattern: RegExp;
+};
+
+/**
+ * Classification categories used by non-fatal parser and style warnings.
+ */
 export type WarningType =
     | "anti-pattern"
     | "best-practice"
@@ -16,11 +28,13 @@ export type WarningType =
     | "style";
 
 /**
- * Custom error class for PowerShell parsing errors with source location
- * information.
+ * Custom error class carrying source location metadata for parse failures.
  */
 export class PowerShellParseError extends Error {
-    constructor(
+    /**
+     * Initializes a parse error with location details.
+     */
+    public constructor(
         message: string,
         public readonly source: string,
         public readonly position: number,
@@ -29,41 +43,42 @@ export class PowerShellParseError extends Error {
     ) {
         super(message);
         this.name = "PowerShellParseError";
-
-        // Maintain proper stack trace for where our error was thrown
-        if (Error.captureStackTrace) {
-            
-        }
     }
 
     /**
-     * Gets a snippet of the source code around the error location.
+     * Gets a snippet of source text around the failing line.
+     *
+     * @param contextLines - Number of surrounding lines to include on each
+     *   side.
+     *
+     * @returns Context snippet with an indicator prefix for the failing line.
      */
-    getContext(contextLines = 2): string {
+    public getContext(contextLines = 2): string {
         const lines = this.source.split("\n");
         const startLine = Math.max(0, this.line - contextLines - 1);
         const endLine = Math.min(lines.length, this.line + contextLines);
 
-        const contextSnippet = lines
+        return lines
             .slice(startLine, endLine)
-            .map((line, idx) => {
-                const lineNum = startLine + idx + 1;
-                const isErrorLine = lineNum === this.line;
+            .map((lineValue, index) => {
+                const lineNumber = startLine + index + 1;
+                const isErrorLine = lineNumber === this.line;
                 const prefix = isErrorLine ? ">" : " ";
-                return `${prefix} ${lineNum.toString().padStart(4)} | ${line}`;
+
+                return `${prefix} ${lineNumber.toString().padStart(4)} | ${lineValue}`;
             })
             .join("\n");
-
-        return contextSnippet;
     }
 
     /**
-     * Creates a formatted error message with source context.
+     * Formats the parse error with line context.
+     *
+     * @returns Human-readable parse error string.
      */
-    toString(): string {
+    public override toString(): string {
         const lines = this.source.split("\n");
-        const errorLine = lines[this.line - 1] || "";
-        const pointer = `${" ".repeat(this.column - 1)  }^`;
+        const errorLine = lines[this.line - 1] ?? "";
+        const pointer = `${" ".repeat(this.column - 1)}^`;
 
         return `${this.name}: ${this.message}
   at line ${this.line}, column ${this.column}
@@ -75,10 +90,13 @@ export class PowerShellParseError extends Error {
 }
 
 /**
- * Warning class for non-fatal issues like deprecated syntax.
+ * Warning class for non-fatal diagnostics.
  */
 export class PowerShellWarning {
-    constructor(
+    /**
+     * Creates a warning instance.
+     */
+    public constructor(
         public readonly message: string,
         public readonly type: WarningType,
         public readonly position: number,
@@ -87,18 +105,30 @@ export class PowerShellWarning {
         public readonly suggestion?: string
     ) {}
 
-    toString(): string {
+    /**
+     * Formats the warning for display.
+     */
+    public toString(): string {
         let result = `Warning [${this.type}]: ${this.message}`;
-        if (this.suggestion) {
+
+        if (this.suggestion !== undefined && this.suggestion.length > 0) {
             result += `\n  Suggestion: ${this.suggestion}`;
         }
+
         result += `\n  at line ${this.line}, column ${this.column}`;
+
         return result;
     }
 }
 
 /**
- * Creates a parse error with proper source location.
+ * Creates a parse error with derived line and column information.
+ *
+ * @param message - Error message.
+ * @param source - Original source text.
+ * @param position - Character offset where parsing failed.
+ *
+ * @returns Constructed parse error.
  */
 export function createParseError(
     message: string,
@@ -106,43 +136,54 @@ export function createParseError(
     position: number
 ): PowerShellParseError {
     const { column, line } = getLineAndColumn(source, position);
+
     return new PowerShellParseError(message, source, position, line, column);
 }
 
 /**
- * Calculates line and column number from a position in the source.
+ * Calculates line and column information from a source offset.
+ *
+ * @param source - Full source text.
+ * @param position - Character offset within source.
+ *
+ * @returns One-based line and column coordinates.
  */
 export function getLineAndColumn(
     source: string,
     position: number
-): { column: number; line: number; } {
+): { column: number; line: number } {
     const lines = source.slice(0, Math.max(0, position)).split("\n");
+
     return {
-        column: lines.at(-1).length + 1,
+        column: (lines.at(-1) ?? "").length + 1,
         line: lines.length,
     };
 }
+
+/**
+ * Pattern rules for common PowerShell anti-patterns.
+ */
 export const ANTI_PATTERNS: AntiPatternSpec[] = [
     {
         message: "Avoid Write-Host; use Write-Output instead",
         pattern: /write-host/gi,
         suggestion:
             "Write-Host bypasses the pipeline. Use Write-Output for objects or Write-Information for informational messages.",
-        type: "anti-pattern" as WarningType,
+        type: "anti-pattern",
     },
     {
         message: "Avoid Invoke-Expression; it's a security risk",
         pattern: /invoke-expression/gi,
         suggestion:
             "Use safer alternatives like & operator, dot-sourcing, or proper function calls.",
-        type: "anti-pattern" as WarningType,
+        type: "anti-pattern",
     },
     {
         message: "Consider using $? in combination with proper error handling",
         pattern: /\$\?/g,
         suggestion:
             "Use try/catch blocks or -ErrorAction for better error control.",
-        type: "best-practice" as WarningType,
+        type: "best-practice",
     },
     {
         message: "Use -First parameter on cmdlet instead of Select-Object",
@@ -150,25 +191,20 @@ export const ANTI_PATTERNS: AntiPatternSpec[] = [
             /get-\w+\s*\|\s*where-object.*\|\s*select-object\s+-first\s+1/gi,
         suggestion:
             "Many cmdlets support -First parameter for better performance.",
-        type: "performance" as WarningType,
+        type: "performance",
     },
     {
         message:
             "Consider using ForEach-Object in pipeline for memory efficiency",
         pattern: /foreach\s*\(\s*\$\w+\s+in\s+get-/gi,
         suggestion: "Get-X | ForEach-Object { } processes items one at a time.",
-        type: "performance" as WarningType,
+        type: "performance",
     },
 ];
 
 /**
- * Deprecated PowerShell syntax patterns.
+ * Pattern rules for deprecated or discouraged PowerShell syntax.
  */
-export type DeprecatedSyntaxSpec = {
-    message: string;
-    modern: string;
-    pattern: RegExp;
-};
 export const DEPRECATED_SYNTAX: DeprecatedSyntaxSpec[] = [
     {
         message: "Subexpression operator is fine, but ensure proper nesting",
@@ -178,21 +214,25 @@ export const DEPRECATED_SYNTAX: DeprecatedSyntaxSpec[] = [
     {
         message: "Consider assigning to $null instead of [void] for clarity",
         modern: "$null = ...",
-        pattern: /\[void\]/gi,
+        pattern: /\[void/gi,
     },
 ];
 
 /**
  * Detects anti-patterns and deprecated syntax in PowerShell code.
+ *
+ * @param source - Source code to inspect.
+ *
+ * @returns Collected warnings.
  */
 export function detectIssues(source: string): PowerShellWarning[] {
     const warnings: PowerShellWarning[] = [];
 
-    // Check for anti-patterns
     for (const antiPattern of ANTI_PATTERNS) {
-        const regex = new RegExp(antiPattern.pattern.source, "gi");
-        let match;
-        while ((match = regex.exec(source)) !== null) {
+        antiPattern.pattern.lastIndex = 0;
+
+        let match: null | RegExpExecArray = antiPattern.pattern.exec(source);
+        while (match !== null) {
             const { column, line } = getLineAndColumn(source, match.index);
             warnings.push(
                 new PowerShellWarning(
@@ -204,6 +244,7 @@ export function detectIssues(source: string): PowerShellWarning[] {
                     antiPattern.suggestion
                 )
             );
+            match = antiPattern.pattern.exec(source);
         }
     }
 

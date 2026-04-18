@@ -131,50 +131,11 @@ class Parser {
             if (token.type === "comment" || token.type === "block-comment") {
                 const commentToken = this.advance();
                 const commentNode = this.createCommentNode(commentToken, false);
-                if (body.length > 0) {
-                    const previousNode = body.at(-1);
-                    let lookaheadOffset = 0;
-                    let nextToken: Token | undefined;
-                    while (
-                        (nextToken = this.peek(lookaheadOffset)) !== undefined
-                    ) {
-                        if (nextToken.type === "newline") {
-                            lookaheadOffset += 1;
-                            continue;
-                        }
-                        break;
-                    }
-                    if (previousNode.type === "Pipeline") {
-                        const lastSegment =
-                            previousNode.segments.at(
-                                -1
-                            );
-                        const lastPart =
-                            lastSegment?.parts.at(-1);
-                        const belongsToBlock = Boolean(
-                            lastPart?.type === "ScriptBlock" &&
-                                (commentNode.loc.start < lastPart.loc.end ||
-                                    (nextToken?.type === "punctuation" &&
-                                        nextToken.value === "}"))
-                        );
-                        if (
-                            belongsToBlock &&
-                            lastPart?.type === "ScriptBlock" &&
-                            lastSegment
-                        ) {
-                            lastPart.body.push(commentNode);
-                            extendNodeLocation(lastPart, commentNode.loc.end);
-                            extendNodeLocation(
-                                lastSegment,
-                                commentNode.loc.end
-                            );
-                            extendNodeLocation(
-                                previousNode,
-                                commentNode.loc.end
-                            );
-                            continue;
-                        }
-                    }
+                if (
+                    body.length > 0 &&
+                    this.attachCommentToPreviousScriptBlock(body, commentNode)
+                ) {
+                    continue;
                 }
                 appendNode(commentNode);
                 continue;
@@ -203,9 +164,50 @@ class Parser {
     }
 
     private advance(): Token {
-        const token = this.tokens[this.tokenIndex];
         this.tokenIndex += 1;
-        return token;
+        return this.tokens[this.tokenIndex - 1];
+    }
+
+    /**
+     * Attempts to attach a standalone comment token to the trailing script
+     * block of the previous pipeline expression.
+     *
+     * @param body - Current script body buffer.
+     * @param commentNode - Comment node to attach.
+     *
+     * @returns Whether the comment was attached to the previous node.
+     */
+    private attachCommentToPreviousScriptBlock(
+        body: ScriptBodyNode[],
+        commentNode: CommentNode
+    ): boolean {
+        const previousNode = body.at(-1);
+        if (previousNode?.type !== "Pipeline") {
+            return false;
+        }
+
+        const nextToken = this.peekNextNonNewlineToken();
+        const lastSegment = previousNode.segments.at(-1);
+        const lastPart = lastSegment?.parts.at(-1);
+        if (lastPart?.type !== "ScriptBlock" || lastSegment === undefined) {
+            return false;
+        }
+
+        const closesCurrentBlock =
+            nextToken?.type === "punctuation" && nextToken.value === "}";
+        const belongsToBlock =
+            commentNode.loc.start < lastPart.loc.end || closesCurrentBlock;
+
+        if (!belongsToBlock) {
+            return false;
+        }
+
+        lastPart.body.push(commentNode);
+        extendNodeLocation(lastPart, commentNode.loc.end);
+        extendNodeLocation(lastSegment, commentNode.loc.end);
+        extendNodeLocation(previousNode, commentNode.loc.end);
+
+        return true;
     }
 
     private classifyStatementTerminator(
@@ -396,10 +398,7 @@ class Parser {
 
     private parseScriptBlock(): ScriptBlockNode {
         const openToken = this.peek();
-        if (
-            openToken?.type !== "punctuation" ||
-            openToken.value !== "{"
-        ) {
+        if (openToken?.type !== "punctuation" || openToken.value !== "{") {
             return {
                 body: [],
                 loc: { end: openToken?.end ?? 0, start: openToken?.start ?? 0 },
@@ -414,9 +413,7 @@ class Parser {
         const script = nestedParser.parseScript(new Set());
         const closingEnd = closingToken?.end ?? openToken.end;
         const bodyEnd =
-            script.body.length > 0
-                ? script.body.at(-1).loc.end
-                : closingEnd;
+            script.body.length > 0 ? script.body.at(-1).loc.end : closingEnd;
         const end = Math.max(closingEnd, bodyEnd);
 
         return {
@@ -563,6 +560,19 @@ class Parser {
     private peek(offset = 0): Token | undefined {
         return this.tokens[this.tokenIndex + offset];
     }
+
+    /**
+     * Peeks the next token while skipping contiguous newline tokens.
+     */
+    private peekNextNonNewlineToken(): Token | undefined {
+        let offset = 0;
+        let token = this.peek(offset);
+        while (token?.type === "newline") {
+            offset += 1;
+            token = this.peek(offset);
+        }
+        return token;
+    }
 }
 
 /**
@@ -614,9 +624,14 @@ function buildExpressionFromTokens(
     source = ""
 ): ExpressionNode {
     const firstToken = tokens.find((token) => token.type !== "newline");
-    const lastToken = [...tokens]
-        .reverse()
-        .find((token) => token.type !== "newline");
+    let lastToken: Token | undefined;
+    for (let index = tokens.length - 1; index >= 0; index -= 1) {
+        const candidate = tokens[index];
+        if (candidate.type !== "newline") {
+            lastToken = candidate;
+            break;
+        }
+    }
     if (!firstToken || !lastToken) {
         return {
             loc: {
@@ -711,10 +726,7 @@ function buildExpressionFromTokens(
     } satisfies ExpressionNode;
 }
 
-function buildHashtableEntry(
-    tokens: Token[],
-    source = ""
-): HashtableEntryNode {
+function buildHashtableEntry(tokens: Token[], source = ""): HashtableEntryNode {
     // Separate comments from other tokens
     const leadingComments: Token[] = [];
     const trailingComments: Token[] = [];
@@ -724,7 +736,6 @@ function buildHashtableEntry(
     let foundEquals = false;
 
     for (const token of tokens) {
-
         if (token.type === "comment" || token.type === "block-comment") {
             // Comments before the = are leading, after are trailing
             if (foundEquals) {
@@ -758,9 +769,7 @@ function buildHashtableEntry(
 
     // Calculate start/end based on non-comment tokens like original logic
     const start = keyTokens[0]?.start ?? valueTokens[0]?.start ?? 0;
-    const end =
-        (valueTokens.at(-1) ?? keyTokens.at(-1))
-            ?.end ?? start;
+    const end = (valueTokens.at(-1) ?? keyTokens.at(-1))?.end ?? start;
 
     const entry: HashtableEntryNode = {
         key,
@@ -828,7 +837,7 @@ function buildHashtableEntry(
 function collectStructureTokens(
     tokens: Token[],
     startIndex: number
-): { closingToken?: Token; contentTokens: Token[]; endIndex: number; } {
+): { closingToken?: Token; contentTokens: Token[]; endIndex: number } {
     const contentTokens: Token[] = [];
     const stack: string[] = [tokens[startIndex].value];
     let index = startIndex + 1;
@@ -1084,7 +1093,6 @@ function mergeNodes(previous: ScriptBodyNode, next: ScriptBodyNode): void {
     if (previous.type === "BlankLine" && next.type === "BlankLine") {
         previous.count += next.count;
         extendNodeLocation(previous, next.loc.end);
-        
     }
 }
 
@@ -1092,7 +1100,7 @@ function parseArrayPart(
     tokens: Token[],
     startIndex: number,
     source = ""
-): { nextIndex: number; node: ArrayLiteralNode; } {
+): { nextIndex: number; node: ArrayLiteralNode } {
     const startToken = tokens[startIndex];
     const { closingToken, contentTokens, endIndex } = collectStructureTokens(
         tokens,
@@ -1112,14 +1120,14 @@ function parseArrayPart(
             loc: { end, start: startToken.start },
             type: "ArrayLiteral",
         },
-    } satisfies { nextIndex: number; node: ArrayLiteralNode; };
+    } satisfies { nextIndex: number; node: ArrayLiteralNode };
 }
 
 function parseHashtablePart(
     tokens: Token[],
     startIndex: number,
     source = ""
-): { nextIndex: number; node: HashtableNode; } {
+): { nextIndex: number; node: HashtableNode } {
     const startToken = tokens[startIndex];
     const { closingToken, contentTokens, endIndex } = collectStructureTokens(
         tokens,
@@ -1129,9 +1137,7 @@ function parseHashtablePart(
         buildHashtableEntry(entryTokens, source)
     );
     const end =
-        closingToken?.end ??
-        contentTokens.at(-1)?.end ??
-        startToken.end;
+        closingToken?.end ?? contentTokens.at(-1)?.end ?? startToken.end;
     return {
         nextIndex: endIndex,
         node: {
@@ -1146,7 +1152,7 @@ function parseParenthesisPart(
     tokens: Token[],
     startIndex: number,
     source = ""
-): { nextIndex: number; node: ParenthesisNode; } {
+): { nextIndex: number; node: ParenthesisNode } {
     const startToken = tokens[startIndex];
     const { closingToken, contentTokens, endIndex } = collectStructureTokens(
         tokens,
@@ -1174,7 +1180,7 @@ function parseScriptBlockPart(
     tokens: Token[],
     startIndex: number,
     source = ""
-): { nextIndex: number; node: ScriptBlockNode; } {
+): { nextIndex: number; node: ScriptBlockNode } {
     const startToken = tokens[startIndex];
     const { closingToken, contentTokens, endIndex } = collectStructureTokens(
         tokens,
@@ -1188,9 +1194,7 @@ function parseScriptBlockPart(
         contentTokens
     );
     const bodyEnd =
-        script.body.length > 0
-            ? script.body.at(-1).loc.end
-            : closingEnd;
+        script.body.length > 0 ? script.body.at(-1).loc.end : closingEnd;
     const end = Math.max(closingEnd, bodyEnd);
     return {
         nextIndex: endIndex,
@@ -1219,9 +1223,7 @@ function resolveStructureEnd(
         return closingToken.end;
     }
     const lastContent =
-        contentTokens.length > 0
-            ? contentTokens.at(-1)
-            : undefined;
+        contentTokens.length > 0 ? contentTokens.at(-1) : undefined;
     if (lastContent) {
         return lastContent.end;
     }
@@ -1232,15 +1234,12 @@ function shouldMergeNodes(
     previous: ScriptBodyNode,
     next: ScriptBodyNode
 ): boolean {
-    if (previous.type === "Pipeline" && next.type === "Comment") {
-        return Boolean(next.inline);
-    }
-
-    if (previous.type === "BlankLine" && next.type === "BlankLine") {
-        return true;
-    }
-
-    return false;
+    return (
+        (previous.type === "Pipeline" &&
+            next.type === "Comment" &&
+            next.inline) ||
+        (previous.type === "BlankLine" && next.type === "BlankLine")
+    );
 }
 
 function splitArrayElements(tokens: Token[]): Token[][] {
@@ -1285,16 +1284,12 @@ function splitHashtableEntries(tokens: Token[]): Token[][] {
                 context.state.pendingComments = [];
             }
         },
-        onFlush: (segment, state, segments, _force) => {
-            // Use the `_force` parameter to appease lint rules about unused vars
-            void _force;
+        onFlush: (segment, state, segments) => {
             if (state.pendingComments.length > 0) {
                 if (segment.length > 0) {
                     segment.push(...state.pendingComments);
                 } else if (segments.length > 0) {
-                    segments.at(-1).push(
-                        ...state.pendingComments
-                    );
+                    segments.at(-1).push(...state.pendingComments);
                 }
                 state.pendingComments = [];
             }
@@ -1435,6 +1430,10 @@ function splitTopLevelTokens<TState = Record<string, never>>(
 
     return result;
 }
+
+/**
+ * Internal parser helpers exposed for white-box tests.
+ */
 export const __parserTestUtils: {
     buildExpressionFromTokens: typeof buildExpressionFromTokens;
     buildHashtableEntry: typeof buildHashtableEntry;
@@ -1471,6 +1470,13 @@ export const __parserTestUtils: {
     splitTopLevelTokens,
 };
 
+/**
+ * Returns the starting location offset used by Prettier.
+ */
 export const locStart = (node: { loc: { start: number } }): number =>
     node.loc.start;
+
+/**
+ * Returns the ending location offset used by Prettier.
+ */
 export const locEnd = (node: { loc: { end: number } }): number => node.loc.end;

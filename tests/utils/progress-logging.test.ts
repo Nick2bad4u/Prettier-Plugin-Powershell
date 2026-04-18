@@ -15,7 +15,7 @@ afterEach(() => {
     vi.resetModules();
 });
 
-describe("Progress logging behaviour", () => {
+describe("progress logging behaviour", () => {
     it("logs progress for first run and completion when enabled", async () => {
         process.env = {
             ...originalEnv,
@@ -59,6 +59,7 @@ describe("Progress logging behaviour", () => {
         tracker.advance(); // Interval hit again, logs
 
         const messages = logSpy.mock.calls.map(([message]) => String(message));
+
         expect(messages).toEqual([
             "[progress] interval-test run 1",
             "[progress] interval-test run 2",
@@ -85,6 +86,7 @@ describe("Progress logging behaviour", () => {
         }
 
         const messages = logSpy.mock.calls.map(([message]) => String(message));
+
         expect(messages).toContain("[progress] invalid-interval run 1");
         expect(messages).toContain("[progress] invalid-interval run 50");
 
@@ -108,6 +110,7 @@ describe("Progress logging behaviour", () => {
         }
 
         const messages = logSpy.mock.calls.map(([message]) => String(message));
+
         expect(messages).toContain("[progress] zero-interval run 1");
         expect(messages).toContain("[progress] zero-interval run 50");
 

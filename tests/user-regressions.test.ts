@@ -1,16 +1,14 @@
 import { readFile } from "node:fs/promises";
 import { URL } from "node:url";
-
 import { describe, expect, it } from "vitest";
 
-import plugin from "../src/index.js";
-
+import plugin from "../src/plugin.js";
 import { formatAndAssert } from "./utils/format-and-assert.js";
 
 const baseConfig = {
+    filepath: "test.ps1",
     parser: "powershell",
     plugins: [plugin],
-    filepath: "test.ps1",
 };
 
 const countOccurrences = (text: string, needle: string) =>
@@ -20,7 +18,7 @@ const readFixture = (relativePath: string) =>
     readFile(new URL(relativePath, import.meta.url), "utf8");
 
 const normalizeNewlines = (text: string): string =>
-    text.replace(/\r\n/g, "\n");
+    text.replaceAll('\r\n', "\n");
 
 describe("ps-color-scripts regressions", () => {
     async function assertFormatting(
@@ -41,6 +39,7 @@ describe("ps-color-scripts regressions", () => {
             },
             snapshotKey
         );
+
         expect(normalizeNewlines(result)).toBe(normalizeNewlines(expected));
     }
 
@@ -62,6 +61,7 @@ describe("ps-color-scripts regressions", () => {
             },
             "user-regressions.test-file-11.idempotent"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -141,6 +141,7 @@ describe("ps-color-scripts regressions", () => {
         );
         const langtonNeedle = "'Langton''s ant cellular automaton.'";
         const conwayNeedle = "'Conway''s Game of Life with trailing history.'";
+
         expect(countOccurrences(result, langtonNeedle)).toBe(
             countOccurrences(expected, langtonNeedle)
         );
@@ -149,3 +150,4 @@ describe("ps-color-scripts regressions", () => {
         );
     });
 });
+

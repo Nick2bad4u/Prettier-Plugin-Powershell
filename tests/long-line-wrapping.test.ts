@@ -7,8 +7,8 @@ const baseConfig = {
     plugins: ["./dist/index.cjs"],
 };
 
-describe("Long Line Wrapping Improvements", () => {
-    describe("Long Pipeline Chains", () => {
+describe("long Line Wrapping Improvements", () => {
+    describe("long Pipeline Chains", () => {
         it("breaks long pipelines with 4+ segments", async () => {
             const input = `Get-Process | Where-Object { $_.CPU -gt 10 } | Select-Object Name, CPU | Sort-Object CPU -Descending | Format-Table`;
             const result = await formatAndAssert(
@@ -18,6 +18,7 @@ describe("Long Line Wrapping Improvements", () => {
             );
             // Should have line breaks
             const lineCount = result.trim().split("\n").length;
+
             expect(lineCount).toBeGreaterThan(1);
             expect(result).toContain("|");
         });
@@ -29,6 +30,7 @@ describe("Long Line Wrapping Improvements", () => {
                 baseConfig,
                 "long-line-wrapping.result"
             );
+
             // Short pipeline can stay on one line
             expect(result.trim().split("\n").length).toBeLessThanOrEqual(2);
         });
@@ -40,12 +42,14 @@ describe("Long Line Wrapping Improvements", () => {
                 baseConfig,
                 "long-line-wrapping.result"
             );
+
             // Should format without errors
             expect(result).toBeTruthy();
             expect(result).toContain("|");
 
             // Should break into multiple lines
             const lineCount = result.trim().split("\n").length;
+
             expect(lineCount).toBeGreaterThan(3);
         });
 
@@ -56,12 +60,13 @@ describe("Long Line Wrapping Improvements", () => {
                 baseConfig,
                 "long-line-wrapping.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("Get-Process");
         });
     });
 
-    describe("Long Script Block One-Liners", () => {
+    describe("long Script Block One-Liners", () => {
         it("formats long Where-Object blocks", async () => {
             const input = `Get-Process | Where-Object { $_.Name -like "*chrome*" -and $_.CPU -gt 100 -and $_.WorkingSet -gt 100MB -or $_.HandleCount -gt 1000 }`;
             const result = await formatAndAssert(
@@ -69,6 +74,7 @@ describe("Long Line Wrapping Improvements", () => {
                 baseConfig,
                 "long-line-wrapping.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("Where-Object");
         });
@@ -80,6 +86,7 @@ describe("Long Line Wrapping Improvements", () => {
                 baseConfig,
                 "long-line-wrapping.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("ForEach-Object");
         });
@@ -91,19 +98,21 @@ describe("Long Line Wrapping Improvements", () => {
                 baseConfig,
                 "long-line-wrapping.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("Get-ChildItem");
         });
     });
 
-    describe("Long Parameter Lists", () => {
+    describe("long Parameter Lists", () => {
         it("handles cmdlets with many parameters", async () => {
-            const input = `Get-ChildItem -Path "C:\\Windows" -Filter "*.log" -Recurse -ErrorAction SilentlyContinue -Force -File -Attributes Hidden, System -Exclude "temp*", "cache*"`;
+            const input = String.raw`Get-ChildItem -Path "C:\Windows" -Filter "*.log" -Recurse -ErrorAction SilentlyContinue -Force -File -Attributes Hidden, System -Exclude "temp*", "cache*"`;
             const result = await formatAndAssert(
                 input,
                 baseConfig,
                 "long-line-wrapping.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("Get-ChildItem");
         });
@@ -115,12 +124,13 @@ describe("Long Line Wrapping Improvements", () => {
                 baseConfig,
                 "long-line-wrapping.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("Test-Function");
         });
     });
 
-    describe("Long Expressions", () => {
+    describe("long Expressions", () => {
         it("handles long conditional expressions", async () => {
             const input = `if ($value -gt 10 -and $name -like "*test*" -and $status -eq "active" -and $count -lt 100 -or $forceOverride -eq $true) { Write-Output "matched" }`;
             const result = await formatAndAssert(
@@ -128,6 +138,7 @@ describe("Long Line Wrapping Improvements", () => {
                 baseConfig,
                 "long-line-wrapping.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("if");
         });
@@ -139,6 +150,7 @@ describe("Long Line Wrapping Improvements", () => {
                 baseConfig,
                 "long-line-wrapping.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("$message");
         });
@@ -150,12 +162,13 @@ describe("Long Line Wrapping Improvements", () => {
                 baseConfig,
                 "long-line-wrapping.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("$config");
         });
     });
 
-    describe("Edge Cases", () => {
+    describe("edge Cases", () => {
         it("handles extremely long single-line scripts (>500 chars)", async () => {
             const longScript = `Get-Process | Where-Object { $_.CPU -gt 10 } | ForEach-Object { $name = $_.Name; $cpu = $_.CPU; $mem = $_.WorkingSet; Write-Output "Process: $name, CPU: $cpu, Memory: $mem" } | Out-String | Tee-Object -FilePath "output.log" | Write-Host -ForegroundColor Green | Out-Null`;
 
@@ -164,6 +177,7 @@ describe("Long Line Wrapping Improvements", () => {
                 baseConfig,
                 "long-line-wrapping.result"
             );
+
             expect(result).toBeTruthy();
             expect(result.length).toBeGreaterThan(100);
         });
@@ -175,6 +189,7 @@ describe("Long Line Wrapping Improvements", () => {
                 baseConfig,
                 "long-line-wrapping.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("#");
         });
@@ -186,16 +201,17 @@ describe("Long Line Wrapping Improvements", () => {
                 baseConfig,
                 "long-line-wrapping.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("$result");
         });
     });
 
-    describe("Performance on Long Lines", () => {
+    describe("performance on Long Lines", () => {
         it("formats 1000-character line in reasonable time", async () => {
             const longLine =
-                "Get-Process" +
-                " | Where-Object { $_.Name -like '*test*' }".repeat(20);
+                `Get-Process${ 
+                " | Where-Object { $_.Name -like '*test*' }".repeat(20)}`;
 
             const start = Date.now();
             const result = await formatAndAssert(
@@ -216,6 +232,7 @@ describe("Long Line Wrapping Improvements", () => {
                 baseConfig,
                 "long-line-wrapping.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("$result");
         });

@@ -208,7 +208,7 @@ export default defineConfig([
     globalIgnores([
         "**/CHANGELOG.md",
         ".remarkrc.mjs",
-        "test/fixtures/**",
+        "tests/fixtures/**",
         "docs/docusaurus/site-contract.config.d.mts",
         "docs/docusaurus/site-contract.config.mjs",
     ]),
@@ -569,7 +569,7 @@ export default defineConfig([
     // ═══════════════════════════════════════════════════════════════════════════════
     {
         files: ["**/*.css"],
-        ignores: ["docs/**", "**/test/**"],
+        ignores: ["docs/**", "**/tests/**"],
         language: "css/css",
         languageOptions: {
             tolerant: true,
@@ -730,7 +730,7 @@ export default defineConfig([
     // {
     //     files: [
     //         "src/**/*.{ts,tsx,mts,cts}",
-    //         //    "test/**/*.{ts,tsx,mts,cts}"
+    //         //    "tests/**/*.{ts,tsx,mts,cts}"
     //     ],
     //     name: "Local Plugin Rules from Source",
     //     plugins: {
@@ -748,7 +748,7 @@ export default defineConfig([
     {
         files: [
             "src/**/*.{ts,tsx,mts,cts}",
-            //    "test/**/*.{ts,tsx,mts,cts}"
+            //    "tests/**/*.{ts,tsx,mts,cts}"
         ],
         name: "Typefest Rules for Source",
         plugins: {
@@ -766,7 +766,7 @@ export default defineConfig([
     {
         files: [
             "src/**/*.{ts,tsx,mts,cts}",
-            //    "test/**/*.{ts,tsx,mts,cts}"
+            //    "tests/**/*.{ts,tsx,mts,cts}"
         ],
         name: "Etc-Misc Rules for Source",
         plugins: {
@@ -918,7 +918,7 @@ export default defineConfig([
         files: [
             "*.{js,mjs,cjs,ts,mts,cts,tsx}",
             "src/**/*.{js,mjs,cjs,ts,mts,cts,tsx}",
-            "test/**/*.{js,mjs,cjs,ts,mts,cts,tsx}",
+            "tests/**/*.{js,mjs,cjs,ts,mts,cts,tsx}",
             "benchmarks/**/*.{js,mjs,cjs,ts,mts,cts,tsx}",
         ],
         ignores: ["plugin.mjs"],
@@ -1700,7 +1700,7 @@ export default defineConfig([
     // SECTION: 🧪 Internal Tooling
     // ═══════════════════════════════════════════════════════════════════════════════
     {
-        files: ["test/**/*.{test,spec}.{ts,tsx}", "test/**/*.{ts,tsx}"],
+        files: ["tests/**/*.{test,spec}.{ts,tsx}", "tests/**/*.{ts,tsx}"],
         name: "ESLint Plugin Tests - internal tooling",
         rules: {
             "@typescript-eslint/array-type": "off",
@@ -1732,7 +1732,7 @@ export default defineConfig([
         },
     },
     {
-        files: ["test/_internal/ruleTester.ts"],
+        files: ["tests/_internal/ruleTester.ts"],
         name: "ESLint Plugin Tests - internal helper filename",
         rules: {
             "unicorn/filename-case": "off",
@@ -1745,7 +1745,7 @@ export default defineConfig([
     // ═══════════════════════════════════════════════════════════════════════════════
     {
         files: [
-            "test/**/*.{ts,tsx,mts,cts,mjs,js,jsx,cjs}",
+            "tests/**/*.{ts,tsx,mts,cts,mjs,js,jsx,cjs}",
             "benchmarks/**/*.{ts,tsx,mts,cts,mjs,js,jsx,cjs}",
         ],
         languageOptions: {
@@ -1777,7 +1777,7 @@ export default defineConfig([
                 warnOnUnsupportedTypeScriptVersion: true,
             },
         },
-        name: "Tests test/**/*.{spec,test}.*.{TS,TSX,MTS,CTS,MJS,JS,JSX,CJS}",
+        name: "Tests tests/**/*.{spec,test}.*.{TS,TSX,MTS,CTS,MJS,JS,JSX,CJS}",
         plugins: {
             "@typescript-eslint": tseslint,
             "import-x": importX,
@@ -3118,7 +3118,7 @@ export default defineConfig([
         files: [
             "**/*.test.{ts,tsx}",
             "**/*.spec.{ts,tsx}",
-            "src/test/**/*.{ts,tsx}",
+            "src/tests/**/*.{ts,tsx}",
             "{tests,test}/**/*.{ts,tsx}",
         ],
         name: "Tests: relax strict void rules",

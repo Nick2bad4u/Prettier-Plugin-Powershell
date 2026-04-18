@@ -7,15 +7,16 @@ const baseConfig = {
     plugins: ["./dist/index.cjs"],
 };
 
-describe("Deep Nesting and Complex Structure Handling", () => {
-    describe("DSC Configuration Support", () => {
+describe("deep Nesting and Complex Structure Handling", () => {
+    describe("dSC Configuration Support", () => {
         it("handles basic DSC configuration", async () => {
-            const input = `Configuration MyConfig { Node localhost { File MyFile { DestinationPath = "C:\\test.txt"; Contents = "test" } } }`;
+            const input = String.raw`Configuration MyConfig { Node localhost { File MyFile { DestinationPath = "C:\test.txt"; Contents = "test" } } }`;
             const result = await formatAndAssert(
                 input,
                 baseConfig,
                 "deep-nesting.basic-dsc|skipParse"
             );
+
             expect(result).toBeTruthy();
             expect(result.toLowerCase()).toContain("configuration myconfig");
             expect(result).toContain("Node localhost");
@@ -40,16 +41,17 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 baseConfig,
                 "deep-nesting.nested-dsc|skipParse"
             );
+
             expect(result.toLowerCase()).toContain("configuration webserver");
             expect(result).toContain("WindowsFeature IIS");
             expect(result).toContain("WindowsFeature ASP");
         });
 
         it("handles deeply nested DSC (5+ levels)", async () => {
-            const input = `Configuration Complex {
+            const input = String.raw`Configuration Complex {
                 Node Server {
                     Registry RegKey {
-                        Key = "HKLM:\\Software\\Test"
+                        Key = "HKLM:\Software\Test"
                         ValueName = "Setting"
                         Script ScriptBlock {
                             GetScript = { @{ Result = "value" } }
@@ -64,15 +66,16 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 baseConfig,
                 "deep-nesting.deep-dsc|skipParse"
             );
+
             expect(result).toBeTruthy();
             expect(result.toLowerCase()).toContain("configuration complex");
         });
 
         it("handles multiple nodes in DSC", async () => {
-            const input = `Configuration MultiNode {
+            const input = String.raw`Configuration MultiNode {
                 Node "Server01", "Server02", "Server03" {
                     File TestFile {
-                        DestinationPath = "C:\\test.txt"
+                        DestinationPath = "C:\test.txt"
                         Contents = "test"
                     }
                 }
@@ -82,12 +85,13 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 baseConfig,
                 "deep-nesting.multinode-dsc|skipParse"
             );
+
             expect(result).toContain("MultiNode");
             expect(result).toContain("Server01");
         });
     });
 
-    describe("Deep Hashtable Nesting", () => {
+    describe("deep Hashtable Nesting", () => {
         it("handles 5-level nested hashtables", async () => {
             const input = `$config = @{
                 Level1 = @{
@@ -105,6 +109,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 baseConfig,
                 "deep-nesting.performance|skipParse"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("deep");
         });
@@ -121,6 +126,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 baseConfig,
                 "deep-nesting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("Alice");
             expect(result).toContain("Bob");
@@ -133,12 +139,13 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 baseConfig,
                 "deep-nesting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("bottom");
         });
     });
 
-    describe("Deep Array Nesting", () => {
+    describe("deep Array Nesting", () => {
         it("handles nested arrays", async () => {
             const input = `$matrix = @(@(1, 2, 3), @(4, 5, 6), @(7, 8, 9))`;
             const result = await formatAndAssert(
@@ -146,6 +153,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 baseConfig,
                 "deep-nesting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("1");
             expect(result).toContain("9");
@@ -158,12 +166,13 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 baseConfig,
                 "deep-nesting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("1");
         });
     });
 
-    describe("Deep Function Nesting", () => {
+    describe("deep Function Nesting", () => {
         it("handles nested script blocks", async () => {
             const input = `$script = { $inner1 = { $inner2 = { $inner3 = { Write-Output "deep" } } } }`;
             const result = await formatAndAssert(
@@ -171,6 +180,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 baseConfig,
                 "deep-nesting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("deep");
         });
@@ -182,6 +192,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 baseConfig,
                 "deep-nesting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("nested");
         });
@@ -193,12 +204,13 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 baseConfig,
                 "deep-nesting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("foreach");
         });
     });
 
-    describe("Complex Mixed Nesting", () => {
+    describe("complex Mixed Nesting", () => {
         it("handles function with nested structures", async () => {
             const input = `function Get-Config {
                 param($Path)
@@ -219,6 +231,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 baseConfig,
                 "deep-nesting.result"
             );
+
             expect(result).toContain("Get-Config");
             expect(result).toContain("SQL01");
         });
@@ -234,12 +247,13 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 baseConfig,
                 "deep-nesting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("switch");
         });
     });
 
-    describe("Performance with Deep Nesting", () => {
+    describe("performance with Deep Nesting", () => {
         it("handles deep nesting without stack overflow", async () => {
             // Create 20 levels of nesting
             let deep = "1";
@@ -253,6 +267,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 baseConfig,
                 "deep-nesting.result"
             );
+
             expect(result).toBeTruthy();
         });
 
@@ -274,7 +289,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
         });
     });
 
-    describe("Edge Cases in Deep Structures", () => {
+    describe("edge Cases in Deep Structures", () => {
         it("handles empty nested structures", async () => {
             const input = `$empty = @{ A = @{ B = @{ C = @{} } } }`;
             const result = await formatAndAssert(
@@ -282,6 +297,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 baseConfig,
                 "deep-nesting.result"
             );
+
             expect(result).toBeTruthy();
         });
 
@@ -292,6 +308,7 @@ describe("Deep Nesting and Complex Structure Handling", () => {
                 baseConfig,
                 "deep-nesting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("value");
         });

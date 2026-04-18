@@ -15,6 +15,7 @@ describe("formatAndAssert helper", () => {
         const result = await formatAndAssert(input, baseConfig, {
             id: "utils.formatOk",
         });
+
         expect(result).toContain("Write-Host");
     });
 
@@ -24,6 +25,7 @@ describe("formatAndAssert helper", () => {
             id: "utils.skipParse",
             skipParse: true,
         });
+
         expect(result).toContain("Write-Host");
     });
 
@@ -34,6 +36,7 @@ describe("formatAndAssert helper", () => {
             baseConfig,
             "utils.stringShorthand"
         );
+
         expect(result).toContain("Write-Host");
     });
 
@@ -44,6 +47,7 @@ describe("formatAndAssert helper", () => {
             baseConfig,
             "utils.stringSkip|skipParse"
         );
+
         expect(result).toContain("Write-Host");
     });
 
@@ -52,6 +56,7 @@ describe("formatAndAssert helper", () => {
         const result = await formatAndAssertRoundTrip(input, baseConfig, {
             id: "utils.roundtrip",
         });
+
         expect(result).toContain("Write-Host");
     });
 
@@ -62,22 +67,24 @@ describe("formatAndAssert helper", () => {
             baseConfig,
             "utils.roundtripString"
         );
+
         expect(result).toContain("Write-Host");
     });
 
     it("can skip idempotence assertion when expectIdempotent is false", async () => {
         const input = 'Write-Host "hi"';
         const result = await formatAndAssertRoundTrip(input, baseConfig, {
-            id: "utils.roundtripNonIdempotent",
             expectIdempotent: false,
+            id: "utils.roundtripNonIdempotent",
         });
+
         expect(result).toContain("Write-Host");
     });
 
     it("throws when a roundtrip is not idempotent", async () => {
         vi.resetModules();
 
-        vi.doMock("prettier", () => ({
+        vi.doMock(import('prettier'), () => ({
             default: {
                 format: vi
                     .fn()
@@ -93,7 +100,7 @@ describe("formatAndAssert helper", () => {
                 id: "utils.roundtripFailure",
                 skipParse: true,
             })
-        ).rejects.toThrow(/Not idempotent/);
+        ).rejects.toThrow(/Not idempotent/v);
 
         vi.doUnmock("prettier");
         vi.resetModules();

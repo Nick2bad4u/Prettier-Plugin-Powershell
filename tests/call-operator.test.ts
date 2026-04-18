@@ -9,7 +9,7 @@ const baseConfig = {
 
 const joinLines = (...values: string[]): string => values.join("\n");
 
-describe("Call operator formatting", () => {
+describe("call operator formatting", () => {
     it("formats call operator against script blocks", async () => {
         const input = joinLines(
             "",
@@ -25,6 +25,7 @@ describe("Call operator formatting", () => {
             baseConfig,
             "call-operator.result"
         );
+
         expect(result).toContain("param($name)");
         expect(result).toContain('"Hello $name"');
         expect(result).toContain('& $scriptBlock -name "World"');
@@ -37,6 +38,7 @@ describe("Call operator formatting", () => {
             baseConfig,
             "call-operator.result"
         );
+
         expect(result).toBe('& (Get-Command Write-Host) "hi"\n');
     });
 
@@ -53,6 +55,7 @@ describe("Call operator formatting", () => {
             baseConfig,
             "call-operator.result"
         );
+
         expect(result).toBe(
             "$invoke = Get-Command Invoke-RestMethod\n" +
                 '$params = @{ URI = "https://example.com" }\n' +
@@ -72,7 +75,8 @@ describe("Call operator formatting", () => {
             baseConfig,
             "call-operator.result"
         );
+
         expect(result).toContain("[PSCustomObject]");
-        expect(result).toMatch(/& \$object\.Script\.Invoke\(\)/);
+        expect(result).toMatch(/& \$object\.Script\.Invoke\(\)/v);
     });
 });

@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { createProgressTracker, withProgress } from "./progress.js";
 
-describe("Progress utilities", () => {
-    describe("createProgressTracker", () => {
+describe("progress utilities", () => {
+    describe(createProgressTracker, () => {
         it("creates a tracker that counts advances", () => {
             const tracker = createProgressTracker("test");
+
             expect(tracker.advance()).toBe(1);
             expect(tracker.advance()).toBe(2);
             expect(tracker.advance()).toBe(3);
@@ -13,13 +14,16 @@ describe("Progress utilities", () => {
 
         it("accepts totalHint parameter", () => {
             const tracker = createProgressTracker("test", 10);
+
             expect(tracker.advance()).toBe(1);
             expect(tracker.advance()).toBe(2);
         });
 
         it("has complete method", () => {
             const tracker = createProgressTracker("test");
+
             expect(typeof tracker.complete).toBe("function");
+
             tracker.complete(); // Should not throw
         });
 
@@ -28,11 +32,12 @@ describe("Progress utilities", () => {
             for (let i = 0; i < 100; i++) {
                 tracker.advance();
             }
+
             expect(tracker.advance()).toBe(101);
         });
     });
 
-    describe("withProgress", () => {
+    describe(withProgress, () => {
         it("executes action and returns result", async () => {
             const result = await withProgress("test", 5, (tracker) => {
                 tracker.advance();

@@ -1,7 +1,9 @@
-const progressEnabled = process.env.POWERSHELL_PROPERTY_PROGRESS === "1";
+import { env } from "node:process";
+
+const progressEnabled = env.POWERSHELL_PROPERTY_PROGRESS === "1";
 
 const defaultInterval = Number.parseInt(
-    process.env.POWERSHELL_PROPERTY_PROGRESS_INTERVAL ?? "50",
+    env.POWERSHELL_PROPERTY_PROGRESS_INTERVAL ?? "50",
     10
 );
 
@@ -10,10 +12,10 @@ const interval =
         ? defaultInterval
         : 50;
 
-type ProgressTracker = {
+interface ProgressTracker {
     advance: () => number;
     complete: () => void;
-};
+}
 
 export const createProgressTracker = (
     name: string,

@@ -16,6 +16,7 @@ describe("PowerShell Operators", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -27,6 +28,7 @@ describe("PowerShell Operators", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -38,6 +40,7 @@ describe("PowerShell Operators", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -49,6 +52,7 @@ describe("PowerShell Operators", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -60,6 +64,7 @@ describe("PowerShell Operators", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -71,6 +76,7 @@ describe("PowerShell Operators", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -82,6 +88,7 @@ describe("PowerShell Operators", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -93,6 +100,7 @@ describe("PowerShell Operators", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -104,6 +112,7 @@ describe("PowerShell Operators", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -115,6 +124,7 @@ describe("PowerShell Operators", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -126,6 +136,7 @@ describe("PowerShell Operators", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -137,6 +148,7 @@ describe("PowerShell Operators", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -148,6 +160,7 @@ describe("PowerShell Operators", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -159,6 +172,7 @@ describe("PowerShell Operators", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -170,6 +184,7 @@ describe("PowerShell Operators", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -181,6 +196,7 @@ describe("PowerShell Operators", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 });
@@ -193,11 +209,12 @@ describe("PowerShell Keywords", () => {
             baseConfig,
             "operators.result"
         );
+
         // The formatter currently inlines the blocks, which is valid PowerShell
-        expect(result).toMatch(/function Test/);
-        expect(result).toMatch(/begin/);
-        expect(result).toMatch(/process/);
-        expect(result).toMatch(/end/);
+        expect(result).toMatch(/function Test/v);
+        expect(result).toMatch(/begin/v);
+        expect(result).toMatch(/process/v);
+        expect(result).toMatch(/end/v);
     });
 
     it("formats enum definitions", async () => {
@@ -208,6 +225,7 @@ describe("PowerShell Keywords", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -219,6 +237,7 @@ describe("PowerShell Keywords", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -230,6 +249,7 @@ describe("PowerShell Keywords", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -241,6 +261,7 @@ describe("PowerShell Keywords", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 });
@@ -254,6 +275,7 @@ describe("PowerShell Variables", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -265,6 +287,7 @@ describe("PowerShell Variables", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 
@@ -276,6 +299,7 @@ describe("PowerShell Variables", () => {
             baseConfig,
             "operators.result"
         );
+
         expect(result).toBe(expected);
     });
 });

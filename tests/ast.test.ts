@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import {
+    type ArrayLiteralNode,
+    type BaseNode,
     cloneNode,
+    type CommentNode,
     createLocation,
+    type ExpressionNode,
+    type FunctionDeclarationNode,
+    type HashtableNode,
+    type HereStringNode,
     isArrayLiteralNode,
     isCommentNode,
     isFunctionDeclarationNode,
@@ -12,13 +19,6 @@ import {
     isPipelineNode,
     isScriptBlockNode,
     isScriptNode,
-    type ArrayLiteralNode,
-    type BaseNode,
-    type CommentNode,
-    type ExpressionNode,
-    type FunctionDeclarationNode,
-    type HashtableNode,
-    type HereStringNode,
     type PipelineNode,
     type ScriptBlockNode,
     type ScriptNode,
@@ -30,77 +30,83 @@ function createTextExpression(
     role: TokenRole = "word"
 ): ExpressionNode {
     return {
-        type: "Expression",
+        loc: createLocation(0, value.length),
         parts: [
             {
+                loc: createLocation(0, value.length),
+                role,
                 type: "Text",
                 value,
-                role,
-                loc: createLocation(0, value.length),
             },
         ],
-        loc: createLocation(0, value.length),
+        type: "Expression",
     } satisfies ExpressionNode;
 }
 
 describe("AST utility functions", () => {
-    describe("createLocation", () => {
+    describe(createLocation, () => {
         it("creates a location object with start and end", () => {
             const loc = createLocation(5, 15);
-            expect(loc).toEqual({ start: 5, end: 15 });
+
+            expect(loc).toEqual({ end: 15, start: 5 });
         });
 
         it("handles zero positions", () => {
             const loc = createLocation(0, 0);
-            expect(loc).toEqual({ start: 0, end: 0 });
+
+            expect(loc).toEqual({ end: 0, start: 0 });
         });
 
         it("handles large positions", () => {
             const loc = createLocation(1000, 2000);
-            expect(loc).toEqual({ start: 1000, end: 2000 });
+
+            expect(loc).toEqual({ end: 2000, start: 1000 });
         });
     });
 
-    describe("isNodeType", () => {
+    describe(isNodeType, () => {
         it("returns true when node type matches", () => {
             const node: ScriptNode = {
-                type: "Script",
                 body: [],
                 loc: createLocation(0, 10),
+                type: "Script",
             };
-            expect(isNodeType(node, "Script")).toBe(true);
+
+            expect(isNodeType(node, "Script")).toBeTruthy();
         });
 
         it("returns false when node type does not match", () => {
             const node: ScriptNode = {
-                type: "Script",
                 body: [],
                 loc: createLocation(0, 10),
+                type: "Script",
             };
-            expect(isNodeType(node, "Pipeline")).toBe(false);
+
+            expect(isNodeType(node, "Pipeline")).toBeFalsy();
         });
 
         it("works with different node types", () => {
             const comment: CommentNode = {
+                inline: false,
+                loc: createLocation(0, 6),
+                style: "line",
                 type: "Comment",
                 value: "# test",
-                loc: createLocation(0, 6),
-                inline: false,
-                style: "line",
             };
-            expect(isNodeType(comment, "Comment")).toBe(true);
-            expect(isNodeType(comment, "Script")).toBe(false);
+
+            expect(isNodeType(comment, "Comment")).toBeTruthy();
+            expect(isNodeType(comment, "Script")).toBeFalsy();
         });
     });
 
-    describe("cloneNode", () => {
+    describe(cloneNode, () => {
         it("clones a simple node", () => {
             const node: CommentNode = {
+                inline: false,
+                loc: createLocation(0, 14),
+                style: "line",
                 type: "Comment",
                 value: "# test comment",
-                loc: createLocation(0, 14),
-                inline: false,
-                style: "line",
             };
             const cloned = cloneNode(node);
 
@@ -111,17 +117,17 @@ describe("AST utility functions", () => {
 
         it("clones a node with body array", () => {
             const node: ScriptNode = {
-                type: "Script",
                 body: [
                     {
+                        inline: false,
+                        loc: createLocation(0, 9),
+                        style: "line",
                         type: "Comment",
                         value: "# comment",
-                        loc: createLocation(0, 9),
-                        inline: false,
-                        style: "line",
                     },
                 ],
                 loc: createLocation(0, 10),
+                type: "Script",
             };
             const cloned = cloneNode(node);
 
@@ -133,9 +139,9 @@ describe("AST utility functions", () => {
 
         it("clones a node with parts array", () => {
             const node = {
-                type: "StringLiteral",
-                parts: ["hello", "world"],
                 loc: createLocation(0, 11),
+                parts: ["hello", "world"],
+                type: "StringLiteral",
             } as BaseNode;
             const cloned = cloneNode(node);
 
@@ -149,9 +155,9 @@ describe("AST utility functions", () => {
 
         it("clones a node with segments array", () => {
             const node = {
-                type: "ExpandableString",
-                segments: [{ type: "StringSegment", value: "test" }],
                 loc: createLocation(0, 4),
+                segments: [{ type: "StringSegment", value: "test" }],
+                type: "ExpandableString",
             } as BaseNode;
             const cloned = cloneNode(node);
 
@@ -162,10 +168,10 @@ describe("AST utility functions", () => {
 
         it("clones a node with elements array", () => {
             const node: ArrayLiteralNode = {
-                type: "ArrayLiteral",
                 elements: [createTextExpression("1", "number")],
                 kind: "implicit",
                 loc: createLocation(0, 3),
+                type: "ArrayLiteral",
             };
             const cloned = cloneNode(node);
 
@@ -175,17 +181,17 @@ describe("AST utility functions", () => {
 
         it("clones a node with entries array", () => {
             const node: HashtableNode = {
-                type: "Hashtable",
                 entries: [
                     {
-                        type: "HashtableEntry",
                         key: "key",
-                        rawKey: createTextExpression("key"),
-                        value: createTextExpression("value", "string"),
                         loc: createLocation(0, 12),
+                        rawKey: createTextExpression("key"),
+                        type: "HashtableEntry",
+                        value: createTextExpression("value", "string"),
                     },
                 ],
                 loc: createLocation(0, 14),
+                type: "Hashtable",
             };
             const cloned = cloneNode(node);
 
@@ -195,15 +201,15 @@ describe("AST utility functions", () => {
 
         it("clones a node with parameters array", () => {
             const node = {
-                type: "FunctionDeclaration",
+                loc: createLocation(0, 20),
                 parameters: [
                     {
-                        type: "Parameter",
-                        name: "$test",
                         loc: createLocation(0, 5),
+                        name: "$test",
+                        type: "Parameter",
                     },
                 ],
-                loc: createLocation(0, 20),
+                type: "FunctionDeclaration",
             } as BaseNode;
             const cloned = cloneNode(node);
 
@@ -213,175 +219,191 @@ describe("AST utility functions", () => {
         });
     });
 
-    describe("Type guard functions", () => {
-        describe("isScriptNode", () => {
+    describe("type guard functions", () => {
+        describe(isScriptNode, () => {
             it("returns true for Script nodes", () => {
                 const node: ScriptNode = {
-                    type: "Script",
                     body: [],
                     loc: createLocation(0, 0),
+                    type: "Script",
                 };
-                expect(isScriptNode(node)).toBe(true);
+
+                expect(isScriptNode(node)).toBeTruthy();
             });
 
             it("returns false for non-Script nodes", () => {
                 const node: CommentNode = {
+                    inline: false,
+                    loc: createLocation(0, 6),
+                    style: "line",
                     type: "Comment",
                     value: "# test",
-                    loc: createLocation(0, 6),
-                    inline: false,
-                    style: "line",
                 };
-                expect(isScriptNode(node)).toBe(false);
+
+                expect(isScriptNode(node)).toBeFalsy();
             });
         });
 
-        describe("isPipelineNode", () => {
+        describe(isPipelineNode, () => {
             it("returns true for Pipeline nodes", () => {
                 const node: PipelineNode = {
-                    type: "Pipeline",
-                    segments: [],
                     loc: createLocation(0, 10),
+                    segments: [],
+                    type: "Pipeline",
                 };
-                expect(isPipelineNode(node)).toBe(true);
+
+                expect(isPipelineNode(node)).toBeTruthy();
             });
 
             it("returns false for non-Pipeline nodes", () => {
                 const node: ScriptNode = {
-                    type: "Script",
                     body: [],
                     loc: createLocation(0, 0),
+                    type: "Script",
                 };
-                expect(isPipelineNode(node)).toBe(false);
+
+                expect(isPipelineNode(node)).toBeFalsy();
             });
         });
 
-        describe("isFunctionDeclarationNode", () => {
+        describe(isFunctionDeclarationNode, () => {
             it("returns true for FunctionDeclaration nodes", () => {
                 const node: FunctionDeclarationNode = {
-                    type: "FunctionDeclaration",
-                    header: createTextExpression("function Test-Function"),
                     body: {
-                        type: "ScriptBlock",
                         body: [],
                         loc: createLocation(0, 2),
+                        type: "ScriptBlock",
                     },
+                    header: createTextExpression("function Test-Function"),
                     loc: createLocation(0, 20),
+                    type: "FunctionDeclaration",
                 };
-                expect(isFunctionDeclarationNode(node)).toBe(true);
+
+                expect(isFunctionDeclarationNode(node)).toBeTruthy();
             });
 
             it("returns false for non-FunctionDeclaration nodes", () => {
                 const node: ScriptNode = {
-                    type: "Script",
                     body: [],
                     loc: createLocation(0, 0),
+                    type: "Script",
                 };
-                expect(isFunctionDeclarationNode(node)).toBe(false);
+
+                expect(isFunctionDeclarationNode(node)).toBeFalsy();
             });
         });
 
-        describe("isScriptBlockNode", () => {
+        describe(isScriptBlockNode, () => {
             it("returns true for ScriptBlock nodes", () => {
                 const node: ScriptBlockNode = {
-                    type: "ScriptBlock",
                     body: [],
                     loc: createLocation(0, 2),
+                    type: "ScriptBlock",
                 };
-                expect(isScriptBlockNode(node)).toBe(true);
+
+                expect(isScriptBlockNode(node)).toBeTruthy();
             });
 
             it("returns false for non-ScriptBlock nodes", () => {
                 const node: ScriptNode = {
-                    type: "Script",
                     body: [],
                     loc: createLocation(0, 0),
+                    type: "Script",
                 };
-                expect(isScriptBlockNode(node)).toBe(false);
+
+                expect(isScriptBlockNode(node)).toBeFalsy();
             });
         });
 
-        describe("isHashtableNode", () => {
+        describe(isHashtableNode, () => {
             it("returns true for Hashtable nodes", () => {
                 const node: HashtableNode = {
-                    type: "Hashtable",
                     entries: [],
                     loc: createLocation(0, 2),
+                    type: "Hashtable",
                 };
-                expect(isHashtableNode(node)).toBe(true);
+
+                expect(isHashtableNode(node)).toBeTruthy();
             });
 
             it("returns false for non-Hashtable nodes", () => {
                 const node: ScriptNode = {
-                    type: "Script",
                     body: [],
                     loc: createLocation(0, 0),
+                    type: "Script",
                 };
-                expect(isHashtableNode(node)).toBe(false);
+
+                expect(isHashtableNode(node)).toBeFalsy();
             });
         });
 
-        describe("isArrayLiteralNode", () => {
+        describe(isArrayLiteralNode, () => {
             it("returns true for ArrayLiteral nodes", () => {
                 const node: ArrayLiteralNode = {
-                    type: "ArrayLiteral",
                     elements: [],
-                    loc: createLocation(0, 2),
                     kind: "implicit",
+                    loc: createLocation(0, 2),
+                    type: "ArrayLiteral",
                 };
-                expect(isArrayLiteralNode(node)).toBe(true);
+
+                expect(isArrayLiteralNode(node)).toBeTruthy();
             });
 
             it("returns false for non-ArrayLiteral nodes", () => {
                 const node: ScriptNode = {
-                    type: "Script",
                     body: [],
                     loc: createLocation(0, 0),
+                    type: "Script",
                 };
-                expect(isArrayLiteralNode(node)).toBe(false);
+
+                expect(isArrayLiteralNode(node)).toBeFalsy();
             });
         });
 
-        describe("isCommentNode", () => {
+        describe(isCommentNode, () => {
             it("returns true for Comment nodes", () => {
                 const node: CommentNode = {
+                    inline: false,
+                    loc: createLocation(0, 6),
+                    style: "line",
                     type: "Comment",
                     value: "# test",
-                    loc: createLocation(0, 6),
-                    inline: false,
-                    style: "line",
                 };
-                expect(isCommentNode(node)).toBe(true);
+
+                expect(isCommentNode(node)).toBeTruthy();
             });
 
             it("returns false for non-Comment nodes", () => {
                 const node: ScriptNode = {
-                    type: "Script",
                     body: [],
                     loc: createLocation(0, 0),
+                    type: "Script",
                 };
-                expect(isCommentNode(node)).toBe(false);
+
+                expect(isCommentNode(node)).toBeFalsy();
             });
         });
 
-        describe("isHereStringNode", () => {
+        describe(isHereStringNode, () => {
             it("returns true for HereString nodes", () => {
                 const node: HereStringNode = {
+                    loc: createLocation(0, 10),
+                    quote: "single",
                     type: "HereString",
                     value: "@'\ntest\n'@",
-                    quote: "single",
-                    loc: createLocation(0, 10),
                 };
-                expect(isHereStringNode(node)).toBe(true);
+
+                expect(isHereStringNode(node)).toBeTruthy();
             });
 
             it("returns false for non-HereString nodes", () => {
                 const node: ScriptNode = {
-                    type: "Script",
                     body: [],
                     loc: createLocation(0, 0),
+                    type: "Script",
                 };
-                expect(isHereStringNode(node)).toBe(false);
+
+                expect(isHereStringNode(node)).toBeFalsy();
             });
         });
     });

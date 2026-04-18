@@ -43,8 +43,8 @@
         }
     },
     "scripts": {
-        "build": "tsup src/index.ts --format esm,cjs --dts src/index.ts --dts-resolve --clean --sourcemap --tsconfig tsconfig.json --shims --treeshake safest --cjsInterop --metafile",
-        "build:watch": "tsup src/index.ts --format esm,cjs --dts --watch",
+        "build": "tsup src/plugin.ts --format esm,cjs --dts src/plugin.ts --dts-resolve --clean --sourcemap --tsconfig tsconfig.json --shims --treeshake safest --cjsInterop --metafile",
+        "build:watch": "tsup src/plugin.ts --format esm,cjs --dts --watch",
         "clean": "rimraf dist",
         "lint": "eslint --config eslint.config.mjs src tests --cache --cache-strategy content --cache-location .cache/.eslintcache --max-warnings=-1 && echo \"Eslint done!\"",
         "lint:fix": "eslint --config eslint.config.mjs src tests --cache --cache-strategy content --cache-location .cache/.eslintcache --max-warnings=-1 --fix && echo \"Eslint done!\"",
@@ -156,7 +156,7 @@
         "yaml-eslint-parser": "^2.0.0"
     },
     "engines": {
-        "node": ">=18.12.0"
+        "node": ">=20.0.0"
     },
     "packageManager": "npm@11.12.1",
     "dependencies": {

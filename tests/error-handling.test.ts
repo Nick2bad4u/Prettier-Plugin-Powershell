@@ -7,7 +7,7 @@ const baseConfig = {
     plugins: ["./dist/index.cjs"],
 };
 
-describe("Error Handling and Resilience", () => {
+describe("error Handling and Resilience", () => {
     it("handles incomplete script blocks gracefully", async () => {
         const input = `function Test { Write-Output "test"`;
         // Should not throw, but format what it can
@@ -16,6 +16,7 @@ describe("Error Handling and Resilience", () => {
             baseConfig,
             "error-handling.result|skipParse"
         );
+
         expect(result).toBeTruthy();
         expect(result).toContain("function Test");
     });
@@ -27,6 +28,7 @@ describe("Error Handling and Resilience", () => {
             baseConfig,
             "error-handling.result|skipParse"
         );
+
         expect(result).toBeTruthy();
     });
 
@@ -37,6 +39,7 @@ describe("Error Handling and Resilience", () => {
             baseConfig,
             "error-handling.result|skipParse"
         );
+
         expect(result).toBeTruthy();
     });
 
@@ -47,6 +50,7 @@ describe("Error Handling and Resilience", () => {
             baseConfig,
             "error-handling.result|skipParse"
         );
+
         expect(result).toBeTruthy();
     });
 
@@ -57,6 +61,7 @@ describe("Error Handling and Resilience", () => {
             baseConfig,
             "error-handling.result|skipParse"
         );
+
         expect(result).toBeTruthy();
     });
 
@@ -67,6 +72,7 @@ describe("Error Handling and Resilience", () => {
             baseConfig,
             "error-handling.result|skipParse"
         );
+
         expect(result).toBeTruthy();
     });
 
@@ -77,6 +83,7 @@ describe("Error Handling and Resilience", () => {
             baseConfig,
             "error-handling.result|skipParse"
         );
+
         expect(result).toBeTruthy();
     });
 
@@ -87,6 +94,7 @@ describe("Error Handling and Resilience", () => {
             baseConfig,
             "error-handling.result|skipParse"
         );
+
         // Empty input should return just a newline or empty string
         expect(result).toBeDefined();
     });
@@ -98,6 +106,7 @@ describe("Error Handling and Resilience", () => {
             baseConfig,
             "error-handling.result|skipParse"
         );
+
         // Whitespace-only should be trimmed
         expect(result).toBeDefined();
     });
@@ -109,6 +118,7 @@ describe("Error Handling and Resilience", () => {
             baseConfig,
             "error-handling.result|skipParse"
         );
+
         expect(result).toContain("#");
     });
 
@@ -119,6 +129,7 @@ describe("Error Handling and Resilience", () => {
             baseConfig,
             "error-handling.result|skipParse"
         );
+
         expect(result).toBeTruthy();
         expect(result).toContain("$x = 1");
     });
@@ -131,6 +142,7 @@ describe("Error Handling and Resilience", () => {
             baseConfig,
             "error-handling.result|skipParse"
         );
+
         expect(result).toBeTruthy();
         expect(result).toContain(longString);
     });
@@ -142,6 +154,7 @@ describe("Error Handling and Resilience", () => {
             baseConfig,
             "error-handling.result|skipParse"
         );
+
         expect(result).toBeTruthy();
         expect(result).toContain("deep");
     });
@@ -153,6 +166,7 @@ describe("Error Handling and Resilience", () => {
             baseConfig,
             "error-handling.result|skipParse"
         );
+
         expect(result).toBeTruthy();
     });
 
@@ -163,6 +177,7 @@ describe("Error Handling and Resilience", () => {
             baseConfig,
             "error-handling.result|skipParse"
         );
+
         expect(result).toBeTruthy();
         expect(result).toContain("変数");
         expect(result).toContain("日本語");
@@ -175,6 +190,7 @@ describe("Error Handling and Resilience", () => {
             baseConfig,
             "error-handling.result|skipParse"
         );
+
         expect(result).toBeTruthy();
     });
 
@@ -185,6 +201,7 @@ describe("Error Handling and Resilience", () => {
             baseConfig,
             "error-handling.result|skipParse"
         );
+
         expect(result).toBeTruthy();
         expect(result).toContain("Get-Process");
         expect(result).toContain("Format-Table");
@@ -217,6 +234,7 @@ Line
             baseConfig,
             "error-handling.result"
         );
+
         expect(result).toBeTruthy();
         expect(result).toContain("function Test-Everything");
     });

@@ -7,8 +7,8 @@ const baseConfig = {
     plugins: ["./dist/index.cjs"],
 };
 
-describe("Advanced Formatting Features", () => {
-    describe("Switch Statement Formatting", () => {
+describe("advanced Formatting Features", () => {
+    describe("switch Statement Formatting", () => {
         it("formats simple switch statements", async () => {
             const input = `switch ($value) { 1 { "one" } 2 { "two" } default { "other" } }`;
             const result = await formatAndAssert(
@@ -16,6 +16,7 @@ describe("Advanced Formatting Features", () => {
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("switch");
             expect(result).toContain("default");
@@ -28,6 +29,7 @@ describe("Advanced Formatting Features", () => {
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("-Regex");
         });
@@ -39,12 +41,13 @@ describe("Advanced Formatting Features", () => {
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("-File");
         });
     });
 
-    describe("Assignment Operator Alignment", () => {
+    describe("assignment Operator Alignment", () => {
         it("formats multiple assignments", async () => {
             const input = `$short = 1\n$veryLongVariableName = 2\n$x = 3`;
             const result = await formatAndAssert(
@@ -52,6 +55,7 @@ describe("Advanced Formatting Features", () => {
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("$short = 1");
             expect(result).toContain("$veryLongVariableName = 2");
@@ -64,11 +68,12 @@ describe("Advanced Formatting Features", () => {
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
         });
     });
 
-    describe("PowerShell Classes with Inheritance", () => {
+    describe("powerShell Classes with Inheritance", () => {
         it("formats class with base class", async () => {
             const input = `class Animal { [string]$Name; Animal([string]$name) { $this.Name = $name } }
 class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($name) { $this.Breed = $breed } }`;
@@ -77,6 +82,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("class Dog");
             expect(result).toContain("Animal");
@@ -89,6 +95,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("IDisposable");
         });
@@ -100,6 +107,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("static");
         });
@@ -113,6 +121,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("[System.IO.Path]");
         });
@@ -124,6 +133,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("List[string]");
         });
@@ -135,12 +145,13 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("Dictionary");
         });
     });
 
-    describe("Long Parameter Lists", () => {
+    describe("long Parameter Lists", () => {
         it("formats function with many parameters", async () => {
             const input = `function Test { param([string]$Param1, [string]$Param2, [string]$Param3, [string]$Param4, [string]$Param5) }`;
             const result = await formatAndAssert(
@@ -148,6 +159,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("$Param1");
             expect(result).toContain("$Param5");
@@ -160,13 +172,14 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("-Name");
             expect(result).toContain("-Debug");
         });
     });
 
-    describe("Comment-Based Help", () => {
+    describe("comment-Based Help", () => {
         it("formats synopsis comment", async () => {
             const input = `function Test {\n<#\n.SYNOPSIS\nTest function\n#>\n}`;
             const result = await formatAndAssert(
@@ -174,6 +187,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain(".SYNOPSIS");
         });
@@ -185,37 +199,40 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain(".SYNOPSIS");
             expect(result).toContain(".EXAMPLE");
         });
     });
 
-    describe("Regex Pattern Formatting", () => {
+    describe("regex Pattern Formatting", () => {
         it("formats simple regex patterns", async () => {
-            const input = `if ($text -match "^\\d{3}-\\d{2}-\\d{4}$") { }`;
+            const input = String.raw`if ($text -match "^\d{3}-\d{2}-\d{4}$") { }`;
             const result = await formatAndAssert(
                 input,
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("-match");
         });
 
         it("formats complex regex with groups", async () => {
-            const input = `$pattern = "(?<year>\\d{4})-(?<month>\\d{2})-(?<day>\\d{2})"`;
+            const input = String.raw`$pattern = "(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})"`;
             const result = await formatAndAssert(
                 input,
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("year");
         });
     });
 
-    describe("Embedded Content", () => {
+    describe("embedded Content", () => {
         it("handles here-strings with JSON", async () => {
             const input = `$json = @"\n{"name": "test", "value": 123}\n"@`;
             const result = await formatAndAssert(
@@ -223,6 +240,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain('@"');
         });
@@ -234,6 +252,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("root");
         });
@@ -245,12 +264,13 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("SELECT");
         });
     });
 
-    describe("Dynamic Parameters", () => {
+    describe("dynamic Parameters", () => {
         it("formats function with DynamicParam block", async () => {
             const input = `function Test { DynamicParam { $dict = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new(); return $dict } process { } }`;
             const result = await formatAndAssert(
@@ -258,12 +278,13 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result.toLowerCase()).toContain("dynamicparam");
         });
     });
 
-    describe("Advanced Pipeline Scenarios", () => {
+    describe("advanced Pipeline Scenarios", () => {
         it("formats pipeline with begin/process/end", async () => {
             const input = `Get-ChildItem | ForEach-Object { begin { $count = 0 } process { $count++ } end { Write-Output $count } }`;
             const result = await formatAndAssert(
@@ -271,6 +292,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("begin");
             expect(result).toContain("process");
@@ -284,13 +306,14 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("Get-Process");
             expect(result).toContain("Format-Table");
         });
     });
 
-    describe("Advanced Operators", () => {
+    describe("advanced Operators", () => {
         it("formats ternary operator", async () => {
             const input = `$result = $value ? "true" : "false"`;
             const result = await formatAndAssert(
@@ -298,6 +321,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("?");
             expect(result).toContain(":");
@@ -310,6 +334,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("??");
         });
@@ -321,6 +346,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 baseConfig,
                 "advanced-formatting.result"
             );
+
             expect(result).toBeTruthy();
             expect(result).toContain("..");
         });

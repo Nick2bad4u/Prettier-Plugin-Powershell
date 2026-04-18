@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { tokenize } from "../src/tokenizer.js";
 
-describe("Tokenizer edge cases", () => {
+describe("tokenizer edge cases", () => {
     it("handles block comment at end of file", () => {
         const script = "test <#comment#>";
         const tokens = tokenize(script);
         const blockComment = tokens.find((t) => t.type === "block-comment");
+
         expect(blockComment).toBeDefined();
         expect(blockComment?.value).toBe("<#comment#>");
     });
@@ -15,6 +16,7 @@ describe("Tokenizer edge cases", () => {
         const script = "test <#unclosed";
         const tokens = tokenize(script);
         const blockComment = tokens.find((t) => t.type === "block-comment");
+
         expect(blockComment).toBeDefined();
         expect(blockComment?.value).toBe("<#unclosed");
     });
@@ -23,6 +25,7 @@ describe("Tokenizer edge cases", () => {
         const script = '$a = "test`"';
         const tokens = tokenize(script);
         const stringToken = tokens.find((t) => t.type === "string");
+
         expect(stringToken).toBeDefined();
         expect(stringToken?.value).toBe('"test`"');
     });
@@ -31,6 +34,7 @@ describe("Tokenizer edge cases", () => {
         const script = '[ValidateScript({"test`"})]';
         const tokens = tokenize(script);
         const attrToken = tokens.find((t) => t.type === "attribute");
+
         expect(attrToken).toBeDefined();
     });
 
@@ -38,6 +42,7 @@ describe("Tokenizer edge cases", () => {
         const script = '@"\r\nLine 1\r\nLine 2\r\n"@';
         const tokens = tokenize(script);
         const heredoc = tokens.find((t) => t.type === "heredoc");
+
         expect(heredoc).toBeDefined();
         expect(heredoc?.value).toBe('@"\r\nLine 1\r\nLine 2\r\n"@');
     });
@@ -46,6 +51,7 @@ describe("Tokenizer edge cases", () => {
         const script = '@"\nLine 1\nLine 2\n"@';
         const tokens = tokenize(script);
         const heredoc = tokens.find((t) => t.type === "heredoc");
+
         expect(heredoc).toBeDefined();
         expect(heredoc?.value).toBe('@"\nLine 1\nLine 2\n"@');
     });
@@ -54,6 +60,7 @@ describe("Tokenizer edge cases", () => {
         const script = "$a = 1.";
         const tokens = tokenize(script);
         const numbers = tokens.filter((t) => t.type === "number");
+
         expect(numbers).toHaveLength(1);
         expect(numbers[0]?.value).toBe("1");
     });
@@ -62,6 +69,7 @@ describe("Tokenizer edge cases", () => {
         const script = "$a = 1.5";
         const tokens = tokenize(script);
         const number = tokens.find((t) => t.type === "number");
+
         expect(number).toBeDefined();
         expect(number?.value).toBe("1.5");
     });
@@ -70,6 +78,7 @@ describe("Tokenizer edge cases", () => {
         const script = '@"\ntest\n"@';
         const tokens = tokenize(script);
         const heredoc = tokens.find((t) => t.type === "heredoc");
+
         expect(heredoc).toBeDefined();
         expect(heredoc?.value).toBe('@"\ntest\n"@');
     });
@@ -78,6 +87,7 @@ describe("Tokenizer edge cases", () => {
         const script = "<#test#>";
         const tokens = tokenize(script);
         const blockComment = tokens.find((t) => t.type === "block-comment");
+
         expect(blockComment).toBeDefined();
         expect(blockComment?.value).toBe("<#test#>");
     });
@@ -160,6 +170,7 @@ describe("Tokenizer edge cases", () => {
         const tokens = tokenize(script);
 
         const variables = tokens.filter((t) => t.type === "variable");
+
         expect(variables).toHaveLength(1);
         expect(variables[0]?.value).toBe("$_");
     });
@@ -169,6 +180,7 @@ describe("Tokenizer edge cases", () => {
         const tokens = tokenize(script);
 
         const variables = tokens.filter((t) => t.type === "variable");
+
         expect(variables).toHaveLength(1);
         expect(variables[0]?.value).toBe("$_foo");
     });

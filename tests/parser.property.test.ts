@@ -1,26 +1,28 @@
-import * as fc from "fast-check";
 import type { Options, ParserOptions } from "prettier";
+
+import * as fc from "fast-check";
+import { env } from "node:process";
 import { describe, it } from "vitest";
 
 import type { BaseNode, SourceLocation } from "../src/ast.js";
-import plugin from "../src/index.js";
-import { parsePowerShell } from "../src/parser.js";
-import { tokenize, type Token } from "../src/tokenizer.js";
 
+import { parsePowerShell } from "../src/parser.js";
+import plugin from "../src/plugin.js";
+import { type Token, tokenize } from "../src/tokenizer.js";
 import { structuredScriptArbitrary } from "./property/arbitraries.js";
 import { formatAndAssert } from "./utils/format-and-assert.js";
 import { isPowerShellParsable } from "./utils/powershell.js";
 import { withProgress } from "./utils/progress.js";
 
 const PROPERTY_RUNS = Number.parseInt(
-    process.env.POWERSHELL_PROPERTY_RUNS ?? "150",
+    env.POWERSHELL_PROPERTY_RUNS ?? "150",
     10
 );
 
 const prettierConfig: Options = {
+    filepath: "property.ps1",
     parser: "powershell",
     plugins: [plugin],
-    filepath: "property.ps1",
 };
 
 const createParserOptions = (
@@ -65,7 +67,7 @@ const assertTokenOrder = (tokens: Token[], sourceLength: number): void => {
 const assertLocationIntegrity = (
     node: BaseNode,
     sourceLength: number,
-    parentLoc: SourceLocation | null = null
+    parentLoc: null | SourceLocation = null
 ): void => {
     const { loc } = node;
     if (loc.start < 0 || loc.end < loc.start || loc.end > sourceLength) {
@@ -74,13 +76,11 @@ const assertLocationIntegrity = (
         );
     }
 
-    if (parentLoc) {
-        if (loc.start < parentLoc.start || loc.end > parentLoc.end) {
+    if (parentLoc && (loc.start < parentLoc.start || loc.end > parentLoc.end)) {
             throw new Error(
                 `child location outside parent range for ${node.type}: child=${JSON.stringify(loc)} parent=${JSON.stringify(parentLoc)}`
             );
         }
-    }
 
     for (const value of Object.values(
         node as unknown as Record<string, unknown>
@@ -110,8 +110,7 @@ const assertParserOutput = (script: string): void => {
 };
 
 describe("PowerShell parser property-based tests", () => {
-    it("parses generated scripts without throwing and maintains location invariants", () => {
-        return withProgress("parser.location", PROPERTY_RUNS, (tracker) => {
+    it("parses generated scripts without throwing and maintains location invariants", () => withProgress("parser.location", PROPERTY_RUNS, (tracker) => {
             fc.assert(
                 fc.property(structuredScriptArbitrary, (script) => {
                     tracker.advance();
@@ -119,8 +118,7 @@ describe("PowerShell parser property-based tests", () => {
                 }),
                 { numRuns: PROPERTY_RUNS }
             );
-        });
-    });
+        }));
 
     it("formatting generated scripts remains idempotent and parseable", async () => {
         const numRuns = Math.max(25, Math.floor(PROPERTY_RUNS / 2));
@@ -169,3 +167,4 @@ describe("PowerShell parser property-based tests", () => {
         });
     });
 });
+

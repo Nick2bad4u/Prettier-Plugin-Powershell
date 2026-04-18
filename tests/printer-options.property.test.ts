@@ -1,57 +1,73 @@
 import * as fc from "fast-check";
-import { describe, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import plugin from "../src/index.js";
-
+import plugin from "../src/plugin.js";
 import { formatAndAssert } from "./utils/format-and-assert.js";
 import { withProgress } from "./utils/progress.js";
 
+const { env: testEnv } = process;
+
 const PROPERTY_RUNS = Number.parseInt(
-    process.env.POWERSHELL_PROPERTY_RUNS ?? "100",
+    testEnv.POWERSHELL_PROPERTY_RUNS ?? "100",
     10
 );
+
+const lowerAlphabet = Array.from({ length: 26 }, (_, index) =>
+    String.fromCodePoint(97 + index)
+);
+const upperAlphabet = Array.from({ length: 26 }, (_, index) =>
+    String.fromCodePoint(65 + index)
+);
+const digits = Array.from({ length: 10 }, (_, index) =>
+    String.fromCodePoint(48 + index)
+);
+const alphanumeric = [
+    ...lowerAlphabet,
+    ...upperAlphabet,
+    ...digits,
+];
 
 const runFormat = async (
     script: string,
     overrides: Record<string, unknown> = {}
-): Promise<string> => {
-    const formatted = await formatAndAssert(
+): Promise<string> =>
+    formatAndAssert(
         script,
         {
+            filepath: "options-test.ps1",
             parser: "powershell",
             plugins: [plugin],
-            filepath: "options-test.ps1",
             ...overrides,
         },
         "printerOptions.runFormat"
     );
-    return formatted;
-};
 
-describe("Printer option-specific property tests", () => {
+describe("printer option-specific property tests", () => {
     describe("blank line controls", () => {
         const functionNameArb = fc
             .tuple(
-                fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz"),
-                fc.array(
-                    fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz0123456789"),
-                    { maxLength: 6 }
-                )
+                fc.constantFrom(...lowerAlphabet),
+                fc.array(fc.constantFrom(...lowerAlphabet, ...digits), {
+                    maxLength: 6,
+                })
             )
             .map(([first, rest]) => `${first}${rest.join("")}`);
 
         const twoFunctionScriptArb = fc
             .tuple(functionNameArb, functionNameArb)
-            .map(([first, second]) => {
-                return `function ${first} {
+            .map(
+                ([first, second]) => `function ${first} {
     Write-Output "${first}"
 }
 function ${second} {
     Write-Output "${second}"
-}`;
-            });
+}`
+            );
 
         it("respects blankLinesBetweenFunctions", async () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             await withProgress(
                 "printerOptions.blankLines",
                 PROPERTY_RUNS,
@@ -59,7 +75,7 @@ function ${second} {
                     await fc.assert(
                         fc.asyncProperty(
                             twoFunctionScriptArb,
-                            fc.integer({ min: 0, max: 3 }),
+                            fc.integer({ max: 3, min: 0 }),
                             async (script, spacing) => {
                                 tracker.advance();
                                 const formatted = await runFormat(script, {
@@ -67,19 +83,28 @@ function ${second} {
                                         spacing,
                                 });
 
-                                const normalized = formatted.replace(
-                                    /\r\n/g,
+                                const normalized = formatted.replaceAll(
+                                    "\r\n",
                                     "\n"
                                 );
-                                const match = normalized.match(
-                                    /}\n((?:\n)*)function\s+\w+/
+                                const closingBraceIndex =
+                                    normalized.indexOf("}\n");
+                                const functionIndex = normalized.indexOf(
+                                    "function ",
+                                    closingBraceIndex + 2
                                 );
-                                if (!match) {
+                                if (
+                                    closingBraceIndex === -1 ||
+                                    functionIndex === -1
+                                ) {
                                     throw new Error(
                                         `Unable to locate function boundary in formatted output.\n${formatted}`
                                     );
                                 }
-                                const gapSegment = match[1] ?? "";
+                                const gapSegment = normalized.slice(
+                                    closingBraceIndex + 2,
+                                    functionIndex
+                                );
                                 const blankCount =
                                     gapSegment.length === 0
                                         ? 0
@@ -99,6 +124,9 @@ function ${second} {
         });
 
         it("respects blankLineAfterParam", async () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             await withProgress(
                 "printerOptions.blankLineAfterParam",
                 PROPERTY_RUNS,
@@ -114,9 +142,9 @@ function ${second} {
                                 powershellBlankLineAfterParam: flag,
                             });
 
-                            const lines = formatted.split(/\r?\n/);
+                            const lines = formatted.split(/\r?\n/v);
                             const paramIndex = lines.findIndex((line) =>
-                                /param\s*\(/i.test(line)
+                                /param\s*\(/iv.test(line)
                             );
                             if (paramIndex === -1) {
                                 throw new Error(
@@ -145,14 +173,25 @@ function ${second} {
 
     describe("string literal normalization", () => {
         const safeCharArb = fc.constantFrom(
-            ..."abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -_.,:/?"
+            ...alphanumeric,
+            " ",
+            "-",
+            "_",
+            ".",
+            ",",
+            ":",
+            "/",
+            "?"
         );
 
         const safeContentArb = fc
-            .array(safeCharArb, { minLength: 1, maxLength: 25 })
+            .array(safeCharArb, { maxLength: 25, minLength: 1 })
             .map((chars) => chars.join(""));
 
         it("uses single quotes when preferSingleQuote is enabled", async () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             await withProgress(
                 "printerOptions.preferSingleQuote",
                 PROPERTY_RUNS,
@@ -165,7 +204,7 @@ function ${second} {
                                 powershellPreferSingleQuote: true,
                             });
 
-                            if (!/\$value\s*=\s*'[^']*'/.test(formatted)) {
+                            if (!/\$value\s*=\s*'[^']*'/v.test(formatted)) {
                                 throw new Error(
                                     `Expected single-quoted literal when preferSingleQuote is true.\n${formatted}`
                                 );
@@ -178,13 +217,16 @@ function ${second} {
         });
 
         it("retains double quotes for dynamic content", async () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             await withProgress(
                 "printerOptions.dynamicQuotes",
                 PROPERTY_RUNS,
                 async (tracker) => {
                     await fc.assert(
                         fc.asyncProperty(
-                            fc.integer({ min: 1, max: 2 }),
+                            fc.integer({ max: 2, min: 1 }),
                             async (repeatCount) => {
                                 tracker.advance();
                                 const dollarRun = "$".repeat(repeatCount);
@@ -193,7 +235,7 @@ function ${second} {
                                     powershellPreferSingleQuote: true,
                                 });
 
-                                if (!/\$value\s*=\s*"/.test(formatted)) {
+                                if (!/\$value\s*=\s*"/v.test(formatted)) {
                                     throw new Error(
                                         `Expected double quotes to be preserved when content contains $.
 ${formatted}`
@@ -210,25 +252,28 @@ ${formatted}`
 
     describe("alias rewriting", () => {
         const aliasMap: Record<string, string> = {
-            gi: "Get-Item",
-            gci: "Get-ChildItem",
-            ls: "Get-ChildItem",
+            cat: "Get-Content",
             dir: "Get-ChildItem",
-            ld: "Get-ChildItem",
-            la: "Get-ChildItem",
+            echo: "Write-Output",
+            gc: "Get-Content",
+            gci: "Get-ChildItem",
             gcm: "Get-Command",
+            gi: "Get-Item",
             gm: "Get-Member",
             gps: "Get-Process",
-            ps: "Get-Process",
-            gwmi: "Get-WmiObject",
             gsv: "Get-Service",
-            cat: "Get-Content",
-            gc: "Get-Content",
-            echo: "Write-Output",
+            gwmi: "Get-WmiObject",
+            la: "Get-ChildItem",
+            ld: "Get-ChildItem",
+            ls: "Get-ChildItem",
+            ps: "Get-Process",
         };
         const aliasArb = fc.constantFrom(...Object.keys(aliasMap));
 
         it("rewrites aliases when enabled", async () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             await withProgress(
                 "printerOptions.aliasRewrite.on",
                 PROPERTY_RUNS,
@@ -254,6 +299,9 @@ ${formatted}`
         });
 
         it("leaves aliases untouched when disabled", async () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             await withProgress(
                 "printerOptions.aliasRewrite.off",
                 PROPERTY_RUNS,
@@ -279,12 +327,15 @@ ${formatted}`
         });
     });
 
-    describe("Write-Host rewrite", () => {
+    describe("write-Host rewrite", () => {
         const hostCommandArb = fc
             .constantFrom("Write-Host", "write-host", "WRITE-HOST")
             .map((cmd) => `${cmd} "hi"`);
 
         it("rewrites Write-Host when enabled", async () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             await withProgress(
                 "printerOptions.writeHost.on",
                 PROPERTY_RUNS,
@@ -295,7 +346,7 @@ ${formatted}`
                             const formatted = await runFormat(script, {
                                 powershellRewriteWriteHost: true,
                             });
-                            if (!/Write-Output/i.test(formatted)) {
+                            if (!/write-output/iv.test(formatted)) {
                                 throw new Error(
                                     `Expected Write-Host rewrite when enabled.\n${formatted}`
                                 );
@@ -308,6 +359,9 @@ ${formatted}`
         });
 
         it("keeps Write-Host when disabled", async () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             await withProgress(
                 "printerOptions.writeHost.off",
                 PROPERTY_RUNS,
@@ -318,7 +372,7 @@ ${formatted}`
                             const formatted = await runFormat(script, {
                                 powershellRewriteWriteHost: false,
                             });
-                            if (/Write-Output/i.test(formatted)) {
+                            if (/write-output/iv.test(formatted)) {
                                 throw new Error(
                                     `Did not expect Write-Host rewrite when disabled.\n${formatted}`
                                 );
@@ -339,6 +393,9 @@ ${formatted}`
         );
 
         it("emits tabs when indentStyle is tabs", async () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             await withProgress(
                 "printerOptions.indentTabs",
                 PROPERTY_RUNS,
@@ -346,8 +403,8 @@ ${formatted}`
                     await fc.assert(
                         fc.asyncProperty(
                             fc.array(commandArb, {
-                                minLength: 1,
                                 maxLength: 3,
+                                minLength: 1,
                             }),
                             async (commands) => {
                                 tracker.advance();
@@ -359,9 +416,9 @@ ${formatted}`
                                     powershellIndentStyle: "tabs",
                                 });
 
-                                const lines = formatted.split(/\r?\n/);
+                                const lines = formatted.split(/\r?\n/v);
                                 const indentedLines = lines.filter((line) =>
-                                    /^\t+/.test(line)
+                                    /^\t+/v.test(line)
                                 );
                                 if (indentedLines.length === 0) {
                                     throw new Error(
@@ -370,7 +427,7 @@ ${formatted}`
                                 }
                                 for (const line of indentedLines) {
                                     const leading =
-                                        line.match(/^[\t ]+/)?.[0] ?? "";
+                                        /^[\t ]+/v.exec(line)?.[0] ?? "";
                                     if (leading.includes(" ")) {
                                         throw new Error(
                                             `Found spaces in leading indentation despite tab style.\n${formatted}`
@@ -396,10 +453,12 @@ ${formatted}`
                 "epsilon",
                 "zeta"
             ),
-            { minLength: 3, maxLength: 6 }
+            { maxLength: 6, minLength: 3 }
         );
 
         it("obeys trailingComma option variants for hashtables", async () => {
+            expect.hasAssertions();
+
             await withProgress(
                 "printerOptions.trailingComma",
                 PROPERTY_RUNS,
@@ -413,34 +472,40 @@ ${formatted}`
                             const script = `$items = @{${entries}}`;
 
                             const none = await runFormat(script, {
-                                powershellTrailingComma: "none",
                                 powershellLineWidth: 200,
+                                powershellTrailingComma: "none",
                             });
-                            if (/;[\s\r\n]*\}/.test(none)) {
+                            const noneTrimmed = none.trimEnd();
+                            if (
+                                noneTrimmed.includes(";\n}") ||
+                                noneTrimmed.endsWith(";}")
+                            ) {
                                 throw new Error(
                                     `Trailing semicolon found despite option "none".\n${none}`
                                 );
                             }
 
                             const all = await runFormat(script, {
-                                powershellTrailingComma: "all",
                                 powershellLineWidth: 200,
+                                powershellTrailingComma: "all",
                             });
-                            if (!/;[\s\r\n]*\}/.test(all)) {
+                            const allTrimmed = all.trimEnd();
+                            if (
+                                !allTrimmed.includes(";\n}") &&
+                                !allTrimmed.endsWith(";}")
+                            ) {
                                 throw new Error(
                                     `Expected trailing semicolon before closing brace for option "all".\n${all}`
                                 );
                             }
 
                             const multiline = await runFormat(script, {
-                                powershellTrailingComma: "multiline",
                                 powershellLineWidth: 30,
+                                powershellTrailingComma: "multiline",
                             });
-                            const lines = multiline.trimEnd().split(/\r?\n/);
-                            const closing =
-                                lines[lines.length - 1]?.trim() ?? "";
-                            const penultimate =
-                                lines[lines.length - 2]?.trim() ?? "";
+                            const lines = multiline.trimEnd().split(/\r?\n/v);
+                            const closing = lines.at(-1)?.trim() ?? "";
+                            const penultimate = lines.at(-2)?.trim() ?? "";
                             if (
                                 closing === "}" &&
                                 !penultimate.endsWith(";") &&
@@ -458,6 +523,8 @@ ${formatted}`
         });
 
         it("never adds trailing commas to arrays (PowerShell doesn't support them)", async () => {
+            expect.hasAssertions();
+
             await withProgress(
                 "printerOptions.noArrayTrailingCommas",
                 PROPERTY_RUNS,
@@ -477,10 +544,10 @@ ${formatted}`
                                 "all",
                             ] as const) {
                                 const result = await runFormat(script, {
-                                    powershellTrailingComma: option,
                                     powershellLineWidth: 30,
+                                    powershellTrailingComma: option,
                                 });
-                                if (/,[\s\r\n]*\)/.test(result)) {
+                                if (/,\s*\)/v.test(result)) {
                                     throw new Error(
                                         `Trailing comma found in array with option "${option}" (PowerShell doesn't support this).\n${result}`
                                     );
@@ -496,6 +563,8 @@ ${formatted}`
 
     describe("line width wrapping", () => {
         it("wraps narrow width arrays while keeping wide arrays inline", async () => {
+            expect.hasAssertions();
+
             await withProgress(
                 "printerOptions.lineWidth",
                 1,
@@ -539,25 +608,33 @@ ${formatted}`
         ];
 
         const keySetArb: fc.Arbitrary<string[]> = fc
-            .array(fc.constantFrom(...keyPool), { minLength: 2, maxLength: 5 })
-            .map((keys) => Array.from(new Set(keys)))
+            .array(fc.constantFrom(...keyPool), { maxLength: 5, minLength: 2 })
+            .map((keys) => [...new Set(keys)])
             .filter((keys) => keys.length >= 2);
 
         const extractKeys = (formatted: string): string[] => {
-            const keys: string[] = [];
-            const bodyMatch = formatted.match(/@\{([\s\S]*?)\}/);
-            if (!bodyMatch) {
-                return keys;
+            const startIndex = formatted.indexOf("@{");
+            const endIndex = formatted.lastIndexOf("}");
+            if (
+                startIndex === -1 ||
+                endIndex === -1 ||
+                endIndex <= startIndex
+            ) {
+                return [];
             }
-            const matcher = /([A-Za-z][A-Za-z0-9_-]*)\s*=/g;
-            let match: RegExpExecArray | null;
-            while ((match = matcher.exec(bodyMatch[1])) !== null) {
-                keys.push(match[1]);
-            }
-            return keys;
+
+            const body = formatted.slice(startIndex + 2, endIndex);
+            return body
+                .split(";")
+                .map((segment) => segment.trim())
+                .filter((segment) => segment.includes("="))
+                .map((segment) => segment.slice(0, segment.indexOf("=")).trim())
+                .filter((key) => key.length > 0);
         };
 
         it("preserves original key order when sorting disabled", async () => {
+            expect.hasAssertions();
+
             await withProgress(
                 "printerOptions.sortHashtable.off",
                 PROPERTY_RUNS,
@@ -600,6 +677,9 @@ ${formatted}`
         });
 
         it("sorts keys alphabetically when enabled", async () => {
+            expect.hasAssertions();
+            expect.hasAssertions();
+
             await withProgress(
                 "printerOptions.sortHashtable.on",
                 PROPERTY_RUNS,
@@ -622,7 +702,7 @@ ${formatted}`
                             );
                             const expected = [...keys]
                                 .map((key: string) => key.toLowerCase())
-                                .sort((a, b) => a.localeCompare(b));
+                                .toSorted((a, b) => a.localeCompare(b));
                             if (formattedKeys.length !== expected.length) {
                                 throw new Error(
                                     `Mismatch in key counts for sorted case. expected=${expected.length} actual=${formattedKeys.length}`

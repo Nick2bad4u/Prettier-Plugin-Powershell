@@ -51,14 +51,14 @@ const {
  * - And much more!
  */
 export const powerShellPrinter: Printer<ScriptNode> = {
-    print(path: AstPath, options: ParserOptions) {
-        const node = path.getValue() as
+    print(path: AstPath, options: ParserOptions): Doc {
+        const node = path.node as
             | ExpressionPartNode
             | ScriptBodyNode
             | ScriptNode
             | undefined;
-        if (!node) {
-            return "";
+        if (node === undefined) {
+            return "" as Doc;
         }
         const resolved = resolveOptions(options);
         return printNode(node, resolved);
@@ -67,12 +67,14 @@ export const powerShellPrinter: Printer<ScriptNode> = {
 
 function concatDocs(docs: Doc[]): Doc {
     if (docs.length === 0) {
-        return "";
+        return "" as Doc;
     }
+
     let acc: Doc = docs[0];
     for (let index = 1; index < docs.length; index += 1) {
-        acc = [acc, docs[index]] as Doc;
+        acc = [acc, docs[index]];
     }
+
     return acc;
 }
 
@@ -281,7 +283,7 @@ function looksLikeCommentText(text: string): boolean {
         trimmed.includes("=") ||
         trimmed.includes("->") ||
         trimmed.includes("::") ||
-        /\b(foreach|function|if|param|while)\b/i.test(trimmed)
+        /\b(?:foreach|function|if|param|while)\b/i.test(trimmed)
     ) {
         return false;
     }
@@ -467,7 +469,7 @@ function printNode(
             return printText(node, options);
         }
         default: {
-            return "";
+            return [] as Doc;
         }
     }
 }
@@ -477,42 +479,32 @@ function printPipeline(node: PipelineNode, options: ResolvedOptions): Doc {
         printExpression(segment, options)
     );
     if (segmentDocs.length === 0) {
-        return "";
+        return "" as Doc;
     }
 
     let pipelineDoc: Doc = segmentDocs[0];
 
     if (segmentDocs.length > 1) {
-        // For long pipelines, always break to improve readability
         const shouldAlwaysBreak = segmentDocs.length > 3;
 
         const restDocs = segmentDocs
             .slice(1)
             .map((segmentDoc) => [line, ["| ", segmentDoc]]);
 
-        if (shouldAlwaysBreak) {
-            // Force line breaks for long pipelines
-            pipelineDoc = [
-                segmentDocs[0],
-                indent(restDocs.flat()),
-            ];
-        } else {
-            pipelineDoc = group([
-                segmentDocs[0],
-                indent(restDocs.flat()),
-            ]);
-        }
+        // For long pipelines, force line breaks; shorter ones may fit on one line.
+        pipelineDoc = shouldAlwaysBreak
+            ? [segmentDocs[0], indent(restDocs.flat())]
+            : group([segmentDocs[0], indent(restDocs.flat())]);
     }
 
     if (node.trailingComment) {
-        pipelineDoc = node.trailingComment.inline ? [
-                pipelineDoc,
-                lineSuffix([" #", node.trailingComment.value]),
-            ] : [
-                pipelineDoc,
-                hardline,
-                printComment(node.trailingComment),
-            ];
+        pipelineDoc = node.trailingComment.inline
+            ? [pipelineDoc, lineSuffix([" #", node.trailingComment.value])]
+            : [
+                  pipelineDoc,
+                  hardline,
+                  printComment(node.trailingComment),
+              ];
     }
 
     return pipelineDoc;
@@ -520,9 +512,6 @@ function printPipeline(node: PipelineNode, options: ResolvedOptions): Doc {
 
 function printScript(node: ScriptNode, options: ResolvedOptions): Doc {
     const bodyDoc = printStatementList(node.body, options, false);
-    if (!bodyDoc) {
-        return "";
-    }
     return [bodyDoc, hardline];
 }
 
@@ -531,7 +520,7 @@ function printScriptBlock(
     options: ResolvedOptions
 ): Doc {
     if (node.body.length === 0) {
-        return "{}";
+        return group(["{", "}"]);
     }
 
     const bodyDoc = printStatementList(node.body, options, true);
@@ -743,6 +732,12 @@ const CMDLET_ALIAS_MAP: Record<string, string> = {
 
 const DISALLOWED_CMDLET_REWRITE = new Map([["write-host", "Write-Output"]]);
 
+/**
+ * Creates and returns the PowerShell {@link Printer} instance for use as a
+ * Prettier plugin.
+ *
+ * @returns The Prettier printer for PowerShell AST nodes.
+ */
 export function createPrinter(): Printer<ScriptNode> {
     return powerShellPrinter;
 }
@@ -806,23 +801,20 @@ function isSimpleExpression(node: ExpressionNode): boolean {
         return false;
     }
     const [part] = node.parts;
-    if (!part) {
-        return true;
-    }
     if (part.type !== "Text") {
         return false;
     }
     if (part.role === "keyword") {
         return false;
     }
-    return !/\r|\n/.test(part.value);
+    return !/[\n\r]/.test(part.value);
 }
 
 function printArray(node: ArrayLiteralNode, options: ResolvedOptions): Doc {
     const open = node.kind === "implicit" ? "@(" : "[";
     const close = node.kind === "implicit" ? ")" : "]";
     if (node.elements.length === 0) {
-        return [open, close];
+        return group([open, close]);
     }
     const groupId = Symbol("array");
 
@@ -876,20 +868,18 @@ function printArray(node: ArrayLiteralNode, options: ResolvedOptions): Doc {
 
 function printComment(node: CommentNode): Doc {
     if (node.style === "block") {
-        return node.value;
+        return node.value as Doc;
     }
-    return ["#", node.value];
+    return ["#", node.value] as Doc;
 }
 
 function printHashtable(node: HashtableNode, options: ResolvedOptions): Doc {
     const entries = options.sortHashtableKeys
-        ? [...node.entries].sort((a, b) =>
-              a.key.localeCompare(b.key, undefined, { sensitivity: "base" })
-          )
+        ? sortHashtableEntries(node.entries)
         : node.entries;
 
     if (entries.length === 0) {
-        return "@{}";
+        return group(["@{}"]);
     }
     const groupId = Symbol("hashtable");
     const contentDocs: Doc[] = [];
@@ -932,23 +922,19 @@ function printHashtableEntry(
     const startsWithKeyword =
         firstPart?.type === "Text" &&
         firstPart.role === "keyword" &&
-        /^(for|foreach|if|switch|while)$/i.test(firstPart.value);
+        /^(?:for|foreach|if|switch|while)$/i.test(firstPart.value);
 
-    let entryDoc: Doc;
-    if (startsWithKeyword) {
-        // Keep keyword expressions on the same line as the '=' sign
-        entryDoc = group([
-            keyDoc,
-            " = ",
-            valueDoc,
-        ]);
-    } else {
-        entryDoc = group([
-            keyDoc,
-            " =",
-            indent([line, valueDoc]),
-        ]);
-    }
+    let entryDoc: Doc = startsWithKeyword
+        ? group([
+              keyDoc,
+              " = ",
+              valueDoc,
+          ])
+        : group([
+              keyDoc,
+              " =",
+              indent([line, valueDoc]),
+          ]);
 
     // Add leading comments
     if (node.leadingComments && node.leadingComments.length > 0) {
@@ -965,11 +951,13 @@ function printHashtableEntry(
     // Add trailing comments
     if (node.trailingComments && node.trailingComments.length > 0) {
         for (const comment of node.trailingComments) {
-            entryDoc = comment.inline ? [entryDoc, lineSuffix([" ", printComment(comment)])] : [
-                    entryDoc,
-                    hardline,
-                    printComment(comment),
-                ];
+            entryDoc = comment.inline
+                ? [entryDoc, lineSuffix([" ", printComment(comment)])]
+                : [
+                      entryDoc,
+                      hardline,
+                      printComment(comment),
+                  ];
         }
     }
 
@@ -985,11 +973,16 @@ function printParamParenthesis(
     options: ResolvedOptions
 ): Doc {
     if (node.elements.length === 0) {
-        return "()";
+        return group(["(", ")"]);
     }
 
     if (node.elements.length <= 1 && !node.hasNewline) {
-        return printParenthesis(node, options);
+        return group([
+            "(",
+            indent([softline, printExpression(node.elements[0], options)]),
+            softline,
+            ")",
+        ]);
     }
 
     const groupId = Symbol("param");
@@ -1072,7 +1065,7 @@ function printParenthesis(
     options: ResolvedOptions
 ): Doc {
     if (node.elements.length === 0) {
-        return "()";
+        return group(["(", ")"]);
     }
     const groupId = Symbol("parenthesis");
     const elementDocs = node.elements.map((element) =>
@@ -1158,6 +1151,29 @@ function printText(node: TextNode, options: ResolvedOptions): Doc {
     return value;
 }
 
+function sortHashtableEntries(
+    entries: readonly HashtableEntryNode[]
+): HashtableEntryNode[] {
+    const ordered: HashtableEntryNode[] = [];
+
+    for (const entry of entries) {
+        const insertionIndex = ordered.findIndex(
+            (candidate) =>
+                entry.key.localeCompare(candidate.key, undefined, {
+                    sensitivity: "base",
+                }) < 0
+        );
+
+        if (insertionIndex === -1) {
+            ordered.push(entry);
+        } else {
+            ordered.splice(insertionIndex, 0, entry);
+        }
+    }
+
+    return ordered;
+}
+
 function trailingCommaDoc(
     options: ResolvedOptions,
     groupId: symbol,
@@ -1165,22 +1181,28 @@ function trailingCommaDoc(
     delimiter: "," | ";"
 ): Doc {
     if (!hasElements) {
-        return "";
+        return ifBreak("", "", { groupId });
     }
+
     switch (options.trailingComma) {
         case "all": {
-            return delimiter;
+            return ifBreak(delimiter, delimiter, { groupId });
         }
         case "multiline": {
             return ifBreak(delimiter, "", { groupId });
         }
-        case "none":
+        case "none": {
+            return ifBreak("", "", { groupId });
+        }
         default: {
-            return "";
+            return ifBreak("", "", { groupId });
         }
     }
 }
 
+/**
+ * Internal printer helpers exposed for white-box tests.
+ */
 export const __printerTestUtils: {
     concatDocs: typeof concatDocs;
     gapBetween: typeof gapBetween;
@@ -1229,8 +1251,8 @@ function normalizeStringLiteral(
     // Heuristics: starts with (? or contains unescaped character classes or anchors typical of patterns.
     if (
         /^\(\?[Uimsx]/.test(inner) ||
-        /\[[^\]]+]/.test(inner) ||
-        /\bWrite-(Error|Host|Output|Warning)\b/.test(inner)
+        (inner.includes("[") && inner.includes("]")) ||
+        /\bWrite-(?:Error|Host|Output|Warning)\b/.test(inner)
     ) {
         return value;
     }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { formatAndAssert } from "./utils/format-and-assert.js";
+
 const baseConfig = {
     parser: "powershell" as const,
     plugins: ["./dist/index.cjs"],
@@ -15,6 +16,7 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat.classes"
             );
+
             expect(result).toContain("class Person");
         });
 
@@ -25,6 +27,7 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat|skipParse"
             );
+
             expect(result).toContain("enum Color");
         });
 
@@ -35,6 +38,7 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toContain("using namespace");
         });
 
@@ -44,6 +48,7 @@ describe("PowerShell Version Compatibility", () => {
                 id: "version-compat",
                 skipParse: true,
             });
+
             expect(result).toContain("using module");
         });
     });
@@ -56,6 +61,7 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toContain("?");
             expect(result).toContain(":");
         });
@@ -67,6 +73,7 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toContain("??");
         });
 
@@ -76,8 +83,9 @@ describe("PowerShell Version Compatibility", () => {
                 id: "version-compatibility.test.ts.result",
                 skipParse: true,
             });
+
             // May add spaces around operator
-            expect(result).toMatch(/\?\?=|\?\?\s+=/);
+            expect(result).toMatch(/\?\?=|\?\?\s+=/v);
         });
 
         it("formats pipeline chain operators (PS 7.0+)", async () => {
@@ -87,6 +95,7 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toContain("&&");
             expect(result).toContain("||");
         });
@@ -100,6 +109,7 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toContain("ConciseView");
         });
 
@@ -110,6 +120,7 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toContain("clean");
         });
     });
@@ -122,6 +133,7 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toContain("PSNativeCommandArgumentPassing");
         });
     });
@@ -134,6 +146,7 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toContain("-replace");
         });
 
@@ -144,6 +157,7 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toContain("$PSStyle");
         });
     });
@@ -156,6 +170,7 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toBeTruthy();
         });
 
@@ -166,11 +181,12 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toContain("ConvertTo-SecureString");
         });
     });
 
-    describe("Cross-Version Compatibility", () => {
+    describe("cross-Version Compatibility", () => {
         it("handles backward-compatible syntax", async () => {
             const input = `
                 # Works in all versions
@@ -186,6 +202,7 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toContain("function Get-Data");
         });
 
@@ -202,6 +219,7 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toContain("Get-Process");
             expect(result).toContain("Get-Service");
         });
@@ -219,11 +237,12 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toBeTruthy();
         });
     });
 
-    describe("Deprecated Features", () => {
+    describe("deprecated Features", () => {
         it("still formats deprecated cmdlets", async () => {
             const input = `Write-Host "This is deprecated but still works"`;
             const result = await formatAndAssert(
@@ -231,6 +250,7 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toContain("Write-Host");
         });
 
@@ -241,11 +261,12 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toContain("$array");
         });
     });
 
-    describe("Platform-Specific Features", () => {
+    describe("platform-Specific Features", () => {
         it("formats Windows-specific cmdlets", async () => {
             const input = `Get-WmiObject -Class Win32_Process`;
             const result = await formatAndAssert(
@@ -253,6 +274,7 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toContain("Get-WmiObject");
         });
 
@@ -263,25 +285,27 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toContain("Get-Process");
         });
 
         it("handles path separators in strings", async () => {
-            const input = `
-                $windowsPath = "C:\\Windows\\System32"
+            const input = String.raw`
+                $windowsPath = "C:\Windows\System32"
                 $unixPath = "/usr/local/bin"
             `;
             const result = await formatAndAssert(input, baseConfig, {
                 id: "version-compatibility.test.ts.result",
                 skipParse: true,
             });
+
             // String content is preserved as-is
             expect(result).toContain("C:");
             expect(result).toContain("/usr/local/bin");
         });
     });
 
-    describe("Experimental Features", () => {
+    describe("experimental Features", () => {
         it("formats PSAnsiRendering settings", async () => {
             const input = `$PSStyle.OutputRendering = "Ansi"`;
             const result = await formatAndAssert(
@@ -289,6 +313,7 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toContain("OutputRendering");
         });
 
@@ -302,6 +327,7 @@ describe("PowerShell Version Compatibility", () => {
                 baseConfig,
                 "version-compat"
             );
+
             expect(result).toBeTruthy();
         });
     });

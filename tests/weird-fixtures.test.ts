@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-
 import { describe, expect, it } from "vitest";
 
 import {
@@ -14,154 +13,156 @@ const baseConfig = {
     plugins: ["./dist/index.cjs"],
 };
 
-type FixtureCheck = {
-    name: string;
-    file: string;
-    assertInput?: (input: string) => void;
+interface FixtureCheck {
     assertFormatted?: (output: string) => void;
+    assertInput?: (input: string) => void;
     expectIdempotent?: boolean;
+    file: string;
+    name: string;
     skipParse?: boolean;
-};
+}
 
-describe("Additional regression fixtures", () => {
+describe("additional regression fixtures", () => {
     const fixtures: FixtureCheck[] = [
         {
-            name: "invisible whitespace around keywords and operators",
-            file: "./fixtures/invisible-whitespace.ps1",
-            assertInput: (input) => {
-                expect(input).toMatch(/\u2060/);
-                expect(input).toMatch(/\u200B/);
-            },
             assertFormatted: (output) => {
                 expect(output).toContain("return");
             },
+            assertInput: (input) => {
+                expect(input).toContain(String.fromCodePoint(8288));
+                expect(input).toContain(String.fromCodePoint(8203));
+            },
+            file: "./fixtures/invisible-whitespace.ps1",
+            name: "invisible whitespace around keywords and operators",
         },
         {
-            name: "call operator pipelines and nested subexpressions",
-            file: "./fixtures/call-operator-nested.ps1",
             assertInput: (input) => {
                 expect(input).toContain("& (Get-Command Write-Output)");
                 expect(input).toContain("$splat.ScriptBlock");
             },
+            file: "./fixtures/call-operator-nested.ps1",
+            name: "call operator pipelines and nested subexpressions",
         },
         {
-            name: "exotic metadata psd1 with zero-width characters",
-            file: "./fixtures/exotic-metadata.psd1",
             assertInput: (input) => {
-                expect(input).toMatch(/\u2060/);
-                expect(input).toMatch(/\u00A0/);
+                expect(input).toContain(String.fromCodePoint(8288));
+                expect(input).toContain(String.fromCodePoint(160));
             },
             expectIdempotent: false,
+            file: "./fixtures/exotic-metadata.psd1",
+            name: "exotic metadata psd1 with zero-width characters",
         },
         {
-            name: "here-string indentation edge cases",
-            file: "./fixtures/here-string-weird.ps1",
             assertInput: (input) => {
                 expect(input).toContain('@"');
                 expect(input).toContain("'@");
             },
+            file: "./fixtures/here-string-weird.ps1",
+            name: "here-string indentation edge cases",
         },
         {
-            name: "pipeline chains with redirects and call operator",
-            file: "./fixtures/pipeline-chains.ps1",
             assertInput: (input) => {
                 expect(input).toContain("&&");
                 expect(input).toContain("2>&1");
             },
+            file: "./fixtures/pipeline-chains.ps1",
+            name: "pipeline chains with redirects and call operator",
         },
         {
-            name: "unicode identifiers",
-            file: "./fixtures/unicode-identifiers.ps1",
             assertInput: (input) => {
-                expect(input).toMatch(/Δ/);
-                expect(input).toMatch(/値/);
+                expect(input).toMatch(/Δ/v);
+                expect(input).toMatch(/値/v);
             },
+            file: "./fixtures/unicode-identifiers.ps1",
+            name: "unicode identifiers",
             skipParse: true,
         },
         {
-            name: "BOM and shebang combinations",
-            file: "./fixtures/bom-shebang-mixed.ps1",
             assertInput: (input) => {
                 expect(input).toContain("#!/usr/bin/env pwsh");
                 expect(input).toContain("#Requires");
             },
+            file: "./fixtures/bom-shebang-mixed.ps1",
+            name: "BOM and shebang combinations",
         },
         {
-            name: "deeply nested structures",
-            file: "./fixtures/deeply-nested-structures.ps1",
             assertInput: (input) => {
                 expect(input).toContain("Level3");
             },
+            file: "./fixtures/deeply-nested-structures.ps1",
+            name: "deeply nested structures",
         },
         {
-            name: "operator edge cases",
-            file: "./fixtures/operator-edge-cases.ps1",
             assertInput: (input) => {
                 expect(input).toContain("1..10");
                 expect(input).toContain("++");
             },
+            file: "./fixtures/operator-edge-cases.ps1",
+            name: "operator edge cases",
         },
         {
-            name: "complex parameter attributes",
-            file: "./fixtures/complex-parameters.ps1",
             assertInput: (input) => {
                 expect(input).toContain("ValidateScript");
                 expect(input).toContain("ParameterSetName");
             },
+            file: "./fixtures/complex-parameters.ps1",
+            name: "complex parameter attributes",
         },
         {
-            name: "mixed comment styles",
-            file: "./fixtures/mixed-comment-styles.ps1",
             assertInput: (input) => {
                 expect(input).toContain("<#");
                 expect(input).toContain("#>");
             },
+            file: "./fixtures/mixed-comment-styles.ps1",
+            name: "mixed comment styles",
         },
         {
-            name: "multilingual comments and strings",
-            file: "./fixtures/multilingual-comments.ps1",
             assertInput: (input) => {
-                expect(input).toContain("English: This function prints greetings in many languages.");
+                expect(input).toContain(
+                    "English: This function prints greetings in many languages."
+                );
                 expect(input).toContain("日本語");
                 expect(input).toContain("Русский");
                 expect(input).toContain("العربية");
                 expect(input).toContain("हिन्दी");
             },
+            file: "./fixtures/multilingual-comments.ps1",
+            name: "multilingual comments and strings",
         },
         {
-            name: "string interpolation edge cases",
-            file: "./fixtures/string-interpolation-complex.ps1",
             assertInput: (input) => {
                 expect(input).toContain("$($");
                 expect(input).toContain('@"');
             },
+            file: "./fixtures/string-interpolation-complex.ps1",
+            name: "string interpolation edge cases",
         },
         {
-            name: "nested error handling",
-            file: "./fixtures/nested-error-handling.ps1",
             assertInput: (input) => {
                 expect(input).toContain("catch [System.");
                 expect(input).toContain("finally");
             },
+            file: "./fixtures/nested-error-handling.ps1",
+            name: "nested error handling",
         },
         {
-            name: "class definitions with inheritance",
-            file: "./fixtures/class-definitions.ps1",
             assertInput: (input) => {
                 expect(input).toContain("class");
                 expect(input).toContain("static");
             },
+            file: "./fixtures/class-definitions.ps1",
+            name: "class definitions with inheritance",
         },
         {
-            name: "rtl markers and zero-width characters",
-            file: "./fixtures/rtl-and-zero-width.ps1",
             assertInput: (input) => {
                 // RLM and zero-width space are present in the comments
-                expect(input).toMatch(/English.*Arabic/);
-                expect(input).toMatch(/zero.*width/);
+                expect(input).toMatch(/English.*Arabic/v);
+                expect(input).toMatch(/zero.*width/v);
                 // Non-breaking spaces (NBSP) around the arrow
-                expect(input).toMatch(/Prefix\s*\S*->\S*\s*\$Text/);
+                expect(input).toMatch(/Prefix\s*\S*->\S*\s*\$Text/v);
             },
+            file: "./fixtures/rtl-and-zero-width.ps1",
+            name: "rtl markers and zero-width characters",
         },
     ];
 
@@ -203,7 +204,8 @@ describe("Additional regression fixtures", () => {
                         `weird-fixtures.secondPass.${fixture.name}`
                     );
                 }
-                const normalizedSecond = secondPass.replace(/;{2,}/g, ";");
+                const normalizedSecond = secondPass.replaceAll(/;{2,}/gv, ";");
+
                 expect(normalizedSecond).toBe(firstPass);
             } else {
                 firstPass = await formatAndAssertRoundTrip(
@@ -212,7 +214,7 @@ describe("Additional regression fixtures", () => {
                         ...baseConfig,
                         filepath: filePath,
                     },
-                    fixture.skipParse ? `${idBase}|skipParse` : `${idBase}`
+                    fixture.skipParse ? `${idBase}|skipParse` : idBase
                 );
             }
             fixture.assertFormatted?.(firstPass);

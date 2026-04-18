@@ -1,24 +1,27 @@
-import * as fc from "fast-check";
 import type { ParserOptions } from "prettier";
-import { describe, it } from "vitest";
+
+import * as fc from "fast-check";
+import { describe, expect, it } from "vitest";
 
 import {
-    resolveOptions,
     type BraceStyleOption,
     type IndentStyleOption,
     type KeywordCaseOption,
     type PresetOption,
+    resolveOptions,
     type TrailingCommaOption,
 } from "../src/options.js";
 
+const { env: testEnv } = process;
+
 const PROPERTY_RUNS = Number.parseInt(
-    process.env.POWERSHELL_PROPERTY_RUNS ?? "100",
+    testEnv.POWERSHELL_PROPERTY_RUNS ?? "100",
     10
 );
 
 // Arbitraries for option values
 const indentStyleArb = fc.constantFrom<IndentStyleOption>("spaces", "tabs");
-const indentSizeArb = fc.integer({ min: 1, max: 8 });
+const indentSizeArb = fc.integer({ max: 8, min: 1 });
 const trailingCommaArb = fc.constantFrom<TrailingCommaOption>(
     "none",
     "multiline",
@@ -32,33 +35,110 @@ const keywordCaseArb = fc.constantFrom<KeywordCaseOption>(
     "pascal"
 );
 const presetArb = fc.constantFrom<PresetOption>("none", "invoke-formatter");
-const lineWidthArb = fc.integer({ min: 40, max: 200 });
-const blankLinesBetweenFunctionsArb = fc.integer({ min: 0, max: 3 });
+const lineWidthArb = fc.integer({ max: 200, min: 40 });
+const blankLinesBetweenFunctionsArb = fc.integer({ max: 3, min: 0 });
 
 const parserOptionsArb = fc.record({
-    powershellIndentStyle: fc.option(indentStyleArb, { nil: undefined }),
-    powershellIndentSize: fc.option(indentSizeArb, { nil: undefined }),
-    powershellTrailingComma: fc.option(trailingCommaArb, { nil: undefined }),
-    powershellSortHashtableKeys: fc.option(fc.boolean(), { nil: undefined }),
+    powershellBlankLineAfterParam: fc.option(fc.boolean(), { nil: undefined }),
     powershellBlankLinesBetweenFunctions: fc.option(
         blankLinesBetweenFunctionsArb,
         {
             nil: undefined,
         }
     ),
-    powershellBlankLineAfterParam: fc.option(fc.boolean(), { nil: undefined }),
     powershellBraceStyle: fc.option(braceStyleArb, { nil: undefined }),
+    powershellIndentSize: fc.option(indentSizeArb, { nil: undefined }),
+    powershellIndentStyle: fc.option(indentStyleArb, { nil: undefined }),
+    powershellKeywordCase: fc.option(keywordCaseArb, { nil: undefined }),
     powershellLineWidth: fc.option(lineWidthArb, { nil: undefined }),
     powershellPreferSingleQuote: fc.option(fc.boolean(), { nil: undefined }),
-    powershellKeywordCase: fc.option(keywordCaseArb, { nil: undefined }),
+    powershellPreset: fc.option(presetArb, { nil: undefined }),
     powershellRewriteAliases: fc.option(fc.boolean(), { nil: undefined }),
     powershellRewriteWriteHost: fc.option(fc.boolean(), { nil: undefined }),
-    tabWidth: fc.option(fc.integer({ min: 1, max: 8 }), { nil: undefined }),
-    powershellPreset: fc.option(presetArb, { nil: undefined }),
+    powershellSortHashtableKeys: fc.option(fc.boolean(), { nil: undefined }),
+    powershellTrailingComma: fc.option(trailingCommaArb, { nil: undefined }),
+    tabWidth: fc.option(fc.integer({ max: 8, min: 1 }), { nil: undefined }),
 }) as unknown as fc.Arbitrary<ParserOptions>;
 
-describe("Options property-based tests", () => {
+const assertResolvedOptionBooleans = (
+    resolved: ReturnType<typeof resolveOptions>
+): void => {
+    if (typeof resolved.sortHashtableKeys !== "boolean") {
+        throw new TypeError("sortHashtableKeys must be boolean");
+    }
+    if (typeof resolved.blankLineAfterParam !== "boolean") {
+        throw new TypeError("blankLineAfterParam must be boolean");
+    }
+    if (typeof resolved.preferSingleQuote !== "boolean") {
+        throw new TypeError("preferSingleQuote must be boolean");
+    }
+    if (typeof resolved.rewriteAliases !== "boolean") {
+        throw new TypeError("rewriteAliases must be boolean");
+    }
+    if (typeof resolved.rewriteWriteHost !== "boolean") {
+        throw new TypeError("rewriteWriteHost must be boolean");
+    }
+};
+
+const assertResolvedOptionEnumsAndRanges = (
+    resolved: ReturnType<typeof resolveOptions>
+): void => {
+    if (resolved.indentStyle !== "spaces" && resolved.indentStyle !== "tabs") {
+        throw new Error(`Invalid indentStyle: ${String(resolved.indentStyle)}`);
+    }
+
+    if (resolved.indentSize < 1 || resolved.indentSize > 8) {
+        throw new Error(`Invalid indentSize: ${String(resolved.indentSize)}`);
+    }
+
+    if (
+        resolved.trailingComma !== "none" &&
+        resolved.trailingComma !== "multiline" &&
+        resolved.trailingComma !== "all"
+    ) {
+        throw new Error(
+            `Invalid trailingComma: ${String(resolved.trailingComma)}`
+        );
+    }
+
+    if (
+        resolved.blankLinesBetweenFunctions < 0 ||
+        resolved.blankLinesBetweenFunctions > 3
+    ) {
+        throw new Error(
+            `Invalid blankLinesBetweenFunctions: ${String(resolved.blankLinesBetweenFunctions)}`
+        );
+    }
+
+    if (resolved.braceStyle !== "1tbs" && resolved.braceStyle !== "allman") {
+        throw new Error(`Invalid braceStyle: ${String(resolved.braceStyle)}`);
+    }
+
+    if (resolved.lineWidth < 40 || resolved.lineWidth > 200) {
+        throw new Error(`Invalid lineWidth: ${String(resolved.lineWidth)}`);
+    }
+
+    if (
+        resolved.keywordCase !== "preserve" &&
+        resolved.keywordCase !== "lower" &&
+        resolved.keywordCase !== "upper" &&
+        resolved.keywordCase !== "pascal"
+    ) {
+        throw new Error(`Invalid keywordCase: ${String(resolved.keywordCase)}`);
+    }
+};
+
+const assertResolvedOptionsAreValid = (
+    resolved: ReturnType<typeof resolveOptions>
+): void => {
+    assertResolvedOptionEnumsAndRanges(resolved);
+    assertResolvedOptionBooleans(resolved);
+};
+
+describe("options property-based tests", () => {
     it("resolveOptions never throws", () => {
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(parserOptionsArb, (options) => {
                 // Should not throw
@@ -69,99 +149,19 @@ describe("Options property-based tests", () => {
     });
 
     it("resolveOptions produces valid output", () => {
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(parserOptionsArb, (options) => {
-                const resolved = resolveOptions(options);
-
-                // Check indentStyle is valid
-                if (
-                    resolved.indentStyle !== "spaces" &&
-                    resolved.indentStyle !== "tabs"
-                ) {
-                    throw new Error(
-                        `Invalid indentStyle: ${String(resolved.indentStyle)}`
-                    );
-                }
-
-                // Check indentSize is in valid range
-                if (resolved.indentSize < 1 || resolved.indentSize > 8) {
-                    throw new Error(
-                        `Invalid indentSize: ${String(resolved.indentSize)}`
-                    );
-                }
-
-                // Check trailingComma is valid
-                if (
-                    resolved.trailingComma !== "none" &&
-                    resolved.trailingComma !== "multiline" &&
-                    resolved.trailingComma !== "all"
-                ) {
-                    throw new Error(
-                        `Invalid trailingComma: ${String(resolved.trailingComma)}`
-                    );
-                }
-
-                // Check blankLinesBetweenFunctions is clamped
-                if (
-                    resolved.blankLinesBetweenFunctions < 0 ||
-                    resolved.blankLinesBetweenFunctions > 3
-                ) {
-                    throw new Error(
-                        `Invalid blankLinesBetweenFunctions: ${String(resolved.blankLinesBetweenFunctions)}`
-                    );
-                }
-
-                // Check braceStyle is valid
-                if (
-                    resolved.braceStyle !== "1tbs" &&
-                    resolved.braceStyle !== "allman"
-                ) {
-                    throw new Error(
-                        `Invalid braceStyle: ${String(resolved.braceStyle)}`
-                    );
-                }
-
-                // Check lineWidth is clamped
-                if (resolved.lineWidth < 40 || resolved.lineWidth > 200) {
-                    throw new Error(
-                        `Invalid lineWidth: ${String(resolved.lineWidth)}`
-                    );
-                }
-
-                // Check keywordCase is valid
-                if (
-                    resolved.keywordCase !== "preserve" &&
-                    resolved.keywordCase !== "lower" &&
-                    resolved.keywordCase !== "upper" &&
-                    resolved.keywordCase !== "pascal"
-                ) {
-                    throw new Error(
-                        `Invalid keywordCase: ${String(resolved.keywordCase)}`
-                    );
-                }
-
-                // Check boolean flags
-                if (typeof resolved.sortHashtableKeys !== "boolean") {
-                    throw new Error("sortHashtableKeys must be boolean");
-                }
-                if (typeof resolved.blankLineAfterParam !== "boolean") {
-                    throw new Error("blankLineAfterParam must be boolean");
-                }
-                if (typeof resolved.preferSingleQuote !== "boolean") {
-                    throw new Error("preferSingleQuote must be boolean");
-                }
-                if (typeof resolved.rewriteAliases !== "boolean") {
-                    throw new Error("rewriteAliases must be boolean");
-                }
-                if (typeof resolved.rewriteWriteHost !== "boolean") {
-                    throw new Error("rewriteWriteHost must be boolean");
-                }
+                assertResolvedOptionsAreValid(resolveOptions(options));
             }),
             { numRuns: PROPERTY_RUNS }
         );
     });
 
     it("resolveOptions respects user preferences when valid", () => {
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(
                 indentStyleArb,
@@ -177,11 +177,11 @@ describe("Options property-based tests", () => {
                     keywordCase
                 ) => {
                     const options: ParserOptions = {
-                        powershellIndentStyle: indentStyle,
-                        powershellIndentSize: indentSize,
-                        powershellTrailingComma: trailingComma,
                         powershellBraceStyle: braceStyle,
+                        powershellIndentSize: indentSize,
+                        powershellIndentStyle: indentStyle,
                         powershellKeywordCase: keywordCase,
+                        powershellTrailingComma: trailingComma,
                     } as unknown as ParserOptions;
 
                     const resolved = resolveOptions(options);
@@ -218,6 +218,8 @@ describe("Options property-based tests", () => {
     });
 
     it("resolveOptions has sensible defaults", () => {
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(fc.constant({}), () => {
                 const resolved = resolveOptions({} as ParserOptions);
@@ -254,6 +256,8 @@ describe("Options property-based tests", () => {
     });
 
     it("applies the invoke-formatter preset when requested", () => {
+        expect.hasAssertions();
+
         const resolved = resolveOptions({
             powershellPreset: "invoke-formatter",
         } as unknown as ParserOptions);
@@ -276,10 +280,12 @@ describe("Options property-based tests", () => {
     });
 
     it("lets explicit options override preset defaults", () => {
+        expect.hasAssertions();
+
         const resolved = resolveOptions({
-            powershellPreset: "invoke-formatter",
-            powershellKeywordCase: "upper",
             powershellIndentSize: 2,
+            powershellKeywordCase: "upper",
+            powershellPreset: "invoke-formatter",
         } as unknown as ParserOptions);
 
         if (resolved.keywordCase !== "upper") {
@@ -295,11 +301,13 @@ describe("Options property-based tests", () => {
     });
 
     it("resolveOptions clamps invalid numeric values", () => {
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(
                 fc.oneof(
-                    fc.integer({ min: -1000, max: -1 }),
-                    fc.integer({ min: 9, max: 1000 })
+                    fc.integer({ max: -1, min: -1000 }),
+                    fc.integer({ max: 1000, min: 9 })
                 ),
                 (invalidIndentSize) => {
                     const options: ParserOptions = {
@@ -309,13 +317,10 @@ describe("Options property-based tests", () => {
                     const resolved = resolveOptions(options);
 
                     // Should clamp or use default
-                    if (invalidIndentSize < 1) {
-                        // Negative or zero should use default (4)
-                        if (resolved.indentSize !== 4) {
-                            throw new Error(
-                                `Expected default indent size for negative value, got ${resolved.indentSize}`
-                            );
-                        }
+                    if (invalidIndentSize < 1 && resolved.indentSize !== 4) {
+                        throw new TypeError(
+                            `Expected default indent size for negative value, got ${resolved.indentSize}`
+                        );
                     }
                     // Values > 8 should still work (no upper clamp on indent size)
                 }
@@ -325,8 +330,10 @@ describe("Options property-based tests", () => {
     });
 
     it("resolveOptions clamps blankLinesBetweenFunctions to 0-3", () => {
+        expect.hasAssertions();
+
         fc.assert(
-            fc.property(fc.integer({ min: -10, max: 20 }), (value) => {
+            fc.property(fc.integer({ max: 20, min: -10 }), (value) => {
                 const options: ParserOptions = {
                     powershellBlankLinesBetweenFunctions: value,
                 } as unknown as ParserOptions;
@@ -355,8 +362,10 @@ describe("Options property-based tests", () => {
     });
 
     it("resolveOptions clamps lineWidth to 40-200", () => {
+        expect.hasAssertions();
+
         fc.assert(
-            fc.property(fc.integer({ min: -100, max: 500 }), (value) => {
+            fc.property(fc.integer({ max: 500, min: -100 }), (value) => {
                 const options: ParserOptions = {
                     powershellLineWidth: value,
                 } as unknown as ParserOptions;
@@ -382,6 +391,8 @@ describe("Options property-based tests", () => {
     });
 
     it("resolveOptions sets useTabs based on indentStyle", () => {
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(indentStyleArb, (indentStyle) => {
                 const options: ParserOptions = {
@@ -396,12 +407,10 @@ describe("Options property-based tests", () => {
                             "useTabs should be true when indentStyle is tabs"
                         );
                     }
-                } else {
-                    if (options.useTabs !== false) {
-                        throw new Error(
-                            "useTabs should be false when indentStyle is spaces"
-                        );
-                    }
+                } else if (options.useTabs !== false) {
+                    throw new Error(
+                        "useTabs should be false when indentStyle is spaces"
+                    );
                 }
             }),
             { numRuns: PROPERTY_RUNS }
@@ -409,6 +418,8 @@ describe("Options property-based tests", () => {
     });
 
     it("resolveOptions is deterministic", () => {
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(parserOptionsArb, (options) => {
                 const resolved1 = resolveOptions({ ...options });
@@ -424,6 +435,8 @@ describe("Options property-based tests", () => {
     });
 
     it("treats unknown preset values as no preset", () => {
+        expect.hasAssertions();
+
         const options = {
             powershellPreset: "unknown-preset-value",
         } as unknown as ParserOptions;

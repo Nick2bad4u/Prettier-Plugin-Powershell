@@ -1,10 +1,11 @@
-import * as fc from "fast-check";
 import type { Options } from "prettier";
+
+import * as fc from "fast-check";
+import { env } from "node:process";
 import { describe, it } from "vitest";
 
-import plugin from "../src/index.js";
 import { parsePowerShell } from "../src/parser.js";
-
+import plugin from "../src/plugin.js";
 import { formatAndAssert } from "./utils/format-and-assert.js";
 import {
     assertPowerShellParses,
@@ -13,14 +14,14 @@ import {
 import { withProgress } from "./utils/progress.js";
 
 const PROPERTY_RUNS = Number.parseInt(
-    process.env.POWERSHELL_PROPERTY_RUNS ?? "100",
+    env.POWERSHELL_PROPERTY_RUNS ?? "100",
     10
 );
 
 const prettierConfig: Options = {
+    filepath: "weird.ps1",
     parser: "powershell",
     plugins: [plugin],
-    filepath: "weird.ps1",
 };
 
 const baseScripts = [
@@ -32,7 +33,7 @@ const baseScripts = [
     "@{ Name = 'value'; Count = 2 }",
 ];
 
-describe("Weird PowerShell file property tests", () => {
+describe("weird PowerShell file property tests", () => {
     const assertParseAndFormat = async (script: string) => {
         const ast = parsePowerShell(script, { tabWidth: 2 } as never);
         if (ast.type !== "Script") {
@@ -83,7 +84,7 @@ describe("Weird PowerShell file property tests", () => {
         }
     };
 
-    describe("BOM and shebang handling", () => {
+    describe("bOM and shebang handling", () => {
         it("handles BOM and shebang combinations", async () => {
             await withProgress(
                 "weirdFiles.bomShebang",
@@ -122,7 +123,7 @@ describe("Weird PowerShell file property tests", () => {
         });
     });
 
-    describe("Unicode content", () => {
+    describe("unicode content", () => {
         const unicodeSamples = [
             "😀",
             "😎",
@@ -153,8 +154,8 @@ describe("Weird PowerShell file property tests", () => {
 
         const unicodeString = fc
             .array(fc.constantFrom(...unicodeSamples), {
-                minLength: 1,
                 maxLength: 5,
+                minLength: 1,
             })
             .map((chars) => chars.join(""));
 
@@ -166,7 +167,7 @@ describe("Weird PowerShell file property tests", () => {
                     await fc.assert(
                         fc.asyncProperty(unicodeString, async (value) => {
                             tracker.advance();
-                            const escaped = value.replace(/'/g, "''");
+                            const escaped = value.replaceAll('\'', "''");
                             const script = `# ${value}\n$emoji = '${escaped}'\nWrite-Output $emoji`;
                             await assertParseAndFormat(script);
                         }),
@@ -184,13 +185,13 @@ describe("Weird PowerShell file property tests", () => {
                     await fc.assert(
                         fc.asyncProperty(unicodeString, async (value) => {
                             tracker.advance();
-                            const sanitized = value.replace(
-                                /[^\p{L}\p{Nd}_]/gu,
+                            const sanitized = value.replaceAll(
+                                /[^\p{L}\p{Nd}_]/gv,
                                 ""
                             );
                             const identifier =
                                 sanitized.length > 0 ? sanitized : "Unicode";
-                            const script = `$${identifier} = '${value.replace(/'/g, "''")}'\nWrite-Output $${identifier}`;
+                            const script = `$${identifier} = '${value.replaceAll('\'', "''")}'\nWrite-Output $${identifier}`;
                             await assertParseAndFormat(script);
                         }),
                         { numRuns: PROPERTY_RUNS }
@@ -200,7 +201,7 @@ describe("Weird PowerShell file property tests", () => {
         });
     });
 
-    describe("Comment directives and blocks", () => {
+    describe("comment directives and blocks", () => {
         const commentScripts = fc.constantFrom(
             "#requires -Version 7.2\nWrite-Output 'ok'",
             "#region Description\nWrite-Output 'inside region'\n#endregion",
@@ -225,7 +226,7 @@ describe("Weird PowerShell file property tests", () => {
         });
     });
 
-    describe("Whitespace oddities", () => {
+    describe("whitespace oddities", () => {
         const weirdWhitespace = fc
             .array(
                 fc.constantFrom(
@@ -237,8 +238,8 @@ describe("Weird PowerShell file property tests", () => {
                     " "
                 ),
                 {
-                    minLength: 1,
                     maxLength: 5,
+                    minLength: 1,
                 }
             )
             .map((chars) => chars.join(""));
@@ -290,3 +291,4 @@ describe("Weird PowerShell file property tests", () => {
         });
     });
 });
+
