@@ -1,4 +1,4 @@
-name: TruffleHog Secret Scan
+name: Truffle Hog Secret Scan
 
 on:
   push:

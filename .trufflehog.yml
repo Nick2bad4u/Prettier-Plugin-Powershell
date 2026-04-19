@@ -1,13 +1,6 @@
 # TruffleHog configuration file
 # Excludes false positives from secret scanning
 
-# Exclude specific paths
-exclude_paths:
-  - .git/
-  - node_modules/
-  - coverage/
-  - dist/
-
 # Exclude specific detectors for certain paths
 exclude_detectors:
   # Exclude MongoDB detector for GitHub workflow files
@@ -15,3 +8,10 @@ exclude_detectors:
   - name: MongoDB
     paths:
       - .github/workflows/ci.yml
+# Exclude specific paths
+exclude_paths:
+  - .git/
+  - node_modules/
+  - coverage/
+  - dist/
+

@@ -13,7 +13,7 @@ const vitestConfig: ReturnType<typeof defineConfig> = defineConfig(() => {
     // In Vitest 4, poolOptions was removed and all options are now top-level.
     // maxWorkers replaces poolOptions.threads.maxThreads (and singleThread: true
     // is now expressed as maxWorkers: 1).  minWorkers and useAtomics were removed.
-    const maxWorkers = Boolean(globalThis.process.env.CI)
+    const maxWorkers = globalThis.process.env.CI
         ? 1
         : Math.max(16, Number(globalThis.process.env.MAX_THREADS ?? "4"));
 
@@ -21,9 +21,6 @@ const vitestConfig: ReturnType<typeof defineConfig> = defineConfig(() => {
         test: {
             clearMocks: true,
             coverage: {
-                // 'all' was removed in Vitest 4; use 'include' to specify which
-                // source files to track for coverage reporting.
-                include: ["src/**/*.ts"],
                 clean: true,
                 exclude: [
                     "**/*.config.*",
@@ -38,6 +35,9 @@ const vitestConfig: ReturnType<typeof defineConfig> = defineConfig(() => {
                     "node_modules/**",
                     ...coverageConfigDefaults.exclude,
                 ],
+                // 'all' was removed in Vitest 4; use 'include' to specify which
+                // source files to track for coverage reporting.
+                include: ["src/**/*.ts"],
                 provider: "v8" as const,
                 reporter: [
                     "text",

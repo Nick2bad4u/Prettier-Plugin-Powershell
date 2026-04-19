@@ -8,7 +8,6 @@
 # - Grouping updates by ecosystem with specific patterns for version updates.
 
 version: 2
-enable-beta-ecosystems: true
 
 multi-ecosystem-groups:
     dependabot-all:

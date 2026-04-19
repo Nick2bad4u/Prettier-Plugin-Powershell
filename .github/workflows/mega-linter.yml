@@ -1,5 +1,5 @@
 # MegaLinter workflow customized for FitFileViewer
-name: MegaLinter
+name: Mega Linter
 
 on:
   push:

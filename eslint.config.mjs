@@ -974,12 +974,12 @@ export default defineConfig([
         rules: {
             // TypeScript backend rules
             ...js.configs.all.rules,
-            ...tseslint.configs["recommendedTypeChecked"],
-            ...tseslint.configs["recommended"]?.rules,
-            ...tseslint.configs["strictTypeChecked"],
-            ...tseslint.configs["strict"]?.rules,
-            ...tseslint.configs["stylisticTypeChecked"],
-            ...tseslint.configs["stylistic"]?.rules,
+            ...tseslint.configs.recommendedTypeChecked,
+            ...tseslint.configs.recommended?.rules,
+            ...tseslint.configs.strictTypeChecked,
+            ...tseslint.configs.strict?.rules,
+            ...tseslint.configs.stylisticTypeChecked,
+            ...tseslint.configs.stylistic?.rules,
             ...pluginRegexp.configs.all.rules,
             ...importX.flatConfigs.recommended.rules,
             ...importX.flatConfigs.electron.rules,
@@ -1155,7 +1155,6 @@ export default defineConfig([
             "@typescript-eslint/no-unsafe-type-assertion": "warn",
             "@typescript-eslint/no-unsafe-unary-minus": "warn",
             "@typescript-eslint/no-unused-expressions": "warn",
-            "no-unused-private-class-members": "warn",
             "@typescript-eslint/no-unused-vars": "warn",
             "@typescript-eslint/no-use-before-define": [
                 "warn",
@@ -1561,6 +1560,7 @@ export default defineConfig([
             // ESLint 10 without legacy context helpers.
             "no-lookahead-lookbehind-regexp/no-lookahead-lookbehind-regexp":
                 "off",
+            "no-unused-private-class-members": "warn",
             "perfectionist/sort-arrays": [
                 "off",
                 {
@@ -1793,12 +1793,12 @@ export default defineConfig([
         },
         rules: {
             ...js.configs.all.rules,
-            ...tseslint.configs["recommendedTypeChecked"],
-            ...tseslint.configs["recommended"]?.rules,
-            ...tseslint.configs["strictTypeChecked"],
-            ...tseslint.configs["strict"]?.rules,
-            ...tseslint.configs["stylisticTypeChecked"],
-            ...tseslint.configs["stylistic"]?.rules,
+            ...tseslint.configs.recommendedTypeChecked,
+            ...tseslint.configs.recommended?.rules,
+            ...tseslint.configs.strictTypeChecked,
+            ...tseslint.configs.strict?.rules,
+            ...tseslint.configs.stylisticTypeChecked,
+            ...tseslint.configs.stylistic?.rules,
             ...vitest.configs.all.rules,
             ...eslintPluginUnicorn.configs.all.rules,
             ...pluginTestingLibrary.configs["flat/react"].rules,

@@ -31,8 +31,8 @@ jobs:
             - name: Resolve target ref
               id: ref
               run: |
-                  if [ -n "${{ github.event.inputs.ref }}" ]; then
-                    echo "branch=${{ github.event.inputs.ref }}" >> "$GITHUB_OUTPUT"
+                  if [ -n "${{ inputs.ref }}" ]; then
+                    echo "branch=${{ inputs.ref }}" >> "$GITHUB_OUTPUT"
                   elif [ -n "$GITHUB_REF_NAME" ]; then
                     echo "branch=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
                   elif [ -n "$GITHUB_REF" ]; then
@@ -92,7 +92,7 @@ jobs:
               id: version
               if: steps.guard.outputs.skip != 'true'
               env:
-                  RELEASE_INPUT: ${{ github.event.inputs.release }}
+                  RELEASE_INPUT: ${{ inputs.release }}
               run: |
                   set -euo pipefail
 

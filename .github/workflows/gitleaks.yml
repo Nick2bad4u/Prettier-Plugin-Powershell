@@ -1,4 +1,4 @@
-name: GitLeaks Scan
+name: Git Leaks Scan
 
 on:
   pull_request:

@@ -29,6 +29,7 @@
         "url": "git+https://github.com/Nick2bad4u/prettier-plugin-powershell.git"
     },
     "license": "UNLICENSED",
+    "author": "Nick2bad4u",
     "type": "module",
     "exports": {
         ".": {
@@ -49,8 +50,8 @@
         "build:watch": "tsup src/plugin.ts --format esm,cjs --dts --watch",
         "clean": "rimraf dist",
         "format": "prettier \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\" --write",
-        "lint": "eslint --config eslint.config.mjs src tests --cache --cache-strategy content --cache-location .cache/.eslintcache --max-warnings=-1 && echo \"Eslint done!\"",
-        "lint:fix": "eslint --config eslint.config.mjs src tests --cache --cache-strategy content --cache-location .cache/.eslintcache --max-warnings=-1 --fix && echo \"Eslint done!\"",
+        "lint": "eslint --config eslint.config.mjs --cache --cache-strategy content --cache-location .cache/.eslintcache --max-warnings=-1 && echo \"Eslint done!\"",
+        "lint:fix": "eslint --config eslint.config.mjs --cache --cache-strategy content --cache-location .cache/.eslintcache --max-warnings=-1 --fix && echo \"Eslint done!\"",
         "prepare": "npm run build",
         "profile": "node profile-parser.mjs",
         "profile:enhanced": "node profile-enhanced.mjs",
@@ -60,7 +61,8 @@
         "test:debug": "vitest --inspect-brk",
         "test:fuzz": "pwsh -NoLogo -NoProfile -Command \"$env:POWERSHELL_PROPERTY_RUNS=2000; npm run test\"",
         "test:watch": "vitest",
-        "typecheck": "tsc --project tsconfig.json --noEmit"
+        "typecheck": "tsc --project tsconfig.json --noEmit",
+        "update-deps": "npx ncu -i --install never && npm install --force"
     },
     "dependencies": {
         "prettier": "^3.8.3",

@@ -5,7 +5,22 @@ agents: ["*"]
 disable-model-invocation: false
 user-invocable: true
 argument-hint: "💻 🤖 😈 Beast Mode agent ready. 👿 🤖 💻"
-tools: [vscode, execute, read, agent, edit, search, web, 'tavily-remote-mcp-system/*', 'vscode-mcp/*', browser, todo, artifacts, artifactRules]
+tools:
+ [
+  vscode,
+  execute,
+  read,
+  agent,
+  edit,
+  search,
+  web,
+  "tavily-remote-mcp-system/*",
+  "vscode-mcp/*",
+  browser,
+  todo,
+  artifacts,
+  artifactRules,
+ ]
 handoffs:
  - label: Unit
    agent: BeastMode

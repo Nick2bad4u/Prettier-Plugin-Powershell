@@ -34,8 +34,8 @@
         {
             "files": "*.css",
             "options": {
-                "printWidth": 80,
-                "multilineArraysWrapThreshold": 1
+                "multilineArraysWrapThreshold": 1,
+                "printWidth": 80
             }
         },
         {
@@ -70,9 +70,9 @@
         {
             "files": "*.html",
             "options": {
+                "htmlWhitespaceSensitivity": "strict",
                 "printWidth": 80,
-                "singleAttributePerLine": true,
-                "htmlWhitespaceSensitivity": "strict"
+                "singleAttributePerLine": true
             }
         },
         {
@@ -84,22 +84,22 @@
         {
             "files": "*.md",
             "options": {
-                "tabWidth": 1,
                 "plugins": [
                     "prettier-plugin-sort-json",
                     "prettier-plugin-jsdoc"
-                ]
+                ],
+                "tabWidth": 1
             }
         },
         {
             "files": "*.mdx",
             "options": {
-                "tabWidth": 2,
-                "printWidth": 100,
                 "plugins": [
                     "prettier-plugin-sort-json",
                     "prettier-plugin-jsdoc"
-                ]
+                ],
+                "printWidth": 100,
+                "tabWidth": 2
             }
         },
         {

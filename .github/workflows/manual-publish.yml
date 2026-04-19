@@ -1,4 +1,4 @@
-name: Manual Publish (Deprecated)
+name: Manual Publish Deprecated
 
 on:
   workflow_dispatch:

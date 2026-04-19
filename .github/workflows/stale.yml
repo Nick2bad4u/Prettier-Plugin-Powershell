@@ -22,7 +22,7 @@
 # For more information on configuring the `actions/stale` action, visit:
 # https://github.com/actions/stale
 
-name: Mark stale issues and pull requests
+name: Mark Stale Issues And Pull Requests
 
 on:
   schedule:
