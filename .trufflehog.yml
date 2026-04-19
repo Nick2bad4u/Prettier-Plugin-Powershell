@@ -3,15 +3,14 @@
 
 # Exclude specific detectors for certain paths
 exclude_detectors:
-  # Exclude MongoDB detector for GitHub workflow files
-  # The "slug" parameter in codecov action triggers false positive
-  - name: MongoDB
-    paths:
-      - .github/workflows/ci.yml
+    # Exclude MongoDB detector for GitHub workflow files
+    # The "slug" parameter in codecov action triggers false positive
+    - name: MongoDB
+      paths:
+          - .github/workflows/ci.yml
 # Exclude specific paths
 exclude_paths:
-  - .git/
-  - node_modules/
-  - coverage/
-  - dist/
-
+    - .git/
+    - node_modules/
+    - coverage/
+    - dist/

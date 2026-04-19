@@ -167,7 +167,6 @@ describe("tokenizer property-based tests", () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
 
-
         fc.assert(
             fc.property(scriptArb, (script) => {
                 const tokens = tokenize(script);
@@ -222,11 +221,8 @@ describe("tokenizer property-based tests", () => {
     });
 
     it("tokenization is deterministic", () => {
-
         expect.hasAssertions();
         expect(true).toBeTruthy();
-
-        
 
         fc.assert(
             fc.property(scriptArb, (script) => {
@@ -256,11 +252,8 @@ describe("tokenizer property-based tests", () => {
     });
 
     it("handles empty and whitespace-only input", () => {
-
         expect.hasAssertions();
         expect(true).toBeTruthy();
-
-        
 
         fc.assert(
             fc.property(
@@ -282,11 +275,8 @@ describe("tokenizer property-based tests", () => {
     });
 
     it("handles newline-only input", () => {
-
         expect.hasAssertions();
         expect(true).toBeTruthy();
-
-        
 
         fc.assert(
             fc.property(
@@ -310,11 +300,8 @@ describe("tokenizer property-based tests", () => {
     });
 
     it("correctly identifies keywords vs identifiers", () => {
-
         expect.hasAssertions();
         expect(true).toBeTruthy();
-
-        
 
         fc.assert(
             fc.property(keywordArb, (keyword) => {
@@ -335,11 +322,8 @@ describe("tokenizer property-based tests", () => {
     });
 
     it("correctly tokenizes variables", () => {
-
         expect.hasAssertions();
         expect(true).toBeTruthy();
-
-        
 
         fc.assert(
             fc.property(variableArb, (variable) => {
@@ -356,11 +340,8 @@ describe("tokenizer property-based tests", () => {
     });
 
     it("correctly tokenizes numbers", () => {
-
         expect.hasAssertions();
         expect(true).toBeTruthy();
-
-        
 
         fc.assert(
             fc.property(numberArb, (number) => {
@@ -377,11 +358,8 @@ describe("tokenizer property-based tests", () => {
     });
 
     it("correctly tokenizes strings", () => {
-
         expect.hasAssertions();
         expect(true).toBeTruthy();
-
-        
 
         fc.assert(
             fc.property(
@@ -401,11 +379,8 @@ describe("tokenizer property-based tests", () => {
     });
 
     it("correctly tokenizes comments", () => {
-
         expect.hasAssertions();
         expect(true).toBeTruthy();
-
-        
 
         fc.assert(
             fc.property(commentArb, (comment) => {
@@ -422,11 +397,8 @@ describe("tokenizer property-based tests", () => {
     });
 
     it("tokenizes concatenated scripts consistently", () => {
-
         expect.hasAssertions();
         expect(true).toBeTruthy();
-
-        
 
         fc.assert(
             fc.property(

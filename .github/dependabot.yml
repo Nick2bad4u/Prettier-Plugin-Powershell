@@ -1,58 +1,58 @@
 version: 2
 
 multi-ecosystem-groups:
-  dependabot-all:
-    assignees:
-      - "Nick2bad4u"
-    commit-message:
-      include: "scope"
-      prefix: "[dependabot][all]"
-      prefix-development: "[dependabot][dev][all]"
-    labels:
-      - "dependabot"
-      - "dependencies"
-    schedule:
-      interval: "monthly"
-      time: "05:30"
-      timezone: "America/Detroit"
+    dependabot-all:
+        assignees:
+            - "Nick2bad4u"
+        commit-message:
+            include: "scope"
+            prefix: "[dependabot][all]"
+            prefix-development: "[dependabot][dev][all]"
+        labels:
+            - "dependabot"
+            - "dependencies"
+        schedule:
+            interval: "monthly"
+            time: "05:30"
+            timezone: "America/Detroit"
 
 updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    target-branch: "main"
-    cooldown: 14
-    schedule:
-      interval: "monthly"
-      time: "05:30"
-      timezone: "America/Detroit"
-    allow:
-      - dependency-type: "all"
-    labels:
-      - "github-actions"
-    multi-ecosystem-group: "dependabot-all"
-    patterns:
-      - "*"
+    - package-ecosystem: "github-actions"
+      directory: "/"
+      target-branch: "main"
+      cooldown: 14
+      schedule:
+          interval: "monthly"
+          time: "05:30"
+          timezone: "America/Detroit"
+      allow:
+          - dependency-type: "all"
+      labels:
+          - "github-actions"
+      multi-ecosystem-group: "dependabot-all"
+      patterns:
+          - "*"
 
-  - package-ecosystem: "npm"
-    directory: "/"
-    target-branch: "main"
-    cooldown: 14
-    versioning-strategy: "increase"
-    schedule:
-      interval: "monthly"
-      time: "05:30"
-      timezone: "America/Detroit"
-    allow:
-      - dependency-type: "all"
-    ignore:
-      - dependency-name: "electron-builder"
-        versions:
-          - "< 26.0.18"
-      - dependency-name: "electron-builder-squirrel-windows"
-        versions:
-          - "< 26.0.18"
-    labels:
-      - "npm"
-    multi-ecosystem-group: "dependabot-all"
-    patterns:
-      - "*"
+    - package-ecosystem: "npm"
+      directory: "/"
+      target-branch: "main"
+      cooldown: 14
+      versioning-strategy: "increase"
+      schedule:
+          interval: "monthly"
+          time: "05:30"
+          timezone: "America/Detroit"
+      allow:
+          - dependency-type: "all"
+      ignore:
+          - dependency-name: "electron-builder"
+            versions:
+                - "< 26.0.18"
+          - dependency-name: "electron-builder-squirrel-windows"
+            versions:
+                - "< 26.0.18"
+      labels:
+          - "npm"
+      multi-ecosystem-group: "dependabot-all"
+      patterns:
+          - "*"

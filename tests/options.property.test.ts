@@ -140,7 +140,6 @@ describe("options property-based tests", () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
 
-
         fc.assert(
             fc.property(parserOptionsArb, (options) => {
                 // Should not throw
@@ -154,7 +153,6 @@ describe("options property-based tests", () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
 
-
         fc.assert(
             fc.property(parserOptionsArb, (options) => {
                 assertResolvedOptionsAreValid(resolveOptions(options));
@@ -166,7 +164,6 @@ describe("options property-based tests", () => {
     it("resolveOptions respects user preferences when valid", () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
-
 
         fc.assert(
             fc.property(
@@ -227,7 +224,6 @@ describe("options property-based tests", () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
 
-
         fc.assert(
             fc.property(fc.constant({}), () => {
                 const resolved = resolveOptions({} as ParserOptions);
@@ -267,7 +263,6 @@ describe("options property-based tests", () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
 
-
         const resolved = resolveOptions({
             powershellPreset: "invoke-formatter",
         } as unknown as ParserOptions);
@@ -283,7 +278,6 @@ describe("options property-based tests", () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
 
-
         const resolved = resolveOptions({
             powershellIndentSize: 2,
             powershellKeywordCase: "upper",
@@ -297,7 +291,6 @@ describe("options property-based tests", () => {
     it("resolveOptions clamps invalid numeric values", () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
-
 
         fc.assert(
             fc.property(
@@ -330,7 +323,6 @@ describe("options property-based tests", () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
 
-
         fc.assert(
             fc.property(fc.integer({ max: 20, min: -10 }), (value) => {
                 const options: ParserOptions = {
@@ -359,7 +351,6 @@ describe("options property-based tests", () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
 
-
         fc.assert(
             fc.property(fc.integer({ max: 500, min: -100 }), (value) => {
                 const options: ParserOptions = {
@@ -384,7 +375,6 @@ describe("options property-based tests", () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
 
-
         fc.assert(
             fc.property(indentStyleArb, (indentStyle) => {
                 const options: ParserOptions = {
@@ -405,7 +395,6 @@ describe("options property-based tests", () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
 
-
         fc.assert(
             fc.property(parserOptionsArb, (options) => {
                 const resolved1 = resolveOptions({ ...options });
@@ -423,7 +412,6 @@ describe("options property-based tests", () => {
     it("treats unknown preset values as no preset", () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
-
 
         const options = {
             powershellPreset: "unknown-preset-value",

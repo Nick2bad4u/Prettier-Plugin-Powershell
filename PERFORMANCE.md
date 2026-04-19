@@ -21,17 +21,17 @@ The validation script (`tests/utils/validate-syntax.ps1`) now supports a `-Strea
 1. Node.js spawns a single PowerShell process at startup
 2. Scripts are sent via stdin using a length-prefixed binary protocol:
 
-  - 4 bytes: total message length
-  - 4 bytes: identifier length
-  - N bytes: identifier string (UTF-8)
-  - M bytes: script content (UTF-8)
+- 4 bytes: total message length
+- 4 bytes: identifier length
+- N bytes: identifier string (UTF-8)
+- M bytes: script content (UTF-8)
 
 3. PowerShell validates each script and sends back results:
 
-  - 4 bytes: response length
-  - N bytes: response ("OK\n" or "ERROR\n
+- 4 bytes: response length
+- N bytes: response ("OK\n" or "ERROR\n
 
-    <error message="">")</error>
+  <error message="">")</error>
 
 #### Benefits
 

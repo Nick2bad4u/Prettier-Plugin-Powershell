@@ -15,6 +15,7 @@
         "esModuleInterop": true,
         "exactOptionalPropertyTypes": true,
         "forceConsistentCasingInFileNames": true,
+        "ignoreDeprecations": "6.0",
         "importsNotUsedAsValues": "remove",
         "incremental": true,
         "isolatedDeclarations": true,

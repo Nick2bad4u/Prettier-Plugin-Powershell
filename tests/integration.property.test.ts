@@ -21,7 +21,6 @@ describe("integration property tests", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
 
-
             await withProgress(
                 "integration.roundTrip",
                 PROPERTY_RUNS,
@@ -114,7 +113,6 @@ describe("integration property tests", () => {
         it("handles option combinations consistently", async () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
 
             await withProgress(
                 "integration.optionCombos",
@@ -212,7 +210,6 @@ describe("integration property tests", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
 
-
             await withProgress(
                 "integration.tokenizerLocations",
                 PROPERTY_RUNS,
@@ -288,7 +285,6 @@ describe("integration property tests", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
 
-
             await withProgress(
                 "integration.retTokenize",
                 PROPERTY_RUNS,
@@ -349,7 +345,6 @@ describe("integration property tests", () => {
         it("handles concatenated valid scripts gracefully", async () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
 
             await withProgress(
                 "integration.concatenated",
@@ -414,7 +409,6 @@ describe("integration property tests", () => {
         it("preserves valid PowerShell across repeated formatting", async () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
 
             await withProgress(
                 "integration.repeatedFormatting",
@@ -488,7 +482,6 @@ describe("integration property tests", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
 
-
             await withProgress(
                 "integration.locBounds",
                 PROPERTY_RUNS,
@@ -533,7 +526,6 @@ describe("integration property tests", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
 
-
             await withProgress(
                 "integration.hasPragma",
                 PROPERTY_RUNS,
@@ -568,7 +560,6 @@ describe("integration property tests", () => {
         it("formats all supported extensions identically", async () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
 
             await withProgress(
                 "integration.extensions",

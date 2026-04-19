@@ -241,9 +241,9 @@ describe("long Line Wrapping Improvements", () => {
         it("formats 1000-character line in reasonable time", async () => {
             expect.hasAssertions();
 
-            const longLine =
-                `Get-Process${ 
-                " | Where-Object { $_.Name -like '*test*' }".repeat(20)}`;
+            const longLine = `Get-Process${" | Where-Object { $_.Name -like '*test*' }".repeat(
+                20
+            )}`;
 
             const start = Date.now();
             const result = await formatAndAssert(

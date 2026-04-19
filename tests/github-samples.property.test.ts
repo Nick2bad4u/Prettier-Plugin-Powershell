@@ -430,7 +430,6 @@ describe("real-world GitHub PowerShell samples", () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
 
-
         await ensureSamplesLoaded();
 
         const runCount = Math.min(PROPERTY_RUNS, samples.length);

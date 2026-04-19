@@ -7,9 +7,9 @@ APPLY_FIXES: all
 # Fail settings
 DISABLE_ERRORS: false
 DISABLE_LINTERS:
-  - SPELL_CSPELL
-  - SPELL_MISSPELL
-  - COPYPASTE_JSCPD
+    - SPELL_CSPELL
+    - SPELL_MISSPELL
+    - COPYPASTE_JSCPD
 
 FAIL_IF_MISSING_LINTER_IN_FLAVOR: false
 
@@ -31,15 +31,15 @@ MARKDOWN_SUMMARY_REPORTER: true
 PARALLEL: true
 
 POST_COMMANDS:
-  - command: echo "MegaLinter complete"
-    cwd: workspace
+    - command: echo "MegaLinter complete"
+      cwd: workspace
 # PowerShell specific settings
 POWERSHELL_POWERSHELL_FILTER_REGEX_EXCLUDE: "(Scripts/.*\\.ps1)"
 
 # Pre/post commands
 PRE_COMMANDS:
-  - command: echo "Starting MegaLinter for Prettier-Plugin-Powershell"
-    cwd: workspace
+    - command: echo "Starting MegaLinter for Prettier-Plugin-Powershell"
+      cwd: workspace
 
 # Repository linters
 REPOSITORY_CHECKOV_ARGUMENTS: "--framework github_actions --skip-check CKV_GHA_7,CKV2_GHA_1"

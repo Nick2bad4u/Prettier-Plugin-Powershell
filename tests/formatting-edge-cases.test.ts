@@ -299,4 +299,3 @@ $scientificFloat = 1.5e10f
         expect(result).toContain("1.5e10f");
     });
 });
-

@@ -88,7 +88,6 @@ describe("weird PowerShell file property tests", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
 
-
             await withProgress(
                 "weirdFiles.bomShebang",
                 PROPERTY_RUNS,
@@ -168,7 +167,6 @@ describe("weird PowerShell file property tests", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
 
-
             await withProgress(
                 "weirdFiles.unicodeStrings",
                 PROPERTY_RUNS,
@@ -191,7 +189,6 @@ describe("weird PowerShell file property tests", () => {
         it("handles unicode in identifiers", async () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
 
             await withProgress(
                 "weirdFiles.unicodeIdentifiers",
@@ -229,7 +226,6 @@ describe("weird PowerShell file property tests", () => {
         it("parses comment directives and block comments", async () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
 
             await withProgress(
                 "weirdFiles.comments",
@@ -271,7 +267,6 @@ describe("weird PowerShell file property tests", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
 
-
             await withProgress(
                 "weirdFiles.pipelineWhitespace",
                 PROPERTY_RUNS,
@@ -303,7 +298,6 @@ describe("weird PowerShell file property tests", () => {
         it("handles exotic whitespace escape sequences", async () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
 
             await withProgress(
                 "weirdFiles.exoticWhitespace",
