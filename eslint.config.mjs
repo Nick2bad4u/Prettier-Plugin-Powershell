@@ -1157,7 +1157,10 @@ export default defineConfig([
             "@typescript-eslint/no-unused-expressions": "warn",
             "no-unused-private-class-members": "warn",
             "@typescript-eslint/no-unused-vars": "warn",
-            "@typescript-eslint/no-use-before-define": "warn",
+            "@typescript-eslint/no-use-before-define": [
+                "warn",
+                { functions: false },
+            ],
             "@typescript-eslint/no-useless-constructor": "warn",
             "@typescript-eslint/no-useless-empty-export": "warn",
             "@typescript-eslint/no-wrapper-object-types": "error",

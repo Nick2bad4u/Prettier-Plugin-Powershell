@@ -43,14 +43,14 @@ function createTextExpression(
     } satisfies ExpressionNode;
 }
 
-describe("AST utility functions", () => {
+describe("abstract syntax tree utility functions", () => {
     describe(createLocation, () => {
         it("creates a location object with start and end", () => {
             expect.hasAssertions();
 
             const loc = createLocation(5, 15);
 
-            expect(loc).toEqual({ end: 15, start: 5 });
+            expect(loc).toStrictEqual({ end: 15, start: 5 });
         });
 
         it("handles zero positions", () => {
@@ -58,7 +58,7 @@ describe("AST utility functions", () => {
 
             const loc = createLocation(0, 0);
 
-            expect(loc).toEqual({ end: 0, start: 0 });
+            expect(loc).toStrictEqual({ end: 0, start: 0 });
         });
 
         it("handles large positions", () => {
@@ -66,7 +66,7 @@ describe("AST utility functions", () => {
 
             const loc = createLocation(1000, 2000);
 
-            expect(loc).toEqual({ end: 2000, start: 1000 });
+            expect(loc).toStrictEqual({ end: 2000, start: 1000 });
         });
     });
 
@@ -124,7 +124,7 @@ describe("AST utility functions", () => {
             };
             const cloned = cloneNode(node);
 
-            expect(cloned).toEqual(node);
+            expect(cloned).toStrictEqual(node);
             expect(cloned).not.toBe(node);
             expect(cloned.loc).not.toBe(node.loc);
         });
@@ -147,10 +147,10 @@ describe("AST utility functions", () => {
             };
             const cloned = cloneNode(node);
 
-            expect(cloned).toEqual(node);
+            expect(cloned).toStrictEqual(node);
             expect(cloned).not.toBe(node);
             expect(cloned.body).not.toBe(node.body);
-            expect(cloned.body).toEqual(node.body);
+            expect(cloned.body).toStrictEqual(node.body);
         });
 
         it("clones a node with parts array", () => {
@@ -163,12 +163,12 @@ describe("AST utility functions", () => {
             } as BaseNode;
             const cloned = cloneNode(node);
 
-            expect(cloned).toEqual(node);
+            expect(cloned).toStrictEqual(node);
             expect(cloned).not.toBe(node);
             // @ts-expect-error - accessing parts
             expect(cloned.parts).not.toBe(node.parts);
             // @ts-expect-error - accessing parts
-            expect(cloned.parts).toEqual(node.parts);
+            expect(cloned.parts).toStrictEqual(node.parts);
         });
 
         it("clones a node with segments array", () => {
@@ -181,7 +181,7 @@ describe("AST utility functions", () => {
             } as BaseNode;
             const cloned = cloneNode(node);
 
-            expect(cloned).toEqual(node);
+            expect(cloned).toStrictEqual(node);
             // @ts-expect-error - accessing segments
             expect(cloned.segments).not.toBe(node.segments);
         });
@@ -197,7 +197,7 @@ describe("AST utility functions", () => {
             };
             const cloned = cloneNode(node);
 
-            expect(cloned).toEqual(node);
+            expect(cloned).toStrictEqual(node);
             expect(cloned.elements).not.toBe(node.elements);
         });
 
@@ -219,7 +219,7 @@ describe("AST utility functions", () => {
             };
             const cloned = cloneNode(node);
 
-            expect(cloned).toEqual(node);
+            expect(cloned).toStrictEqual(node);
             expect(cloned.entries).not.toBe(node.entries);
         });
 
@@ -239,7 +239,7 @@ describe("AST utility functions", () => {
             } as BaseNode;
             const cloned = cloneNode(node);
 
-            expect(cloned).toEqual(node);
+            expect(cloned).toStrictEqual(node);
             // @ts-expect-error - accessing parameters
             expect(cloned.parameters).not.toBe(node.parameters);
         });

@@ -244,16 +244,42 @@ const PRESET_DEFAULTS: Record<PresetOption, PresetDefaults> = {
 };
 
 /**
+ * Applies preset defaults for missing options only.
+ *
+ * @param options - Mutable parser options object.
+ * @param preset - Selected preset name.
+ */
+const applyPresetDefaults = (
+    options: Readonly<ParserOptions>,
+    preset: PresetOption
+): void => {
+    const overrides = PRESET_DEFAULTS[preset];
+    if (overrides === undefined) {
+        return;
+    }
+
+    const target = options as Record<string, unknown>;
+    for (const [key, value] of Object.entries(overrides)) {
+        if (target[key] === undefined) {
+            target[key] = value;
+        }
+    }
+}
+
+/**
  * Resolves PowerShell-specific options and normalizes Prettier options.
  *
  * Note: This function mutates the input `options` object by setting `useTabs`,
  * `tabWidth`, and `printWidth` to ensure consistency between
  * PowerShell-specific settings and Prettier's core settings.
  */
-export function resolveOptions(options: ParserOptions): ResolvedOptions {
+export function resolveOptions(options: Readonly<ParserOptions>): ResolvedOptions {
     const preset =
         (options.powershellPreset as PresetOption | undefined) ?? "none";
     applyPresetDefaults(options, preset);
+
+    // Use a mutable alias for Prettier's core settings we must write back.
+    const mutableOptions = options as ParserOptions;
 
     const indentStyle =
         (options.powershellIndentStyle as IndentStyleOption | undefined) ??
@@ -269,8 +295,8 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
               ? Math.floor(normalizedTabWidth)
               : 4;
 
-    options.useTabs = indentStyle === "tabs";
-    options.tabWidth = indentSize;
+    mutableOptions.useTabs = indentStyle === "tabs";
+    mutableOptions.tabWidth = indentSize;
 
     const trailingComma =
         (options.powershellTrailingComma as TrailingCommaOption | undefined) ??
@@ -306,7 +332,7 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
     const rewriteWriteHost = options.powershellRewriteWriteHost === true;
 
     if (!options.printWidth || options.printWidth > lineWidth) {
-        options.printWidth = lineWidth;
+        mutableOptions.printWidth = lineWidth;
     }
 
     return {
@@ -323,27 +349,4 @@ export function resolveOptions(options: ParserOptions): ResolvedOptions {
         sortHashtableKeys,
         trailingComma,
     } satisfies ResolvedOptions;
-}
-
-/**
- * Applies preset defaults for missing options only.
- *
- * @param options - Mutable parser options object.
- * @param preset - Selected preset name.
- */
-function applyPresetDefaults(
-    options: ParserOptions,
-    preset: PresetOption
-): void {
-    const overrides = PRESET_DEFAULTS[preset];
-    if (overrides === undefined) {
-        return;
-    }
-
-    const target = options as Record<string, unknown>;
-    for (const [key, value] of Object.entries(overrides)) {
-        if (target[key] === undefined) {
-            target[key] = value;
-        }
-    }
 }

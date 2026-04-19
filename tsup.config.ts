@@ -3,7 +3,9 @@ import { defineConfig } from "tsup";
 export default defineConfig({
     clean: true,
     dts: true,
-    entry: ["src/plugin.ts"],
+    entry: {
+        index: "src/plugin.ts",
+    },
     external: ["prettier"],
     format: ["esm", "cjs"],
     outDir: "dist",

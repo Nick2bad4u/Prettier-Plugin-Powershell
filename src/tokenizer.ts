@@ -177,12 +177,95 @@ const UNICODE_IDENTIFIER_AFTER_DASH_PATTERN = /[\p{L}-]/u;
  *   This function extracts just the content between the delimiters. If the
  *   here-string is too short (malformed), returns it as-is.
  */
-export function normalizeHereString(node: HereStringNode): string {
+export function normalizeHereString(node: Readonly<HereStringNode>): string {
     const lines = node.value.split(/\r?\n/);
     if (lines.length <= 2) {
         return node.value;
     }
     return lines.slice(1, -1).join("\n");
+}
+
+const readAttributeEnd = (source: string, startIndex: number): null | number => {
+    let lookahead = startIndex + 1;
+    while (
+        lookahead < source.length &&
+        WHITESPACE_PATTERN.test(source[lookahead])
+    ) {
+        lookahead += 1;
+    }
+
+    if (
+        lookahead >= source.length ||
+        !IDENTIFIER_START_PATTERN.test(source[lookahead])
+    ) {
+        return null;
+    }
+
+    let depth = 1;
+    let scanIndex = startIndex + 1;
+    while (scanIndex < source.length && depth > 0) {
+        const current = source[scanIndex];
+        if (current === "'" || current === '"') {
+            scanIndex += 1;
+            while (scanIndex < source.length) {
+                const quotedChar = source[scanIndex];
+                if (quotedChar === "`") {
+                    scanIndex += scanIndex + 1 < source.length ? 2 : 1;
+                    continue;
+                }
+                if (quotedChar === current) {
+                    scanIndex += 1;
+                    break;
+                }
+                scanIndex += 1;
+            }
+            continue;
+        }
+        if (current === "[") {
+            depth += 1;
+            scanIndex += 1;
+            continue;
+        }
+        if (current === "]") {
+            depth -= 1;
+            scanIndex += 1;
+            continue;
+        }
+        scanIndex += 1;
+    }
+
+    return depth === 0 ? scanIndex : source.length;
+}
+
+const readHereStringEnd = (source: string, startIndex: number): number => {
+    const quoteChar = source[startIndex + 1];
+    let scanIndex = startIndex + 2;
+
+    while (scanIndex < source.length) {
+        const maybeClosing =
+            scanIndex + 1 < source.length &&
+            source[scanIndex] === quoteChar &&
+            source[scanIndex + 1] === "@";
+
+        if (!maybeClosing) {
+            scanIndex += 1;
+            continue;
+        }
+
+        const prevChar = source[scanIndex - 1];
+        const prevPrev = source[scanIndex - 2];
+        const atImmediateClosing = scanIndex === startIndex + 2;
+        const atUnixLineStart = prevChar === "\n";
+        const atWindowsLineStart = prevChar === "\n" && prevPrev === "\r";
+
+        if (atImmediateClosing || atUnixLineStart || atWindowsLineStart) {
+            return scanIndex + 2;
+        }
+
+        scanIndex += 1;
+    }
+
+    return source.length;
 }
 
 /**
@@ -211,7 +294,7 @@ export function tokenize(source: string): Token[] {
     const length = source.length;
     let index = 0;
 
-    const push = (token: Token) => {
+    const push = (token: Readonly<Token>) => {
         tokens.push(token);
     };
 
@@ -766,87 +849,4 @@ export function tokenize(source: string): Token[] {
     }
 
     return tokens;
-}
-
-function readAttributeEnd(source: string, startIndex: number): null | number {
-    let lookahead = startIndex + 1;
-    while (
-        lookahead < source.length &&
-        WHITESPACE_PATTERN.test(source[lookahead])
-    ) {
-        lookahead += 1;
-    }
-
-    if (
-        lookahead >= source.length ||
-        !IDENTIFIER_START_PATTERN.test(source[lookahead])
-    ) {
-        return null;
-    }
-
-    let depth = 1;
-    let scanIndex = startIndex + 1;
-    while (scanIndex < source.length && depth > 0) {
-        const current = source[scanIndex];
-        if (current === "'" || current === '"') {
-            scanIndex += 1;
-            while (scanIndex < source.length) {
-                const quotedChar = source[scanIndex];
-                if (quotedChar === "`") {
-                    scanIndex += scanIndex + 1 < source.length ? 2 : 1;
-                    continue;
-                }
-                if (quotedChar === current) {
-                    scanIndex += 1;
-                    break;
-                }
-                scanIndex += 1;
-            }
-            continue;
-        }
-        if (current === "[") {
-            depth += 1;
-            scanIndex += 1;
-            continue;
-        }
-        if (current === "]") {
-            depth -= 1;
-            scanIndex += 1;
-            continue;
-        }
-        scanIndex += 1;
-    }
-
-    return depth === 0 ? scanIndex : source.length;
-}
-
-function readHereStringEnd(source: string, startIndex: number): number {
-    const quoteChar = source[startIndex + 1];
-    let scanIndex = startIndex + 2;
-
-    while (scanIndex < source.length) {
-        const maybeClosing =
-            scanIndex + 1 < source.length &&
-            source[scanIndex] === quoteChar &&
-            source[scanIndex + 1] === "@";
-
-        if (!maybeClosing) {
-            scanIndex += 1;
-            continue;
-        }
-
-        const prevChar = source[scanIndex - 1];
-        const prevPrev = source[scanIndex - 2];
-        const atImmediateClosing = scanIndex === startIndex + 2;
-        const atUnixLineStart = prevChar === "\n";
-        const atWindowsLineStart = prevChar === "\n" && prevPrev === "\r";
-
-        if (atImmediateClosing || atUnixLineStart || atWindowsLineStart) {
-            return scanIndex + 2;
-        }
-
-        scanIndex += 1;
-    }
-
-    return source.length;
 }

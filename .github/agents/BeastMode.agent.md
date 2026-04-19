@@ -1,8 +1,11 @@
 ---
 name: BeastMode
 description: Beast Mode 3.1 (Custom Prettier)
+agents: ["*"]
+disable-model-invocation: false
+user-invocable: true
 argument-hint: "💻 🤖 😈 Beast Mode agent ready. 👿 🤖 💻"
-tools: ['edit/createFile', 'edit/createDirectory', 'edit/editFiles', 'search/fileSearch', 'search/textSearch', 'search/listDirectory', 'search/readFile', 'search/codebase', 'runCommands/getTerminalOutput', 'runCommands/runInTerminal', 'runTasks/runTask', 'runTasks/getTaskOutput', 'Tavily-Remote-MCP/tavily_extract', 'Tavily-Remote-MCP/tavily_search', 'deepwiki/*', 'vscode-mcp/execute_command', 'vscode-mcp/get_diagnostics', 'vscode-mcp/get_references', 'vscode-mcp/get_symbol_lsp_info', 'vscode-mcp/rename_symbol', 'runSubagent', 'usages', 'problems', 'changes', 'testFailure', 'fetch', 'memory', 'ms-vscode.vscode-websearchforcopilot/websearch', 'todos', 'runTests']
+tools: [vscode, execute, read, agent, edit, search, web, 'tavily-remote-mcp-system/*', 'vscode-mcp/*', browser, todo, artifacts, artifactRules]
 handoffs:
  - label: Unit
    agent: BeastMode

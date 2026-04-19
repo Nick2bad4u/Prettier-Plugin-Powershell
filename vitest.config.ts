@@ -1,6 +1,6 @@
 import { coverageConfigDefaults, defineConfig } from "vitest/config";
 
-export default defineConfig(() => {
+const vitestConfig: ReturnType<typeof defineConfig> = defineConfig(() => {
     const timeoutSetting = Number.parseInt(
         globalThis.process.env.POWERSHELL_TEST_TIMEOUT_MS ?? "120000",
         10
@@ -37,7 +37,7 @@ export default defineConfig(() => {
                     "node_modules/**",
                     ...coverageConfigDefaults.exclude,
                 ],
-                provider: "v8",
+                provider: "v8" as const,
                 reporter: [
                     "text",
                     "json",
@@ -80,3 +80,5 @@ export default defineConfig(() => {
         },
     };
 });
+
+export default vitestConfig;

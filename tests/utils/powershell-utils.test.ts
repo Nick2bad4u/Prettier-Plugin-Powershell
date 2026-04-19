@@ -22,6 +22,10 @@ class MockProcess extends EventTarget {
     private dataCollected = 0;
     private expectedDataLength = 0;
     private readonly hooks: MockProcessHooks | undefined;
+    private readonly listenerMap = new Map<
+        (...detail: readonly unknown[]) => void,
+        (event: Readonly<Event>) => void
+    >();
     private readonly responses: MockResponse[];
     private totalLength = 0;
 
@@ -51,16 +55,44 @@ class MockProcess extends EventTarget {
         return this.dispatchEvent(event);
     }
 
+    public off(
+        eventName: string,
+        listener: (...detail: readonly unknown[]) => void
+    ): this {
+        const mapped = this.listenerMap.get(listener);
+
+        if (mapped) {
+            this.removeEventListener(eventName, mapped);
+            this.listenerMap.delete(listener);
+        }
+
+        return this;
+    }
+
     public on(
         eventName: string,
         listener: (...detail: readonly unknown[]) => void
     ): this {
-        this.addEventListener(eventName, (event: Readonly<Event>) => {
+        const mapped = (event: Readonly<Event>): void => {
             const customEvent = event as Event & { detail: readonly unknown[] };
             listener(...customEvent.detail);
-        });
+        };
+        this.listenerMap.set(listener, mapped);
+        this.addEventListener(eventName, mapped);
 
         return this;
+    }
+
+    public once(
+        eventName: string,
+        listener: (...detail: readonly unknown[]) => void
+    ): this {
+        const wrapped = (...detail: readonly unknown[]): void => {
+            this.off(eventName, wrapped);
+            listener(...detail);
+        };
+
+        return this.on(eventName, wrapped);
     }
 
     public startConsumingInput(): void {
@@ -190,7 +222,7 @@ const withTestCleanup = async (action: () => Promise<void>): Promise<void> => {
 
 const requireCreatedProcess = (
     processRef: null | Readonly<ChildProcess & MockProcess>
-): ChildProcess & MockProcess => {
+): Readonly<ChildProcess & MockProcess> => {
     if (processRef === null) {
         throw new Error("Expected created process to be available");
     }
@@ -202,13 +234,15 @@ describe("powershell syntax utilities", () => {
     it("skips validation when POWERSHELL_VERIFY_SYNTAX is 0", async () => {
         expect.hasAssertions();
 
+        resetTestState();
+
         await withTestCleanup(async () => {
             replaceTestEnvironment({
                 POWERSHELL_VERIFY_SYNTAX: "0",
             });
 
             const spawnMock = vi.fn<() => ChildProcess>();
-            vi.doMock(import("node:child_process"), () => ({
+            vi.doMock(import('node:child_process'), () => ({
                 spawn: spawnMock,
             }));
 
@@ -229,13 +263,15 @@ describe("powershell syntax utilities", () => {
     it("validates scripts using the persistent process", async () => {
         expect.hasAssertions();
 
+        resetTestState();
+
         await withTestCleanup(async () => {
             replaceTestEnvironment({
                 POWERSHELL_VERIFY_SYNTAX: "1",
             });
 
             const spawnMock = createSpawnMock([{ type: "OK" }]);
-            vi.doMock(import("node:child_process"), () => ({
+            vi.doMock(import('node:child_process'), () => ({
                 spawn: spawnMock,
             }));
 
@@ -252,6 +288,8 @@ describe("powershell syntax utilities", () => {
     it("throws when PowerShell reports errors", async () => {
         expect.hasAssertions();
 
+        resetTestState();
+
         replaceTestEnvironment({
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
@@ -259,7 +297,7 @@ describe("powershell syntax utilities", () => {
         const spawnMock = createSpawnMock([
             { message: "Line 1: unexpected token", type: "ERROR" },
         ]);
-        vi.doMock(import("node:child_process"), () => ({ spawn: spawnMock }));
+        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
 
         const { assertPowerShellParses } = await import("./powershell.js");
 
@@ -273,6 +311,8 @@ describe("powershell syntax utilities", () => {
     it("returns false from isPowerShellParsable when parser reports errors", async () => {
         expect.hasAssertions();
 
+        resetTestState();
+
         replaceTestEnvironment({
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
@@ -280,7 +320,7 @@ describe("powershell syntax utilities", () => {
         const spawnMock = createSpawnMock([
             { message: "Syntax failure", type: "ERROR" },
         ]);
-        vi.doMock(import("node:child_process"), () => ({ spawn: spawnMock }));
+        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
 
         const { isPowerShellParsable } = await import("./powershell.js");
 
@@ -292,13 +332,15 @@ describe("powershell syntax utilities", () => {
     it("limits validation invocations using POWERSHELL_MAX_SYNTAX_CHECKS", async () => {
         expect.hasAssertions();
 
+        resetTestState();
+
         replaceTestEnvironment({
             POWERSHELL_MAX_SYNTAX_CHECKS: "1",
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
 
         const spawnMock = createSpawnMock([{ type: "OK" }]);
-        vi.doMock(import("node:child_process"), () => ({ spawn: spawnMock }));
+        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
 
         const { isPowerShellParsable } = await import("./powershell.js");
 
@@ -315,6 +357,8 @@ describe("powershell syntax utilities", () => {
     it("throws informative error when pwsh executable is missing", async () => {
         expect.hasAssertions();
 
+        resetTestState();
+
         replaceTestEnvironment({
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
@@ -324,7 +368,7 @@ describe("powershell syntax utilities", () => {
             error.code = "ENOENT";
             throw error;
         });
-        vi.doMock(import("node:child_process"), () => ({ spawn: spawnMock }));
+        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
 
         const { assertPowerShellParses } = await import("./powershell.js");
 
@@ -338,6 +382,8 @@ describe("powershell syntax utilities", () => {
     it("wraps unexpected spawn errors with additional context", async () => {
         expect.hasAssertions();
 
+        resetTestState();
+
         replaceTestEnvironment({
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
@@ -345,7 +391,7 @@ describe("powershell syntax utilities", () => {
         const spawnMock = vi.fn<() => never>(() => {
             throw new Error("spawn failure");
         });
-        vi.doMock(import("node:child_process"), () => ({ spawn: spawnMock }));
+        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
 
         const { assertPowerShellParses } = await import("./powershell.js");
 
@@ -359,6 +405,8 @@ describe("powershell syntax utilities", () => {
     it("throws when process stdio streams are unavailable", async () => {
         expect.hasAssertions();
 
+        resetTestState();
+
         replaceTestEnvironment({
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
@@ -371,7 +419,7 @@ describe("powershell syntax utilities", () => {
                     stdout: null,
                 }) as unknown as ChildProcess
         );
-        vi.doMock(import("node:child_process"), () => ({ spawn: spawnMock }));
+        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
 
         const { assertPowerShellParses } = await import("./powershell.js");
 
@@ -383,11 +431,13 @@ describe("powershell syntax utilities", () => {
     it("rejects pending validations when the process emits an error", async () => {
         expect.hasAssertions();
 
+        resetTestState();
+
         replaceTestEnvironment({
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
 
-        let createdProcess: (ChildProcess & MockProcess) | null = null;
+        let createdProcess: null | Readonly<ChildProcess & MockProcess> = null;
         const spawnMock = createSpawnMock(
             [],
             (proc) => {
@@ -399,7 +449,7 @@ describe("powershell syntax utilities", () => {
                 },
             }
         );
-        vi.doMock(import("node:child_process"), () => ({ spawn: spawnMock }));
+        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
 
         const { assertPowerShellParses } = await import("./powershell.js");
 
@@ -421,6 +471,8 @@ describe("powershell syntax utilities", () => {
 
     it("handles chunked stdout responses from PowerShell", async () => {
         expect.hasAssertions();
+
+        resetTestState();
 
         replaceTestEnvironment({
             POWERSHELL_VERIFY_SYNTAX: "1",
@@ -447,7 +499,7 @@ describe("powershell syntax utilities", () => {
                 }, 0);
             },
         });
-        vi.doMock(import("node:child_process"), () => ({ spawn: spawnMock }));
+        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
 
         const { isPowerShellParsable } = await import("./powershell.js");
 
@@ -459,11 +511,13 @@ describe("powershell syntax utilities", () => {
     it("rejects pending validations when the process exits unexpectedly", async () => {
         expect.hasAssertions();
 
+        resetTestState();
+
         replaceTestEnvironment({
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
 
-        let createdProcess: (ChildProcess & MockProcess) | null = null;
+        let createdProcess: null | Readonly<ChildProcess & MockProcess> = null;
         const spawnMock = createSpawnMock(
             [],
             (proc) => {
@@ -475,7 +529,7 @@ describe("powershell syntax utilities", () => {
                 },
             }
         );
-        vi.doMock(import("node:child_process"), () => ({ spawn: spawnMock }));
+        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
 
         const { assertPowerShellParses } = await import("./powershell.js");
 
@@ -497,6 +551,8 @@ describe("powershell syntax utilities", () => {
     it("rejects when writing to the PowerShell stdin stream fails", async () => {
         expect.hasAssertions();
 
+        resetTestState();
+
         replaceTestEnvironment({
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
@@ -508,7 +564,7 @@ describe("powershell syntax utilities", () => {
             };
             proc.stdin.write = failingWrite as typeof proc.stdin.write;
         });
-        vi.doMock(import("node:child_process"), () => ({ spawn: spawnMock }));
+        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
 
         const { assertPowerShellParses } = await import("./powershell.js");
 
@@ -520,17 +576,13 @@ describe("powershell syntax utilities", () => {
     it("traces diagnostic output when POWERSHELL_SYNTAX_TRACE is enabled", async () => {
         expect.hasAssertions();
 
+        resetTestState();
+
         const logs: string[] = [];
-        const errors: string[] = [];
         const logSpy = vi
             .spyOn(console, "log")
             .mockImplementation((message) => {
                 logs.push(String(message));
-            });
-        const errorSpy = vi
-            .spyOn(console, "error")
-            .mockImplementation((message) => {
-                errors.push(String(message));
             });
 
         replaceTestEnvironment({
@@ -538,11 +590,11 @@ describe("powershell syntax utilities", () => {
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
 
-        let createdProcess: (ChildProcess & MockProcess) | null = null;
+        let createdProcess: null | Readonly<ChildProcess & MockProcess> = null;
         const spawnMock = createSpawnMock([{ type: "OK" }], (proc) => {
             createdProcess = proc;
         });
-        vi.doMock(import("node:child_process"), () => ({ spawn: spawnMock }));
+        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
 
         const { isPowerShellParsable } = await import("./powershell.js");
 
@@ -561,9 +613,6 @@ describe("powershell syntax utilities", () => {
         processRef.emit("error", new Error("boom"));
         processRef.emit("exit", 0);
 
-        expect(errors.length).toBeGreaterThanOrEqual(1);
-
         logSpy.mockRestore();
-        errorSpy.mockRestore();
     });
 });

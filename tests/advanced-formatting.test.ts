@@ -83,7 +83,7 @@ describe("advanced Formatting Features", () => {
         });
     });
 
-    describe("powerShell Classes with Inheritance", () => {
+    describe("classes with inheritance", () => {
         it("formats class with base class", async () => {
             expect.hasAssertions();
 

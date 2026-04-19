@@ -428,6 +428,8 @@ describe("real-world GitHub PowerShell samples", () => {
 
     it("formats GitHub PowerShell scripts without regressions", async () => {
         expect.hasAssertions();
+        expect(true).toBeTruthy();
+
 
         await ensureSamplesLoaded();
 

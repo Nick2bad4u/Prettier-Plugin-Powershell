@@ -156,7 +156,13 @@ const processResponseBuffer = (): void => {
 const monitorPersistentProcessError = async (
     proc: Readonly<ChildProcess>
 ): Promise<void> => {
-    const [error] = await once(proc, "error");
+    let error: unknown = undefined;
+
+    try {
+        [error] = await once(proc, "error");
+    } catch (caughtError) {
+        error = caughtError;
+    }
 
     if (shouldTrace) {
         console.error("[powershell-syntax] Process error:", error);
@@ -173,10 +179,25 @@ const monitorPersistentProcessError = async (
 const monitorPersistentProcessExit = async (
     proc: Readonly<ChildProcess>
 ): Promise<void> => {
-    const [code] = await once(proc, "exit");
+    let code: unknown = undefined;
+
+    try {
+        [code] = await once(proc, "exit");
+    } catch (caughtError) {
+        if (shouldTrace) {
+            console.error(
+                "[powershell-syntax] Failed while waiting for process exit:",
+                caughtError
+            );
+        }
+
+        return;
+    }
 
     if (shouldTrace) {
-        console.log(`[powershell-syntax] Process exited with code ${code}`);
+        console.log(
+            `[powershell-syntax] Process exited with code ${String(code)}`
+        );
     }
 
     rejectAllPendingValidations(

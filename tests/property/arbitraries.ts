@@ -410,19 +410,22 @@ interface LetrecShape {
 
 const arbitraries = fc.letrec<LetrecShape>((tie) => {
     const block: fc.Arbitrary<string> = fc
-        .array(tie("statement"), { maxLength: 6, minLength: 1 })
+        .array(tie("statement") as fc.Arbitrary<string>, {
+            maxLength: 6,
+            minLength: 1,
+        })
         .filter((statements: readonly string[]) =>
             statements.some((statement) => statement.trim().length > 0)
         )
         .map((statements: readonly string[]) => statements.join("\n"));
 
     const elseIfClausesArb: fc.Arbitrary<[string, string][]> = fc.array(
-        fc.tuple(conditionArb, tie("block")),
+        fc.tuple(conditionArb, tie("block") as fc.Arbitrary<string>),
         { maxLength: 2 }
     );
 
     const elseBodyArb: fc.Arbitrary<string | undefined> = fc.option(
-        tie("block"),
+        tie("block") as fc.Arbitrary<string>,
         {
             nil: undefined,
         }
@@ -433,7 +436,7 @@ const arbitraries = fc.letrec<LetrecShape>((tie) => {
             condition: conditionArb,
             elseBody: elseBodyArb,
             elseifClauses: elseIfClausesArb,
-            thenBody: tie("block"),
+            thenBody: tie("block") as fc.Arbitrary<string>,
         })
         .map(({ condition, elseBody, elseifClauses, thenBody }) => {
             const segments: string[] = [
@@ -474,7 +477,9 @@ const arbitraries = fc.letrec<LetrecShape>((tie) => {
         )
         .chain((sections) =>
             fc
-                .array(tie("block"), {
+                .array(tie("block") as fc.Arbitrary<string>, {
+                    // The letrec tie return type is widened to unknown in strict mode.
+                    // Cast to the expected block arbitrary to preserve strong typing.
                     maxLength: sections.length,
                     minLength: sections.length,
                 })
@@ -496,7 +501,7 @@ const arbitraries = fc.letrec<LetrecShape>((tie) => {
 
     const functionStatementArb: fc.Arbitrary<string> = fc
         .record({
-            body: tie("block"),
+            body: tie("block") as fc.Arbitrary<string>,
             name: capitalizedIdentifierArb,
             paramBlock: paramBlockArb,
             sections: functionSectionsArb,
@@ -525,10 +530,12 @@ const arbitraries = fc.letrec<LetrecShape>((tie) => {
 
     const tryCatchStatementArb: fc.Arbitrary<string> = fc
         .record({
-            catchBody: tie("block"),
+            catchBody: tie("block") as fc.Arbitrary<string>,
             catchType: catchTypeArb,
-            finallyBody: fc.option(tie("block"), { nil: undefined }),
-            tryBody: tie("block"),
+            finallyBody: fc.option(tie("block") as fc.Arbitrary<string>, {
+                nil: undefined,
+            }),
+            tryBody: tie("block") as fc.Arbitrary<string>,
         })
         .map(({ catchBody, catchType, finallyBody, tryBody }) => {
             const clauses = [`try {\n${indent(tryBody)}\n}`];
@@ -543,7 +550,7 @@ const arbitraries = fc.letrec<LetrecShape>((tie) => {
 
     const foreachStatementArb: fc.Arbitrary<string> = fc
         .record({
-            body: tie("block"),
+            body: tie("block") as fc.Arbitrary<string>,
             item: variableNameArb,
             source: fc.oneof(arrayLiteralArb, variableReferenceArb),
         })
@@ -554,7 +561,7 @@ const arbitraries = fc.letrec<LetrecShape>((tie) => {
 
     const whileStatementArb: fc.Arbitrary<string> = fc
         .record({
-            body: tie("block"),
+            body: tie("block") as fc.Arbitrary<string>,
             condition: conditionArb,
         })
         .map(
@@ -564,7 +571,7 @@ const arbitraries = fc.letrec<LetrecShape>((tie) => {
 
     const doWhileStatementArb: fc.Arbitrary<string> = fc
         .record({
-            body: tie("block"),
+            body: tie("block") as fc.Arbitrary<string>,
             condition: conditionArb,
         })
         .map(

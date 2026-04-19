@@ -45,7 +45,7 @@
     ],
     "scripts": {
         "benchmark": "node benchmark.mjs",
-        "build": "tsup src/plugin.ts --format esm,cjs --dts src/plugin.ts --dts-resolve --clean --sourcemap --tsconfig tsconfig.json --shims --treeshake safest --cjsInterop --metafile",
+        "build": "tsup --config tsup.config.ts && node -e \"const fs=require('node:fs'); const file='dist/index.cjs'; if(fs.existsSync(file)){ const content=fs.readFileSync(file,'utf8'); if(!content.includes('module.exports = module.exports.default;')){ fs.appendFileSync(file,'\\nmodule.exports = module.exports.default;\\n','utf8'); } }\"",
         "build:watch": "tsup src/plugin.ts --format esm,cjs --dts --watch",
         "clean": "rimraf dist",
         "format": "prettier \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\" --write",

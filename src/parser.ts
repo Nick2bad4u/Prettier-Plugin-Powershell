@@ -56,43 +56,164 @@ interface SplitContext<TState> {
     topLevel: boolean;
 }
 
-type SplitDecision = "skip" | void;
+type SplitDecision = "skip" | undefined;
 
 interface SplitOptions<TState = Record<string, never>> {
     createInitialState?: () => TState;
     delimiterValues?: string[];
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Callback receives context with mutable Token array that it may push to
     onAfterAddToken?: (context: SplitContext<TState>) => void;
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Callback receives context with mutable Token array that it may push to
     onBeforeAddToken?: (context: SplitContext<TState>) => void;
     onFlush?: (
+        // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Segment and segments arrays are mutated by the flush handler
         segment: Token[],
         state: TState,
+        // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Segment and segments arrays are mutated by the flush handler
         segments: Token[][],
         force: boolean
-    ) => Token[] | void;
+    ) => Token[] | undefined;
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Callback receives context with mutable Token array that it may push to
     onToken?: (context: SplitContext<TState>) => SplitDecision;
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Callback receives context with mutable Token array that it may push to
     shouldSplitOnDelimiter?: (context: SplitContext<TState>) => boolean;
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Callback receives context with mutable Token array that it may push to
     splitOnNewline?: (context: SplitContext<TState>) => boolean;
 }
 
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- node.loc is mutated to extend the location
+function extendNodeLocation(node: { loc: SourceLocation }, end: number): void {
+    if (end > node.loc.end) {
+        node.loc = { ...node.loc, end };
+    }
+}
+
+function isClosingToken(token: Readonly<Token>): boolean {
+    return (
+        token.type === "punctuation" &&
+        (token.value === "}" || token.value === ")" || token.value === "]")
+    );
+}
+
+function isOpeningToken(token: Readonly<Token>): boolean {
+    if (token.type === "operator") {
+        return token.value === "@{" || token.value === "@(";
+    }
+
+    return (
+        token.type === "punctuation" &&
+        (token.value === "{" || token.value === "(" || token.value === "[")
+    );
+}
+
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- previous.trailingComment and previous.loc are mutated
+function mergeNodes(
+    previous: ScriptBodyNode,
+    next: Readonly<ScriptBodyNode>
+): void {
+    if (previous.type === "Pipeline" && next.type === "Comment") {
+        previous.trailingComment = next;
+        extendNodeLocation(previous, next.loc.end);
+        return;
+    }
+
+    if (previous.type === "BlankLine" && next.type === "BlankLine") {
+        previous.count += next.count;
+        extendNodeLocation(previous, next.loc.end);
+    }
+}
+
+const shouldMergeNodes = (
+    previous: Readonly<ScriptBodyNode>,
+    next: Readonly<ScriptBodyNode>
+): boolean =>
+    (previous.type === "Pipeline" && next.type === "Comment" && next.inline) ||
+    (previous.type === "BlankLine" && next.type === "BlankLine");
+
+const isInlineSpacing = (
+    source: string,
+    start: number,
+    end: number
+): boolean => {
+    if (start === undefined || end === undefined) {
+        return false;
+    }
+    for (let index = start; index < end; index += 1) {
+        const char = source[index];
+        if (char === "\n" || char === "\r") {
+            return false;
+        }
+        switch (char) {
+            case " ":
+            case "\t":
+            case "\f":
+            case "\v":
+            case "\u00A0":
+            case "\uFEFF":
+            case "\u200B":
+            case "\u2060": {
+                break;
+            }
+            default: {
+                return false;
+            }
+        }
+    }
+    return true;
+};
+
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+const hasTopLevelComma = (tokens: readonly Token[]): boolean => {
+    const stack: string[] = [];
+    for (const token of tokens) {
+        if (isOpeningToken(token)) {
+            stack.push(token.value);
+            continue;
+        }
+        if (isClosingToken(token)) {
+            stack.pop();
+            continue;
+        }
+        if (
+            stack.length === 0 &&
+            token.type === "punctuation" &&
+            token.value === ","
+        ) {
+            return true;
+        }
+    }
+    return false;
+};
+
 class Parser {
+    private readonly source: string;
     private tokenIndex = 0;
+    private readonly tokens: readonly Token[];
 
-    constructor(
-        private readonly tokens: Token[],
-        private readonly source: string
-    ) {}
+    public constructor(
+        // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+        tokens: readonly Token[],
+        source: string
+    ) {
+        this.tokens = tokens;
+        this.source = source;
+    }
 
-    parseScript(terminators = new Set<string>()): ScriptNode {
+    public parseScript(
+        terminators: ReadonlySet<string> = new Set<string>()
+    ): ScriptNode {
         const body: ScriptBodyNode[] = [];
         const start = this.tokens.length > 0 ? this.tokens[0].start : 0;
 
-        const appendNode = (node: null | ScriptBodyNode | undefined) => {
-            if (!node) {
+        const appendNode = (
+            node: null | Readonly<ScriptBodyNode> | undefined
+        ) => {
+            if (node === null || node === undefined) {
                 return;
             }
 
             const last = body.at(-1);
-            if (last && shouldMergeNodes(last, node)) {
+            if (last !== undefined && shouldMergeNodes(last, node)) {
                 mergeNodes(last, node);
             } else {
                 body.push(node);
@@ -100,13 +221,17 @@ class Parser {
         };
 
         while (!this.isEOF()) {
-            const token = this.peek()!;
+            const token = this.peek();
+            // eslint-disable-next-line security/detect-possible-timing-attacks -- Comparing against undefined is not a timing-sensitive operation
+            if (token === undefined) {
+                break;
+            }
 
             if (terminators.has(token.value) && token.type === "punctuation") {
                 break;
             }
 
-            if (this.classifyStatementTerminator(token, 0) === "semicolon") {
+            if (classifyStatementTerminator(token, 0) === "semicolon") {
                 this.advance();
                 const nextToken = this.peek();
                 if (
@@ -155,7 +280,8 @@ class Parser {
             }
         }
 
-        const end = body.length > 0 ? body.at(-1).loc.end : start;
+        const lastBodyNode = body.at(-1);
+        const end = lastBodyNode ? lastBodyNode.loc.end : start;
         return {
             body,
             loc: { end, start },
@@ -178,8 +304,9 @@ class Parser {
      * @returns Whether the comment was attached to the previous node.
      */
     private attachCommentToPreviousScriptBlock(
-        body: ScriptBodyNode[],
-        commentNode: CommentNode
+        // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- ScriptBodyNode contains mutable nested arrays
+        body: readonly ScriptBodyNode[],
+        commentNode: Readonly<CommentNode>
     ): boolean {
         const previousNode = body.at(-1);
         if (previousNode?.type !== "Pipeline") {
@@ -210,31 +337,7 @@ class Parser {
         return true;
     }
 
-    private classifyStatementTerminator(
-        token: Token | undefined,
-        structureDepth: number
-    ): "closing-brace" | "closing-paren" | "newline" | "semicolon" | null {
-        if (!token) {
-            return null;
-        }
-        if (token.type === "newline") {
-            return structureDepth === 0 ? "newline" : null;
-        }
-        if (structureDepth === 0 && token.type === "punctuation") {
-            if (token.value === ";") {
-                return "semicolon";
-            }
-            if (token.value === "}") {
-                return "closing-brace";
-            }
-            if (token.value === ")") {
-                return "closing-paren";
-            }
-        }
-        return null;
-    }
-
-    private collectBalancedTokens(startToken: Token): {
+    private collectBalancedTokens(startToken: Readonly<Token>): {
         closingToken?: Token;
         contentTokens: Token[];
     } {
@@ -267,7 +370,7 @@ class Parser {
 
     private consumeBlankLines(): BlankLineNode {
         let count = 0;
-        const start = this.peek()!.start;
+        const start = this.peek()?.start ?? 0;
         let end = start;
         while (!this.isEOF()) {
             const token = this.peek();
@@ -285,7 +388,10 @@ class Parser {
         } satisfies BlankLineNode;
     }
 
-    private createCommentNode(token: Token, inline: boolean): CommentNode {
+    private createCommentNode(
+        token: Readonly<Token>,
+        inline: boolean
+    ): CommentNode {
         const style = token.type === "block-comment" ? "block" : "line";
         const isInline =
             style === "line" && inline && this.isInlineComment(token);
@@ -305,13 +411,13 @@ class Parser {
 
     private isFunctionDeclaration(): boolean {
         const token = this.peek();
-        return Boolean(
+        return (
             token?.type === "keyword" &&
-                token.value.toLowerCase() === "function"
+            token.value.toLowerCase() === "function"
         );
     }
 
-    private isInlineComment(token: Token): boolean {
+    private isInlineComment(token: Readonly<Token>): boolean {
         if (token.type !== "comment") {
             return false;
         }
@@ -349,6 +455,7 @@ class Parser {
      */
     private isPipelineContinuationAfterNewline(): boolean {
         let offset = 1;
+        // eslint-disable-next-line @typescript-eslint/init-declarations -- assigned in while condition; initializing to undefined would trigger no-useless-assignment
         let next: Token | undefined;
         while ((next = this.peek(offset)) !== undefined) {
             if (next.type === "newline") {
@@ -371,7 +478,11 @@ class Parser {
         const headerTokens: Token[] = [startToken];
 
         while (!this.isEOF()) {
-            const token = this.peek()!;
+            const token = this.peek();
+            // eslint-disable-next-line security/detect-possible-timing-attacks -- Comparing against undefined is not a timing-sensitive operation
+            if (token === undefined) {
+                break;
+            }
             if (token.type === "comment") {
                 break;
             }
@@ -412,8 +523,10 @@ class Parser {
         const nestedParser = new Parser(contentTokens, this.source);
         const script = nestedParser.parseScript(new Set());
         const closingEnd = closingToken?.end ?? openToken.end;
-        const bodyEnd =
-            script.body.length > 0 ? script.body.at(-1).loc.end : closingEnd;
+        const lastScriptBodyNode = script.body.at(-1);
+        const bodyEnd = lastScriptBodyNode
+            ? lastScriptBodyNode.loc.end
+            : closingEnd;
         const end = Math.max(closingEnd, bodyEnd);
 
         return {
@@ -425,14 +538,18 @@ class Parser {
 
     private parseStatement(): null | PipelineNode {
         const segments: Token[][] = [[]];
-        let trailingComment: CommentNode | undefined;
+        let trailingComment: CommentNode | undefined = undefined;
 
         const structureStack: string[] = [];
         let lineContinuation = false;
 
         while (!this.isEOF()) {
-            const token = this.peek()!;
-            const terminatorType = this.classifyStatementTerminator(
+            const token = this.peek();
+            // eslint-disable-next-line security/detect-possible-timing-attacks -- Comparing against undefined is not a timing-sensitive operation
+            if (token === undefined) {
+                break;
+            }
+            const terminatorType = classifyStatementTerminator(
                 token,
                 structureStack.length
             );
@@ -446,7 +563,10 @@ class Parser {
                 /* c8 ignore next */
                 if (structureStack.length > 0) {
                     const newlineToken = this.advance();
-                    segments.at(-1).push(newlineToken);
+                    const lastSegment = segments.at(-1);
+                    if (lastSegment) {
+                        lastSegment.push(newlineToken);
+                    }
                     continue;
                 }
                 if (
@@ -485,7 +605,9 @@ class Parser {
                 }
                 // Inside a structure - include the comment as part of the statement
                 const currentSegment = segments.at(-1);
-                currentSegment.push(this.advance());
+                if (currentSegment) {
+                    currentSegment.push(this.advance());
+                }
                 continue;
             }
 
@@ -495,14 +617,18 @@ class Parser {
                 }
                 // Inside a structure - include the block comment
                 const currentSegment = segments.at(-1);
-                currentSegment.push(this.advance());
+                if (currentSegment) {
+                    currentSegment.push(this.advance());
+                }
                 continue;
             }
 
             if (token.type === "operator" && token.value === "|") {
                 if (structureStack.length > 0) {
                     const currentSegment = segments.at(-1);
-                    currentSegment.push(this.advance());
+                    if (currentSegment) {
+                        currentSegment.push(this.advance());
+                    }
                     lineContinuation = false;
                     continue;
                 }
@@ -521,7 +647,9 @@ class Parser {
             }
 
             const currentSegment = segments.at(-1);
-            currentSegment.push(this.advance());
+            if (currentSegment) {
+                currentSegment.push(this.advance());
+            }
             lineContinuation = false;
 
             if (isOpeningToken(token)) {
@@ -542,7 +670,10 @@ class Parser {
             buildExpressionFromTokens(segmentTokens, this.source)
         );
         const start = expressionSegments[0].loc.start;
-        const end = expressionSegments.at(-1).loc.end;
+        const lastExpressionSegment = expressionSegments.at(-1);
+        const end = lastExpressionSegment
+            ? lastExpressionSegment.loc.end
+            : start;
 
         const pipelineNode: PipelineNode = {
             loc: { end, start },
@@ -591,6 +722,7 @@ class Parser {
  */
 export function parsePowerShell(
     source: string,
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Prettier API type
     options: ParserOptions
 ): ScriptNode {
     resolveOptions(options);
@@ -612,7 +744,7 @@ export function parsePowerShell(
  */
 export function parseScriptWithTerminators(
     source: string,
-    terminators: Set<string>
+    terminators: ReadonlySet<string>
 ): ScriptNode {
     const tokens = tokenize(source);
     const parser = new Parser(tokens, source);
@@ -620,11 +752,12 @@ export function parseScriptWithTerminators(
 }
 
 function buildExpressionFromTokens(
-    tokens: Token[],
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+    tokens: readonly Token[],
     source = ""
 ): ExpressionNode {
     const firstToken = tokens.find((token) => token.type !== "newline");
-    let lastToken: Token | undefined;
+    let lastToken: Token | undefined = undefined;
     for (let index = tokens.length - 1; index >= 0; index -= 1) {
         const candidate = tokens[index];
         if (candidate.type !== "newline") {
@@ -713,8 +846,8 @@ function buildExpressionFromTokens(
         index += 1;
     }
 
-    const expressionEnd =
-        parts.length > 0 ? parts.at(-1).loc.end : lastToken.end;
+    const lastPart = parts.at(-1);
+    const expressionEnd = lastPart ? lastPart.loc.end : lastToken.end;
 
     return {
         loc: {
@@ -726,7 +859,27 @@ function buildExpressionFromTokens(
     } satisfies ExpressionNode;
 }
 
-function buildHashtableEntry(tokens: Token[], source = ""): HashtableEntryNode {
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+const extractKeyText = (tokens: readonly Token[]): string => {
+    const text = tokens
+        .filter((token) => token.type !== "newline")
+        .map((token) => token.value)
+        .join(" ")
+        .trim();
+    if (text.startsWith('"') && text.endsWith('"')) {
+        return text.slice(1, -1);
+    }
+    if (text.startsWith("'") && text.endsWith("'")) {
+        return text.slice(1, -1);
+    }
+    return text;
+};
+
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+function buildHashtableEntry(
+    tokens: readonly Token[],
+    source = ""
+): HashtableEntryNode {
     // Separate comments from other tokens
     const leadingComments: Token[] = [];
     const trailingComments: Token[] = [];
@@ -834,8 +987,34 @@ function buildHashtableEntry(tokens: Token[], source = ""): HashtableEntryNode {
     return entry;
 }
 
+function classifyStatementTerminator(
+    token: Readonly<Token> | undefined,
+    structureDepth: number
+): "closing-brace" | "closing-paren" | "newline" | "semicolon" | null {
+    // eslint-disable-next-line security/detect-possible-timing-attacks -- Comparing against undefined is not a timing-sensitive operation
+    if (token === undefined) {
+        return null;
+    }
+    if (token.type === "newline") {
+        return structureDepth === 0 ? "newline" : null;
+    }
+    if (structureDepth === 0 && token.type === "punctuation") {
+        if (token.value === ";") {
+            return "semicolon";
+        }
+        if (token.value === "}") {
+            return "closing-brace";
+        }
+        if (token.value === ")") {
+            return "closing-paren";
+        }
+    }
+    return null;
+}
+
 function collectStructureTokens(
-    tokens: Token[],
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+    tokens: readonly Token[],
     startIndex: number
 ): { closingToken?: Token; contentTokens: Token[]; endIndex: number } {
     const contentTokens: Token[] = [];
@@ -873,7 +1052,7 @@ function collectStructureTokens(
     return { contentTokens, endIndex: tokens.length };
 }
 
-function createHereStringNode(token: Token): HereStringNode {
+function createHereStringNode(token: Readonly<Token>): HereStringNode {
     const quote = token.quote ?? "double";
     return {
         loc: { end: token.end, start: token.start },
@@ -883,7 +1062,7 @@ function createHereStringNode(token: Token): HereStringNode {
     } satisfies HereStringNode;
 }
 
-function createTextNode(token: Token): TextNode {
+function createTextNode(token: Readonly<Token>): TextNode {
     const tokenTypeToRole: Record<string, TokenRole> = {
         identifier: "word",
         keyword: "keyword",
@@ -920,14 +1099,9 @@ function createTextNode(token: Token): TextNode {
     } satisfies TextNode;
 }
 
-function extendNodeLocation(node: { loc: SourceLocation }, end: number): void {
-    if (end > node.loc.end) {
-        node.loc = { ...node.loc, end };
-    }
-}
-
 function extractElseContinuation(
-    tokens: Token[]
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+    tokens: readonly Token[]
 ): null | { elseTokens: Token[]; remainingTokens: Token[] } {
     let index = 0;
     const prefix: Token[] = [];
@@ -979,125 +1153,9 @@ function extractElseContinuation(
     };
 }
 
-function extractKeyText(tokens: Token[]): string {
-    const text = tokens
-        .filter((token) => token.type !== "newline")
-        .map((token) => token.value)
-        .join(" ")
-        .trim();
-    if (text.startsWith('"') && text.endsWith('"')) {
-        return text.slice(1, -1);
-    }
-    if (text.startsWith("'") && text.endsWith("'")) {
-        return text.slice(1, -1);
-    }
-    return text;
-}
-
-function findTopLevelEquals(tokens: Token[]): number {
-    const stack: string[] = [];
-    for (const [index, token] of tokens.entries()) {
-        if (isOpeningToken(token)) {
-            stack.push(token.value);
-            continue;
-        }
-        if (isClosingToken(token)) {
-            stack.pop();
-            continue;
-        }
-        if (
-            stack.length === 0 &&
-            token.type === "operator" &&
-            token.value === "="
-        ) {
-            return index;
-        }
-    }
-    return -1;
-}
-
-function hasTopLevelComma(tokens: Token[]): boolean {
-    const stack: string[] = [];
-    for (const token of tokens) {
-        if (isOpeningToken(token)) {
-            stack.push(token.value);
-            continue;
-        }
-        if (isClosingToken(token)) {
-            stack.pop();
-            continue;
-        }
-        if (
-            stack.length === 0 &&
-            token.type === "punctuation" &&
-            token.value === ","
-        ) {
-            return true;
-        }
-    }
-    return false;
-}
-
-function isClosingToken(token: Token): boolean {
-    return (
-        token.type === "punctuation" &&
-        (token.value === "}" || token.value === ")" || token.value === "]")
-    );
-}
-
-function isInlineSpacing(source: string, start: number, end: number): boolean {
-    if (start === undefined || end === undefined) {
-        return false;
-    }
-    for (let index = start; index < end; index += 1) {
-        const char = source[index];
-        if (char === "\n" || char === "\r") {
-            return false;
-        }
-        switch (char) {
-            case " ":
-            case "\t":
-            case "\f":
-            case "\v":
-            case "\u00A0":
-            case "\uFEFF":
-            case "\u200B":
-            case "\u2060": {
-                break;
-            }
-            default: {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-function isOpeningToken(token: Token): boolean {
-    if (token.type === "operator") {
-        return token.value === "@{" || token.value === "@(";
-    }
-    return (
-        token.type === "punctuation" &&
-        (token.value === "{" || token.value === "(" || token.value === "[")
-    );
-}
-
-function mergeNodes(previous: ScriptBodyNode, next: ScriptBodyNode): void {
-    if (previous.type === "Pipeline" && next.type === "Comment") {
-        previous.trailingComment = next;
-        extendNodeLocation(previous, next.loc.end);
-        return;
-    }
-
-    if (previous.type === "BlankLine" && next.type === "BlankLine") {
-        previous.count += next.count;
-        extendNodeLocation(previous, next.loc.end);
-    }
-}
-
 function parseArrayPart(
-    tokens: Token[],
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+    tokens: readonly Token[],
     startIndex: number,
     source = ""
 ): { nextIndex: number; node: ArrayLiteralNode } {
@@ -1124,7 +1182,8 @@ function parseArrayPart(
 }
 
 function parseHashtablePart(
-    tokens: Token[],
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+    tokens: readonly Token[],
     startIndex: number,
     source = ""
 ): { nextIndex: number; node: HashtableNode } {
@@ -1149,7 +1208,8 @@ function parseHashtablePart(
 }
 
 function parseParenthesisPart(
-    tokens: Token[],
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+    tokens: readonly Token[],
     startIndex: number,
     source = ""
 ): { nextIndex: number; node: ParenthesisNode } {
@@ -1177,7 +1237,8 @@ function parseParenthesisPart(
 }
 
 function parseScriptBlockPart(
-    tokens: Token[],
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+    tokens: readonly Token[],
     startIndex: number,
     source = ""
 ): { nextIndex: number; node: ScriptBlockNode } {
@@ -1193,8 +1254,8 @@ function parseScriptBlockPart(
         closingToken,
         contentTokens
     );
-    const bodyEnd =
-        script.body.length > 0 ? script.body.at(-1).loc.end : closingEnd;
+    const lastScriptNode = script.body.at(-1);
+    const bodyEnd = lastScriptNode ? lastScriptNode.loc.end : closingEnd;
     const end = Math.max(closingEnd, bodyEnd);
     return {
         nextIndex: endIndex,
@@ -1206,7 +1267,8 @@ function parseScriptBlockPart(
     };
 }
 
-function parseStatementForTest(tokens: Token[]): null | PipelineNode {
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+function parseStatementForTest(tokens: readonly Token[]): null | PipelineNode {
     const parser = new Parser(tokens, "");
     const internal = parser as unknown as {
         parseStatement: () => null | PipelineNode;
@@ -1215,9 +1277,10 @@ function parseStatementForTest(tokens: Token[]): null | PipelineNode {
 }
 
 function resolveStructureEnd(
-    startToken: Token,
-    closingToken: Token | undefined,
-    contentTokens: Token[]
+    startToken: Readonly<Token>,
+    closingToken: Readonly<Token> | undefined,
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+    contentTokens: readonly Token[]
 ): number {
     if (closingToken) {
         return closingToken.end;
@@ -1230,26 +1293,16 @@ function resolveStructureEnd(
     return startToken.end;
 }
 
-function shouldMergeNodes(
-    previous: ScriptBodyNode,
-    next: ScriptBodyNode
-): boolean {
-    return (
-        (previous.type === "Pipeline" &&
-            next.type === "Comment" &&
-            next.inline) ||
-        (previous.type === "BlankLine" && next.type === "BlankLine")
-    );
-}
-
-function splitArrayElements(tokens: Token[]): Token[][] {
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+function splitArrayElements(tokens: readonly Token[]): Token[][] {
     return splitTopLevelTokens(tokens, {
         delimiterValues: [","],
         splitOnNewline: (context) => context.current.length > 0,
     });
 }
 
-function splitHashtableEntries(tokens: Token[]): Token[][] {
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
     type HashtableSplitState = {
         hasEquals: boolean;
         justSawEquals: boolean;
@@ -1289,7 +1342,10 @@ function splitHashtableEntries(tokens: Token[]): Token[][] {
                 if (segment.length > 0) {
                     segment.push(...state.pendingComments);
                 } else if (segments.length > 0) {
-                    segments.at(-1).push(...state.pendingComments);
+                    const previousSegment = segments.at(-1);
+                    if (previousSegment) {
+                        previousSegment.push(...state.pendingComments);
+                    }
                 }
                 state.pendingComments = [];
             }
@@ -1297,7 +1353,8 @@ function splitHashtableEntries(tokens: Token[]): Token[][] {
             state.justSawEquals = false;
             return segment;
         },
-        onToken: (context) => {
+        // eslint-disable-next-line @typescript-eslint/consistent-return -- return type includes undefined so implicit return is valid per the SplitDecision type
+        onToken: (context): SplitDecision => {
             if (
                 context.token.type === "comment" ||
                 context.token.type === "block-comment"
@@ -1336,7 +1393,10 @@ function splitHashtableEntries(tokens: Token[]): Token[][] {
         if (segments.length > 0) {
             const continuation = extractElseContinuation(segment);
             if (continuation) {
-                segments.at(-1).push(...continuation.elseTokens);
+                const previousSegment = segments.at(-1);
+                if (previousSegment) {
+                    previousSegment.push(...continuation.elseTokens);
+                }
                 if (continuation.remainingTokens.length > 0) {
                     segments.push(continuation.remainingTokens);
                 }
@@ -1350,7 +1410,8 @@ function splitHashtableEntries(tokens: Token[]): Token[][] {
 }
 
 function splitTopLevelTokens<TState = Record<string, never>>(
-    tokens: Token[],
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+    tokens: readonly Token[],
     options: SplitOptions<TState> = {}
 ): Token[][] {
     const result: Token[][] = [];
@@ -1383,7 +1444,7 @@ function splitTopLevelTokens<TState = Record<string, never>>(
         };
 
         if (token.type === "newline" && topLevel) {
-            if (options.splitOnNewline?.(context)) {
+            if (options.splitOnNewline?.(context) === true) {
                 flush();
             }
             continue;
@@ -1392,7 +1453,7 @@ function splitTopLevelTokens<TState = Record<string, never>>(
         if (
             topLevel &&
             token.type === "punctuation" &&
-            options.delimiterValues?.includes(token.value)
+            options.delimiterValues?.includes(token.value) === true
         ) {
             if (options.shouldSplitOnDelimiter?.(context) ?? true) {
                 flush();
@@ -1430,6 +1491,29 @@ function splitTopLevelTokens<TState = Record<string, never>>(
 
     return result;
 }
+
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+const findTopLevelEquals = (tokens: readonly Token[]): number => {
+    const stack: string[] = [];
+    for (const [index, token] of tokens.entries()) {
+        if (isOpeningToken(token)) {
+            stack.push(token.value);
+            continue;
+        }
+        if (isClosingToken(token)) {
+            stack.pop();
+            continue;
+        }
+        if (
+            stack.length === 0 &&
+            token.type === "operator" &&
+            token.value === "="
+        ) {
+            return index;
+        }
+    }
+    return -1;
+};
 
 /**
  * Internal parser helpers exposed for white-box tests.
@@ -1473,10 +1557,11 @@ export const __parserTestUtils: {
 /**
  * Returns the starting location offset used by Prettier.
  */
-export const locStart = (node: { loc: { start: number } }): number =>
+export const locStart = (node: Readonly<{ loc: { start: number } }>): number =>
     node.loc.start;
 
 /**
  * Returns the ending location offset used by Prettier.
  */
-export const locEnd = (node: { loc: { end: number } }): number => node.loc.end;
+export const locEnd = (node: Readonly<{ loc: { end: number } }>): number =>
+    node.loc.end;
