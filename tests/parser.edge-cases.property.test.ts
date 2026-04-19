@@ -21,7 +21,6 @@ describe("parser edge case property tests", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
 
-
             fc.assert(
                 fc.property(fc.integer({ max: 20, min: 1 }), (depth) => {
                     const opening = "{".repeat(depth);
@@ -44,7 +43,6 @@ describe("parser edge case property tests", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
 
-
             fc.assert(
                 fc.property(fc.integer({ max: 15, min: 1 }), (depth) => {
                     const opening = "@(".repeat(depth);
@@ -66,7 +64,6 @@ describe("parser edge case property tests", () => {
         it("handles deeply nested hashtables", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
 
             fc.assert(
                 fc.property(fc.integer({ max: 15, min: 1 }), (depth) => {
@@ -94,7 +91,6 @@ describe("parser edge case property tests", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
 
-
             fc.assert(
                 fc.property(
                     fc.integer({ max: 5, min: 1 }),
@@ -121,7 +117,6 @@ describe("parser edge case property tests", () => {
         it("handles missing closing parentheses gracefully", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
 
             fc.assert(
                 fc.property(
@@ -151,7 +146,6 @@ describe("parser edge case property tests", () => {
         it("handles comments in various positions", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
 
             fc.assert(
                 fc.property(
@@ -201,7 +195,6 @@ describe("parser edge case property tests", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
 
-
             fc.assert(
                 fc.property(
                     fc.constantFrom(
@@ -231,7 +224,6 @@ describe("parser edge case property tests", () => {
         it("handles various quote types and escaping", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
 
             fc.assert(
                 fc.property(
@@ -263,7 +255,6 @@ describe("parser edge case property tests", () => {
         it("handles here-strings with various content", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
 
             fc.assert(
                 fc.property(
@@ -299,7 +290,6 @@ describe("parser edge case property tests", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
 
-
             fc.assert(
                 fc.property(
                     fc.constantFrom(" ", "\t", "\r\n", "\n", "  ", "\t\t"),
@@ -322,7 +312,6 @@ describe("parser edge case property tests", () => {
         it("handles scripts with only whitespace", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
 
             fc.assert(
                 fc.property(
@@ -348,7 +337,6 @@ describe("parser edge case property tests", () => {
         it("handles long pipelines", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
 
             fc.assert(
                 fc.property(fc.integer({ max: 20, min: 2 }), (length) => {
@@ -386,7 +374,6 @@ describe("parser edge case property tests", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
 
-
             fc.assert(
                 fc.property(
                     fc.constantFrom(
@@ -415,7 +402,6 @@ describe("parser edge case property tests", () => {
         it("handles various operators", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
 
             fc.assert(
                 fc.property(
@@ -451,7 +437,6 @@ describe("parser edge case property tests", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
 
-
             fc.assert(
                 fc.property(
                     fc.constantFrom(
@@ -481,7 +466,6 @@ describe("parser edge case property tests", () => {
         it("maintains location invariants for complex nested structures", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
 
             fc.assert(
                 fc.property(
@@ -583,7 +567,6 @@ describe("parser edge case property tests", () => {
         it("ensures all tokens are accounted for in the AST", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
 
             fc.assert(
                 fc.property(

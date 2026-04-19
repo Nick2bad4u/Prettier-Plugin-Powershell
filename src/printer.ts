@@ -376,8 +376,8 @@ function gapBetween(
     return " ";
 }
 
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Doc is a recursive Prettier type that cannot be made deeply readonly
 function indentStatement(
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Prettier Doc is a recursive union not modeled as deeply readonly in upstream types
     docToIndent: Doc,
     options: Readonly<ResolvedOptions>
 ): Doc {

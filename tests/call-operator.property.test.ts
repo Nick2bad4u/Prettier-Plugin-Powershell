@@ -96,7 +96,6 @@ describe("call operator property-based tests", () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
 
-
         await withProgress(
             "callOperator.scriptBlock",
             PROPERTY_RUNS,
@@ -160,7 +159,6 @@ ${formatted}`
         expect.hasAssertions();
         expect(true).toBeTruthy();
 
-
         await withProgress(
             "callOperator.commandExpression",
             PROPERTY_RUNS,
@@ -188,9 +186,8 @@ ${formatted}`
                                 .some((line) => {
                                     const trimmed = line.trimStart();
                                     return (
-                                        trimmed.startsWith(
-                                            "& (Get-Command "
-                                        ) && trimmed.includes(escapedCmd)
+                                        trimmed.startsWith("& (Get-Command ") &&
+                                        trimmed.includes(escapedCmd)
                                     );
                                 });
 
@@ -206,7 +203,6 @@ ${formatted}`
     it("preserves splatted argument invocation", async () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
-
 
         await withProgress(
             "callOperator.splat",
@@ -260,7 +256,6 @@ ${paramsVar} = @{ Name = "${argValue}" }
     it("preserves property invocation via call operator", async () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
-
 
         await withProgress(
             "callOperator.propertyInvocation",

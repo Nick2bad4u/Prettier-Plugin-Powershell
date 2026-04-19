@@ -106,8 +106,8 @@ function isOpeningToken(token: Readonly<Token>): boolean {
     );
 }
 
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- previous.trailingComment and previous.loc are mutated
 function mergeNodes(
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- mergeNodes intentionally mutates previous node fields when coalescing adjacent nodes
     previous: ScriptBodyNode,
     next: Readonly<ScriptBodyNode>
 ): void {
@@ -875,8 +875,8 @@ const extractKeyText = (tokens: readonly Token[]): string => {
     return text;
 };
 
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
 function buildHashtableEntry(
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token model is mutable and used per parser conventions; deep-readonly token graph is not currently modeled
     tokens: readonly Token[],
     source = ""
 ): HashtableEntryNode {

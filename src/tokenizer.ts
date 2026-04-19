@@ -185,7 +185,10 @@ export function normalizeHereString(node: Readonly<HereStringNode>): string {
     return lines.slice(1, -1).join("\n");
 }
 
-const readAttributeEnd = (source: string, startIndex: number): null | number => {
+const readAttributeEnd = (
+    source: string,
+    startIndex: number
+): null | number => {
     let lookahead = startIndex + 1;
     while (
         lookahead < source.length &&
@@ -235,7 +238,7 @@ const readAttributeEnd = (source: string, startIndex: number): null | number => 
     }
 
     return depth === 0 ? scanIndex : source.length;
-}
+};
 
 const readHereStringEnd = (source: string, startIndex: number): number => {
     const quoteChar = source[startIndex + 1];
@@ -266,7 +269,7 @@ const readHereStringEnd = (source: string, startIndex: number): number => {
     }
 
     return source.length;
-}
+};
 
 /**
  * Tokenizes PowerShell source code into an array of tokens.

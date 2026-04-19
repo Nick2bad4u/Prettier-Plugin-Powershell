@@ -54,7 +54,6 @@ describe("abstract syntax tree property-based tests", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
 
-
             fc.assert(
                 fc.property(
                     fc.integer({ max: 10_000, min: -1000 }),
@@ -95,11 +94,8 @@ describe("abstract syntax tree property-based tests", () => {
         });
 
         it("handles single argument correctly", () => {
-
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
-            
 
             fc.assert(
                 fc.property(fc.integer({ max: 10_000, min: 0 }), (position) => {
@@ -116,11 +112,8 @@ describe("abstract syntax tree property-based tests", () => {
         });
 
         it("normalizes negative start to 0", () => {
-
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
-            
 
             fc.assert(
                 fc.property(
@@ -140,11 +133,8 @@ describe("abstract syntax tree property-based tests", () => {
         });
 
         it("ensures end >= start", () => {
-
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
-            
 
             fc.assert(
                 fc.property(
@@ -165,11 +155,8 @@ describe("abstract syntax tree property-based tests", () => {
         });
 
         it("floors non-integer values", () => {
-
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
-            
 
             fc.assert(
                 fc.property(
@@ -194,11 +181,8 @@ describe("abstract syntax tree property-based tests", () => {
         });
 
         it("handles NaN and Infinity gracefully", () => {
-
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
-            
 
             fc.assert(
                 fc.property(
@@ -242,7 +226,6 @@ describe("abstract syntax tree property-based tests", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
 
-
             fc.assert(
                 fc.property(baseNodeArb, (node) => {
                     if (node.type === "Comment") {
@@ -272,11 +255,8 @@ describe("abstract syntax tree property-based tests", () => {
         });
 
         it("returns false for null and undefined", () => {
-
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
-            
 
             fc.assert(
                 fc.property(
@@ -299,11 +279,8 @@ describe("abstract syntax tree property-based tests", () => {
         });
 
         it("handles objects without type property", () => {
-
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
-            
 
             fc.assert(
                 fc.property(
@@ -328,7 +305,6 @@ describe("abstract syntax tree property-based tests", () => {
         it("creates a shallow copy of the node", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
 
             fc.assert(
                 fc.property(baseNodeArb, (node) => {
@@ -362,11 +338,8 @@ describe("abstract syntax tree property-based tests", () => {
         });
 
         it("preserves all node properties", () => {
-
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
-            
 
             fc.assert(
                 fc.property(commentNodeArb, (node) => {
@@ -387,11 +360,8 @@ describe("abstract syntax tree property-based tests", () => {
         });
 
         it("mutating clone does not affect original", () => {
-
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
-            
 
             fc.assert(
                 fc.property(commentNodeArb, (node) => {
@@ -414,11 +384,8 @@ describe("abstract syntax tree property-based tests", () => {
         });
 
         it("works with BlankLine nodes", () => {
-
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
-            
 
             fc.assert(
                 fc.property(blankLineNodeArb, (node) => {
@@ -444,7 +411,6 @@ describe("abstract syntax tree property-based tests", () => {
             expect.hasAssertions();
             expect(true).toBeTruthy();
 
-
             fc.assert(
                 fc.property(validSourceLocationArb, (loc) => {
                     // Creating a new location from valid values should preserve validity
@@ -461,11 +427,8 @@ describe("abstract syntax tree property-based tests", () => {
         });
 
         it("locations are always valid regardless of input order", () => {
-
             expect.hasAssertions();
             expect(true).toBeTruthy();
-
-            
 
             fc.assert(
                 fc.property(

@@ -41,6 +41,21 @@ class MockProcess extends EventTarget {
         this.stderr = new PassThrough();
     }
 
+    /**
+     * Node.js EventEmitter compatibility alias for `on`.
+     *
+     * @param eventName - Event name to subscribe to
+     * @param listener - Listener callback
+     *
+     * @returns The current process instance for chaining
+     */
+    public addListener(
+        eventName: string,
+        listener: (...detail: readonly unknown[]) => void
+    ): this {
+        return this.on(eventName, listener);
+    }
+
     public emit(eventName: string, ...detail: readonly unknown[]): boolean {
         const event = new Event(eventName) as Event & {
             detail: readonly unknown[];
@@ -93,6 +108,21 @@ class MockProcess extends EventTarget {
         };
 
         return this.on(eventName, wrapped);
+    }
+
+    /**
+     * Node.js EventEmitter compatibility alias for `off`.
+     *
+     * @param eventName - Event name to unsubscribe from
+     * @param listener - Listener callback
+     *
+     * @returns The current process instance for chaining
+     */
+    public removeListener(
+        eventName: string,
+        listener: (...detail: readonly unknown[]) => void
+    ): this {
+        return this.off(eventName, listener);
     }
 
     public startConsumingInput(): void {
@@ -191,6 +221,27 @@ function createSpawnMock(
     });
 }
 
+/**
+ * Installs a typed runtime mock for node:child_process that overrides spawn.
+ *
+ * @param spawnMock - Mock implementation used for child_process.spawn
+ */
+const mockChildProcessModule = (spawnMock: unknown): void => {
+    vi.doMock(import("node:child_process"), async (importOriginal) => {
+        const actual = await importOriginal();
+        const typedSpawn = spawnMock as typeof actual.spawn;
+
+        return {
+            ...actual,
+            default: {
+                ...actual.default,
+                spawn: typedSpawn,
+            },
+            spawn: typedSpawn,
+        };
+    });
+};
+
 const { env: testEnv } = process;
 const originalEnv = { ...testEnv };
 
@@ -209,6 +260,7 @@ const resetTestState = (): void => {
     vi.clearAllMocks();
     vi.resetModules();
     vi.doUnmock("node:child_process");
+    process.removeAllListeners("error");
     process.removeAllListeners("exit");
 };
 
@@ -242,9 +294,7 @@ describe("powershell syntax utilities", () => {
             });
 
             const spawnMock = vi.fn<() => ChildProcess>();
-            vi.doMock(import('node:child_process'), () => ({
-                spawn: spawnMock,
-            }));
+            mockChildProcessModule(spawnMock);
 
             const { assertPowerShellParses, isPowerShellParsable } =
                 await import("./powershell.js");
@@ -271,9 +321,7 @@ describe("powershell syntax utilities", () => {
             });
 
             const spawnMock = createSpawnMock([{ type: "OK" }]);
-            vi.doMock(import('node:child_process'), () => ({
-                spawn: spawnMock,
-            }));
+            mockChildProcessModule(spawnMock);
 
             const { isPowerShellParsable } = await import("./powershell.js");
 
@@ -297,7 +345,7 @@ describe("powershell syntax utilities", () => {
         const spawnMock = createSpawnMock([
             { message: "Line 1: unexpected token", type: "ERROR" },
         ]);
-        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
+        mockChildProcessModule(spawnMock);
 
         const { assertPowerShellParses } = await import("./powershell.js");
 
@@ -320,7 +368,7 @@ describe("powershell syntax utilities", () => {
         const spawnMock = createSpawnMock([
             { message: "Syntax failure", type: "ERROR" },
         ]);
-        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
+        mockChildProcessModule(spawnMock);
 
         const { isPowerShellParsable } = await import("./powershell.js");
 
@@ -340,7 +388,7 @@ describe("powershell syntax utilities", () => {
         });
 
         const spawnMock = createSpawnMock([{ type: "OK" }]);
-        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
+        mockChildProcessModule(spawnMock);
 
         const { isPowerShellParsable } = await import("./powershell.js");
 
@@ -368,7 +416,7 @@ describe("powershell syntax utilities", () => {
             error.code = "ENOENT";
             throw error;
         });
-        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
+        mockChildProcessModule(spawnMock);
 
         const { assertPowerShellParses } = await import("./powershell.js");
 
@@ -391,7 +439,7 @@ describe("powershell syntax utilities", () => {
         const spawnMock = vi.fn<() => never>(() => {
             throw new Error("spawn failure");
         });
-        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
+        mockChildProcessModule(spawnMock);
 
         const { assertPowerShellParses } = await import("./powershell.js");
 
@@ -419,7 +467,7 @@ describe("powershell syntax utilities", () => {
                     stdout: null,
                 }) as unknown as ChildProcess
         );
-        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
+        mockChildProcessModule(spawnMock);
 
         const { assertPowerShellParses } = await import("./powershell.js");
 
@@ -449,7 +497,7 @@ describe("powershell syntax utilities", () => {
                 },
             }
         );
-        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
+        mockChildProcessModule(spawnMock);
 
         const { assertPowerShellParses } = await import("./powershell.js");
 
@@ -499,7 +547,7 @@ describe("powershell syntax utilities", () => {
                 }, 0);
             },
         });
-        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
+        mockChildProcessModule(spawnMock);
 
         const { isPowerShellParsable } = await import("./powershell.js");
 
@@ -529,7 +577,7 @@ describe("powershell syntax utilities", () => {
                 },
             }
         );
-        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
+        mockChildProcessModule(spawnMock);
 
         const { assertPowerShellParses } = await import("./powershell.js");
 
@@ -564,7 +612,7 @@ describe("powershell syntax utilities", () => {
             };
             proc.stdin.write = failingWrite as typeof proc.stdin.write;
         });
-        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
+        mockChildProcessModule(spawnMock);
 
         const { assertPowerShellParses } = await import("./powershell.js");
 
@@ -584,6 +632,7 @@ describe("powershell syntax utilities", () => {
             .mockImplementation((message) => {
                 logs.push(String(message));
             });
+        const errorSpy = vi.spyOn(console, "error").mockReturnValue(undefined);
 
         replaceTestEnvironment({
             POWERSHELL_SYNTAX_TRACE: "1",
@@ -594,7 +643,7 @@ describe("powershell syntax utilities", () => {
         const spawnMock = createSpawnMock([{ type: "OK" }], (proc) => {
             createdProcess = proc;
         });
-        vi.doMock(import('node:child_process'), () => ({ spawn: spawnMock }));
+        mockChildProcessModule(spawnMock);
 
         const { isPowerShellParsable } = await import("./powershell.js");
 
@@ -613,6 +662,16 @@ describe("powershell syntax utilities", () => {
         processRef.emit("error", new Error("boom"));
         processRef.emit("exit", 0);
 
+        // Drain the microtask queue so that the async continuations of
+        // monitorPersistentProcessError / monitorPersistentProcessExit (which
+        // use `await once(proc, "error")` internally) run *before* the spies
+        // are restored.  Without this flush the console.error calls happen
+        // after mockRestore() and leak into the test runner's stderr stream.
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+
         logSpy.mockRestore();
+        errorSpy.mockRestore();
     });
 });

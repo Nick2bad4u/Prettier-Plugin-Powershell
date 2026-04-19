@@ -42,8 +42,13 @@ import { normalizeHereString, tokenize } from "../src/tokenizer.js";
 import { formatAndAssert } from "./utils/format-and-assert.js";
 
 interface ParserTestUtils {
-    buildExpressionFromTokens: (tokens: readonly Readonly<Token>[]) => ExpressionNode;
-    buildHashtableEntry: (tokens: readonly Readonly<Token>[], source?: string) => HashtableEntryNode;
+    buildExpressionFromTokens: (
+        tokens: readonly Readonly<Token>[]
+    ) => ExpressionNode;
+    buildHashtableEntry: (
+        tokens: readonly Readonly<Token>[],
+        source?: string
+    ) => HashtableEntryNode;
     collectStructureTokens: (
         tokens: readonly Readonly<Token>[],
         startIndex: number
@@ -59,7 +64,9 @@ interface ParserTestUtils {
         source: string,
         terminators: ReadonlySet<string>
     ) => ScriptNode;
-    parseStatementForTest: (tokens: readonly Readonly<Token>[]) => null | PipelineNode;
+    parseStatementForTest: (
+        tokens: readonly Readonly<Token>[]
+    ) => null | PipelineNode;
     resolveStructureEnd: (
         startToken: Readonly<Token>,
         closingToken: Readonly<Token> | undefined,
@@ -139,7 +146,9 @@ const makeTextNode = (value: string, role: TokenRole = "word"): TextNode => ({
     value,
 });
 
-const makeExpressionNode = (parts: readonly Readonly<ExpressionPartNode>[]): ExpressionNode => ({
+const makeExpressionNode = (
+    parts: readonly Readonly<ExpressionPartNode>[]
+): ExpressionNode => ({
     loc: { end: parts.at(-1)?.loc.end ?? 0, start: 0 },
     parts: [...parts] as ExpressionPartNode[],
     type: "Expression",
@@ -178,7 +187,10 @@ describe("ast runtime helpers", () => {
 
         expect(createLocation(-4, 6)).toStrictEqual({ end: 6, start: 0 });
         expect(createLocation(10, 3)).toStrictEqual({ end: 10, start: 10 });
-        expect(createLocation(5.9, Number.NaN)).toStrictEqual({ end: 5, start: 5 });
+        expect(createLocation(5.9, Number.NaN)).toStrictEqual({
+            end: 5,
+            start: 5,
+        });
         expect(createLocation(Number.POSITIVE_INFINITY, 15)).toStrictEqual({
             end: 15,
             start: 0,
@@ -648,7 +660,9 @@ describe("parser advanced coverage", () => {
         const script =
             "Get-Process\n# stop continuation\n| Where-Object { $_ }";
         const ast = parse(script);
-        const comment = ast.body.find((node): node is CommentNode => node.type === "Comment");
+        const comment = ast.body.find(
+            (node): node is CommentNode => node.type === "Comment"
+        );
 
         expect(comment?.type).toBe("Comment");
 
@@ -682,7 +696,9 @@ describe("parser advanced coverage", () => {
 
         expect(pipelines).toHaveLength(3);
 
-        const blank = ast.body.find((node): node is BlankLineNode => node.type === "BlankLine");
+        const blank = ast.body.find(
+            (node): node is BlankLineNode => node.type === "BlankLine"
+        );
 
         expect(blank?.type).toBe("BlankLine");
 
@@ -694,7 +710,10 @@ describe("parser advanced coverage", () => {
 
         const script = 'function Missing {\n  Write-Host "x"';
         const ast = parse(script);
-        const fn = ast.body.find((node): node is FunctionDeclarationNode => node.type === "FunctionDeclaration");
+        const fn = ast.body.find(
+            (node): node is FunctionDeclarationNode =>
+                node.type === "FunctionDeclaration"
+        );
 
         expect(fn?.type).toBe("FunctionDeclaration");
 
@@ -706,7 +725,10 @@ describe("parser advanced coverage", () => {
 
         const script = "function HeaderOnly\nparam([string]$Name)";
         const ast = parse(script);
-        const fn = ast.body.find((node): node is FunctionDeclarationNode => node.type === "FunctionDeclaration");
+        const fn = ast.body.find(
+            (node): node is FunctionDeclarationNode =>
+                node.type === "FunctionDeclaration"
+        );
 
         expect(fn?.type).toBe("FunctionDeclaration");
 
@@ -796,7 +818,10 @@ describe("parser advanced coverage", () => {
         const script =
             'function HeaderComment # comment here\n{ Write-Host "inside" }';
         const ast = parse(script);
-        const fn = ast.body.find((node): node is FunctionDeclarationNode => node.type === "FunctionDeclaration");
+        const fn = ast.body.find(
+            (node): node is FunctionDeclarationNode =>
+                node.type === "FunctionDeclaration"
+        );
 
         expect(fn?.type).toBe("FunctionDeclaration");
 

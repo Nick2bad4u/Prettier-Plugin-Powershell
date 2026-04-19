@@ -101,14 +101,22 @@ describe("formatAndAssert helper", () => {
 
         vi.resetModules();
 
-        vi.doMock(import("prettier"), () => ({
-            default: {
-                format: vi
-                    .fn<() => Promise<string>>()
-                    .mockResolvedValueOnce("First run output")
-                    .mockResolvedValueOnce("Second run output"),
-            },
-        }));
+        vi.doMock(import("prettier"), async (importOriginal) => {
+            const actual = await importOriginal();
+            const formatMock = vi
+                .fn<typeof actual.format>()
+                .mockResolvedValueOnce("First run output")
+                .mockResolvedValueOnce("Second run output");
+
+            return {
+                ...actual,
+                default: {
+                    ...actual.default,
+                    format: formatMock,
+                },
+                format: formatMock,
+            };
+        });
 
         const module = await import("./format-and-assert.js");
 

@@ -271,8 +271,7 @@ const commandStatementArb: fc.Arbitrary<string> = fc
             string,
             readonly string[],
             (
-                | string
-                | undefined
+                string | undefined
             ),
         ]) => {
             const pieces = [cmdlet];

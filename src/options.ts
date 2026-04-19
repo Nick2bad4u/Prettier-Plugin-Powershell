@@ -264,7 +264,7 @@ const applyPresetDefaults = (
             target[key] = value;
         }
     }
-}
+};
 
 /**
  * Resolves PowerShell-specific options and normalizes Prettier options.
@@ -273,7 +273,9 @@ const applyPresetDefaults = (
  * `tabWidth`, and `printWidth` to ensure consistency between
  * PowerShell-specific settings and Prettier's core settings.
  */
-export function resolveOptions(options: Readonly<ParserOptions>): ResolvedOptions {
+export function resolveOptions(
+    options: Readonly<ParserOptions>
+): ResolvedOptions {
     const preset =
         (options.powershellPreset as PresetOption | undefined) ?? "none";
     applyPresetDefaults(options, preset);
