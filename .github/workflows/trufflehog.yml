@@ -40,4 +40,4 @@ jobs:
               with:
                   base: ""
                   head: ${{ github.ref_name }}
-                  extra_args: --results=verified,unknown --config=.trufflehog.yml
+                  extra_args: --results=verified,unknown

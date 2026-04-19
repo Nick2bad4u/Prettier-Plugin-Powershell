@@ -354,7 +354,7 @@ jobs:
    - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v4.0.4
      with:
       node-version: "20"
-   - run: npm ci
+   - run: npm ci --force
    - name: Benchmark
      run: |
       npm run benchmark > benchmark.txt
