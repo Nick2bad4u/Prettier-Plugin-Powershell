@@ -289,13 +289,16 @@ export function resolveOptions(
     const rawIndentOverride = options.powershellIndentSize;
     const normalizedIndentOverride = Number(rawIndentOverride);
     const normalizedTabWidth = options.tabWidth;
-    const indentSize =
+    // Default to 4; overridden by explicit override or tabWidth when valid.
+    let indentSize = 4;
+    if (
         Number.isFinite(normalizedIndentOverride) &&
         normalizedIndentOverride > 0
-            ? Math.floor(normalizedIndentOverride)
-            : Number.isFinite(normalizedTabWidth) && normalizedTabWidth > 0
-              ? Math.floor(normalizedTabWidth)
-              : 4;
+    ) {
+        indentSize = Math.floor(normalizedIndentOverride);
+    } else if (Number.isFinite(normalizedTabWidth) && normalizedTabWidth > 0) {
+        indentSize = Math.floor(normalizedTabWidth);
+    }
 
     mutableOptions.useTabs = indentStyle === "tabs";
     mutableOptions.tabWidth = indentSize;

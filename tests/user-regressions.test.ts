@@ -19,29 +19,34 @@ const readFixture = (relativePath: string) =>
 const normalizeNewlines = (text: string): string =>
     text.replaceAll("\r\n", "\n");
 
+/**
+ * Formats `inputFixture` and asserts the output matches `expectedFixture`.
+ * Extracted to module scope so Sonar does not flag it as a nested async
+ * function.
+ */
+async function assertFormatting(
+    inputFixture: string,
+    expectedFixture: string,
+    snapshotKey: string
+) {
+    const input = await readFixture(inputFixture);
+    const expected = await readFixture(expectedFixture);
+    const filepath = expectedFixture.endsWith(".psd1")
+        ? "test.psd1"
+        : "test.ps1";
+    const result = await formatAndAssert(
+        input,
+        {
+            ...baseConfig,
+            filepath,
+        },
+        snapshotKey
+    );
+
+    expect(normalizeNewlines(result)).toBe(normalizeNewlines(expected));
+}
+
 describe("ps-color-scripts regressions", () => {
-    async function assertFormatting(
-        inputFixture: string,
-        expectedFixture: string,
-        snapshotKey: string
-    ) {
-        const input = await readFixture(inputFixture);
-        const expected = await readFixture(expectedFixture);
-        const filepath = expectedFixture.endsWith(".psd1")
-            ? "test.psd1"
-            : "test.ps1";
-        const result = await formatAndAssert(
-            input,
-            {
-                ...baseConfig,
-                filepath,
-            },
-            snapshotKey
-        );
-
-        expect(normalizeNewlines(result)).toBe(normalizeNewlines(expected));
-    }
-
     it("normalizes Invoke-ColorScriptCacheOperation indentation and semicolons", async () => {
         expect.hasAssertions();
 

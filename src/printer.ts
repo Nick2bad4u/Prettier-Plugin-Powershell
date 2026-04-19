@@ -1151,16 +1151,9 @@ function printParenthesis(
     const separator: Doc = hasComma
         ? [",", forceMultiline ? hardline : line]
         : hardline;
-    const leadingLine = hasComma
-        ? forceMultiline
-            ? hardline
-            : line
-        : hardline;
-    const trailingLine = hasComma
-        ? forceMultiline
-            ? hardline
-            : line
-        : hardline;
+    const hasSoftBreak = hasComma && !forceMultiline;
+    const leadingLine: Doc = hasSoftBreak ? line : hardline;
+    const trailingLine: Doc = hasSoftBreak ? line : hardline;
 
     return group(
         [
