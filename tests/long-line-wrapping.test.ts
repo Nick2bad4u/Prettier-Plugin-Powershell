@@ -10,6 +10,8 @@ const baseConfig = {
 describe("long Line Wrapping Improvements", () => {
     describe("long Pipeline Chains", () => {
         it("breaks long pipelines with 4+ segments", async () => {
+            expect.hasAssertions();
+
             const input = `Get-Process | Where-Object { $_.CPU -gt 10 } | Select-Object Name, CPU | Sort-Object CPU -Descending | Format-Table`;
             const result = await formatAndAssert(
                 input,
@@ -24,6 +26,8 @@ describe("long Line Wrapping Improvements", () => {
         });
 
         it("keeps short pipelines on one line", async () => {
+            expect.hasAssertions();
+
             const input = `Get-Process | Select-Object Name`;
             const result = await formatAndAssert(
                 input,
@@ -36,6 +40,8 @@ describe("long Line Wrapping Improvements", () => {
         });
 
         it("handles very long pipeline chains gracefully", async () => {
+            expect.hasAssertions();
+
             const input = `Get-ChildItem | Where-Object { $_.Length -gt 1MB } | Select-Object Name, Length, LastWriteTime | Sort-Object Length -Descending | Select-Object -First 10 | ForEach-Object { Write-Output $_.Name } | Out-String | Write-Host`;
             const result = await formatAndAssert(
                 input,
@@ -54,6 +60,8 @@ describe("long Line Wrapping Improvements", () => {
         });
 
         it("handles pipelines with script blocks", async () => {
+            expect.hasAssertions();
+
             const input = `Get-Process | Where-Object { $_.WorkingSet -gt 100MB -and $_.Name -like "*chrome*" -or $_.Name -like "*firefox*" } | ForEach-Object { Write-Output "Process: $($_.Name), Memory: $($_.WorkingSet / 1MB) MB" }`;
             const result = await formatAndAssert(
                 input,
@@ -68,6 +76,8 @@ describe("long Line Wrapping Improvements", () => {
 
     describe("long Script Block One-Liners", () => {
         it("formats long Where-Object blocks", async () => {
+            expect.hasAssertions();
+
             const input = `Get-Process | Where-Object { $_.Name -like "*chrome*" -and $_.CPU -gt 100 -and $_.WorkingSet -gt 100MB -or $_.HandleCount -gt 1000 }`;
             const result = await formatAndAssert(
                 input,
@@ -80,6 +90,8 @@ describe("long Line Wrapping Improvements", () => {
         });
 
         it("formats long ForEach-Object blocks", async () => {
+            expect.hasAssertions();
+
             const input = `1..100 | ForEach-Object { $value = $_ * 2; $squared = $value * $value; Write-Output "Value: $value, Squared: $squared" }`;
             const result = await formatAndAssert(
                 input,
@@ -92,6 +104,8 @@ describe("long Line Wrapping Improvements", () => {
         });
 
         it("handles nested script blocks in pipelines", async () => {
+            expect.hasAssertions();
+
             const input = `Get-ChildItem | Where-Object { $_.Name -match "test" } | ForEach-Object { Get-Content $_.FullName | Where-Object { $_ -match "error" } }`;
             const result = await formatAndAssert(
                 input,
@@ -106,6 +120,8 @@ describe("long Line Wrapping Improvements", () => {
 
     describe("long Parameter Lists", () => {
         it("handles cmdlets with many parameters", async () => {
+            expect.hasAssertions();
+
             const input = String.raw`Get-ChildItem -Path "C:\Windows" -Filter "*.log" -Recurse -ErrorAction SilentlyContinue -Force -File -Attributes Hidden, System -Exclude "temp*", "cache*"`;
             const result = await formatAndAssert(
                 input,
@@ -118,6 +134,8 @@ describe("long Line Wrapping Improvements", () => {
         });
 
         it("formats function declarations with many parameters", async () => {
+            expect.hasAssertions();
+
             const input = `function Test-Function { param([string]$Param1, [string]$Param2, [int]$Param3, [bool]$Param4, [datetime]$Param5, [hashtable]$Param6, [array]$Param7, [scriptblock]$Param8) }`;
             const result = await formatAndAssert(
                 input,
@@ -132,6 +150,8 @@ describe("long Line Wrapping Improvements", () => {
 
     describe("long Expressions", () => {
         it("handles long conditional expressions", async () => {
+            expect.hasAssertions();
+
             const input = `if ($value -gt 10 -and $name -like "*test*" -and $status -eq "active" -and $count -lt 100 -or $forceOverride -eq $true) { Write-Output "matched" }`;
             const result = await formatAndAssert(
                 input,
@@ -144,6 +164,8 @@ describe("long Line Wrapping Improvements", () => {
         });
 
         it("handles long string concatenations", async () => {
+            expect.hasAssertions();
+
             const input = `$message = "This is a very long message that contains " + $variable1 + " and also includes " + $variable2 + " plus some more text " + $variable3`;
             const result = await formatAndAssert(
                 input,
@@ -156,6 +178,8 @@ describe("long Line Wrapping Improvements", () => {
         });
 
         it("handles long hashtable definitions", async () => {
+            expect.hasAssertions();
+
             const input = `$config = @{ ServerName = "localhost"; Port = 8080; Database = "mydb"; Username = "admin"; Password = "secret"; ConnectionTimeout = 30; CommandTimeout = 300; EnableRetry = $true }`;
             const result = await formatAndAssert(
                 input,
@@ -170,6 +194,8 @@ describe("long Line Wrapping Improvements", () => {
 
     describe("edge Cases", () => {
         it("handles extremely long single-line scripts (>500 chars)", async () => {
+            expect.hasAssertions();
+
             const longScript = `Get-Process | Where-Object { $_.CPU -gt 10 } | ForEach-Object { $name = $_.Name; $cpu = $_.CPU; $mem = $_.WorkingSet; Write-Output "Process: $name, CPU: $cpu, Memory: $mem" } | Out-String | Tee-Object -FilePath "output.log" | Write-Host -ForegroundColor Green | Out-Null`;
 
             const result = await formatAndAssert(
@@ -183,6 +209,8 @@ describe("long Line Wrapping Improvements", () => {
         });
 
         it("preserves comment positions during wrapping", async () => {
+            expect.hasAssertions();
+
             const input = `Get-Process | Where-Object CPU | Select-Object Name # Get top processes`;
             const result = await formatAndAssert(
                 input,
@@ -195,6 +223,8 @@ describe("long Line Wrapping Improvements", () => {
         });
 
         it("handles mixed operators in long expressions", async () => {
+            expect.hasAssertions();
+
             const input = `$result = $value1 + $value2 * $value3 - $value4 / $value5 -band $value6 -bor $value7 -shl 2`;
             const result = await formatAndAssert(
                 input,
@@ -209,6 +239,8 @@ describe("long Line Wrapping Improvements", () => {
 
     describe("performance on Long Lines", () => {
         it("formats 1000-character line in reasonable time", async () => {
+            expect.hasAssertions();
+
             const longLine =
                 `Get-Process${ 
                 " | Where-Object { $_.Name -like '*test*' }".repeat(20)}`;
@@ -226,6 +258,8 @@ describe("long Line Wrapping Improvements", () => {
         });
 
         it("handles deeply nested expressions", async () => {
+            expect.hasAssertions();
+
             const nested = `$result = (((($a + $b) * $c) / $d) - $e)`;
             const result = await formatAndAssert(
                 nested,

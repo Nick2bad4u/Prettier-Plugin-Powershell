@@ -12,6 +12,8 @@ const baseConfig = {
 
 describe("number literal handling", () => {
     it("preserves numeric suffixes and multipliers", async () => {
+        expect.hasAssertions();
+
         const fixturePath = new URL(
             "fixtures/numeric-literals.ps1",
             import.meta.url

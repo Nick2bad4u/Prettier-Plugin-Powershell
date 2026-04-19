@@ -92,8 +92,8 @@ let persistentProcess: ChildProcess | null = null;
 const pendingValidations = new Map<
     number,
     {
-        reject: (error: Error) => void;
-        resolve: (outcome: ParseOutcome) => void;
+        reject: (error: Readonly<Error>) => void;
+        resolve: (outcome: Readonly<ParseOutcome>) => void;
     }
 >();
 let validationCounter = 0;
@@ -124,8 +124,8 @@ const processResponseBuffer = (): void => {
             | [
                   number,
                   {
-                      reject: (error: Error) => void;
-                      resolve: (outcome: ParseOutcome) => void;
+                      reject: (error: Readonly<Error>) => void;
+                      resolve: (outcome: Readonly<ParseOutcome>) => void;
                   },
               ]
             | undefined;
@@ -154,7 +154,7 @@ const processResponseBuffer = (): void => {
 };
 
 const monitorPersistentProcessError = async (
-    proc: ChildProcess
+    proc: Readonly<ChildProcess>
 ): Promise<void> => {
     const [error] = await once(proc, "error");
 
@@ -171,7 +171,7 @@ const monitorPersistentProcessError = async (
 };
 
 const monitorPersistentProcessExit = async (
-    proc: ChildProcess
+    proc: Readonly<ChildProcess>
 ): Promise<void> => {
     const [code] = await once(proc, "exit");
 
@@ -185,7 +185,7 @@ const monitorPersistentProcessExit = async (
 };
 
 const monitorPersistentProcessStdout = async (
-    stdout: NonNullable<ChildProcess["stdout"]>
+    stdout: Readonly<NonNullable<ChildProcess["stdout"]>>
 ): Promise<void> => {
     for await (const chunk of stdout) {
         responseBuffer = Buffer.concat([
@@ -197,7 +197,7 @@ const monitorPersistentProcessStdout = async (
 };
 
 const monitorPersistentProcessStderr = async (
-    stderr: NonNullable<ChildProcess["stderr"]>
+    stderr: Readonly<NonNullable<ChildProcess["stderr"]>>
 ): Promise<void> => {
     for await (const chunk of stderr) {
         console.error(

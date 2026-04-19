@@ -12,6 +12,8 @@ const baseConfig = {
 
 describe("coverage - Tokenizer edge cases", () => {
     it("handles carriage return only newlines", async () => {
+        expect.hasAssertions();
+
         const input = "function Foo {\r$x = 1\r}";
         const result = await formatAndAssert(
             input,
@@ -23,6 +25,8 @@ describe("coverage - Tokenizer edge cases", () => {
     });
 
     it("handles here-string with closing at line start after CRLF", () => {
+        expect.hasAssertions();
+
         const input = `@"\r\nHello\r\n"@`;
         const tokens = tokenize(input);
         const heredoc = tokens.find((t) => t.type === "heredoc");
@@ -31,6 +35,8 @@ describe("coverage - Tokenizer edge cases", () => {
     });
 
     it("handles here-string with closing not at line start", () => {
+        expect.hasAssertions();
+
         const input = `@"\nHello world"@`;
         const tokens = tokenize(input);
         const heredoc = tokens.find((t) => t.type === "heredoc");
@@ -39,6 +45,8 @@ describe("coverage - Tokenizer edge cases", () => {
     });
 
     it("handles normalizeHereString with 2 or fewer lines", async () => {
+        expect.hasAssertions();
+
         const { normalizeHereString } = await import("../src/tokenizer.js");
         const node = {
             loc: { end: 5, start: 0 },
@@ -52,6 +60,8 @@ describe("coverage - Tokenizer edge cases", () => {
     });
 
     it("handles string with escape at end", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize('"test`"');
         const string = tokens.find((t) => t.type === "string");
 
@@ -59,6 +69,8 @@ describe("coverage - Tokenizer edge cases", () => {
     });
 
     it("handles variable with unclosed braces", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("${unclosed");
         const variable = tokens.find((t) => t.type === "variable");
 
@@ -66,12 +78,16 @@ describe("coverage - Tokenizer edge cases", () => {
     });
 
     it("handles number without decimal part", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("42.");
 
         expect(tokens.some((t) => t.type === "number")).toBeTruthy();
     });
 
     it("handles identifier starting with dash", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("-Parameter");
         const identifier = tokens.find((t) => t.type === "identifier");
 
@@ -79,6 +95,8 @@ describe("coverage - Tokenizer edge cases", () => {
     });
 
     it("handles normalizeHereString with multiple lines", async () => {
+        expect.hasAssertions();
+
         const { normalizeHereString } = await import("../src/tokenizer.js");
         const node = {
             loc: { end: 20, start: 0 },
@@ -92,6 +110,8 @@ describe("coverage - Tokenizer edge cases", () => {
     });
 
     it("handles form feed whitespace", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("$x\f=\f1");
         const identifiers = tokens.filter(
             (t) => t.type === "variable" || t.type === "operator"
@@ -101,6 +121,8 @@ describe("coverage - Tokenizer edge cases", () => {
     });
 
     it("handles unterminated here-string", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize('@"\nHello');
         const heredoc = tokens.find((t) => t.type === "heredoc");
 
@@ -108,6 +130,8 @@ describe("coverage - Tokenizer edge cases", () => {
     });
 
     it("handles single-quoted here-string", () => {
+        expect.hasAssertions();
+
         const input = `@'
 Hello
 '@`;
@@ -118,6 +142,8 @@ Hello
     });
 
     it("handles unterminated string with escape", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize('"Hello`');
         const string = tokens.find((t) => t.type === "string");
 
@@ -125,6 +151,8 @@ Hello
     });
 
     it("handles double equals operator", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("$x == 1");
         const operator = tokens.find((t) => t.value === "==");
 
@@ -132,6 +160,8 @@ Hello
     });
 
     it("handles double pipe operator", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("$x || $y");
         const operator = tokens.find((t) => t.value === "||");
 
@@ -139,6 +169,8 @@ Hello
     });
 
     it("handles variable with braces", async () => {
+        expect.hasAssertions();
+
         const input = String.raw`\${my-var}`;
         const result = await formatAndAssert(
             input,
@@ -150,6 +182,8 @@ Hello
     });
 
     it("handles decimal numbers", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("3.14");
         const number = tokens.find((t) => t.type === "number");
 
@@ -157,6 +191,8 @@ Hello
     });
 
     it("handles unknown characters", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("~");
         const unknown = tokens.find((t) => t.type === "unknown");
 
@@ -164,6 +200,8 @@ Hello
     });
 
     it("handles here-string without closing delimiter found", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize('@"\nHello world');
         const heredoc = tokens.find((t) => t.type === "heredoc");
 
@@ -172,6 +210,8 @@ Hello
     });
 
     it("handles single character variable", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("$x");
         const variable = tokens.find((t) => t.type === "variable");
 
@@ -181,6 +221,8 @@ Hello
 
 describe("coverage - Parser edge cases", () => {
     it("handles empty script blocks", async () => {
+        expect.hasAssertions();
+
         const input = "function Foo {}";
         const result = await formatAndAssert(
             input,
@@ -192,6 +234,8 @@ describe("coverage - Parser edge cases", () => {
     });
 
     it("handles multiple consecutive newlines after comment", async () => {
+        expect.hasAssertions();
+
         const input = `# comment
 
 
@@ -206,6 +250,8 @@ Write-Host "test"`;
     });
 
     it("handles pipeline continuation after multiple newlines", async () => {
+        expect.hasAssertions();
+
         const input = `Get-Process
 
 | Where-Object { $true }`;
@@ -219,6 +265,8 @@ Write-Host "test"`;
     });
 
     it("handles hashtable entries with quoted keys", async () => {
+        expect.hasAssertions();
+
         const input = `@{ "my-key" = 1; 'other-key' = 2 }`;
         const result = await formatAndAssert(
             input,
@@ -230,6 +278,8 @@ Write-Host "test"`;
     });
 
     it("handles hashtable entry without equals sign", async () => {
+        expect.hasAssertions();
+
         const input = `@{ key }`;
         const result = await formatAndAssert(
             input,
@@ -241,6 +291,8 @@ Write-Host "test"`;
     });
 
     it("handles nested structures in hashtable entries", async () => {
+        expect.hasAssertions();
+
         const input = `@{ key = @{ nested = 1 } }`;
         const result = await formatAndAssert(
             input,
@@ -252,6 +304,8 @@ Write-Host "test"`;
     });
 
     it("handles array elements separated by newlines", async () => {
+        expect.hasAssertions();
+
         const input = `@(
 1
 2
@@ -267,6 +321,8 @@ Write-Host "test"`;
     });
 
     it("handles array with nested structures", async () => {
+        expect.hasAssertions();
+
         const input = `@(
 @{ a = 1 },
 @{ b = 2 }
@@ -281,6 +337,8 @@ Write-Host "test"`;
     });
 
     it("handles hashtable with newline separators", async () => {
+        expect.hasAssertions();
+
         const input = `@{
 a = 1
 b = 2
@@ -295,6 +353,8 @@ b = 2
     });
 
     it("handles function without body tokens", async () => {
+        expect.hasAssertions();
+
         const input = "function Test";
         const result = await formatAndAssert(
             input,
@@ -306,6 +366,8 @@ b = 2
     });
 
     it("handles pipeline with no segments", async () => {
+        expect.hasAssertions();
+
         const input = "";
         const result = await formatAndAssert(
             input,
@@ -317,6 +379,8 @@ b = 2
     });
 
     it("handles comments at start of expression", async () => {
+        expect.hasAssertions();
+
         const input = `function Foo {
 # comment
 Write-Host "Hi"
@@ -331,6 +395,8 @@ Write-Host "Hi"
     });
 
     it("handles statements with trailing semicolons inside blocks", async () => {
+        expect.hasAssertions();
+
         const input = `{
 $x = 1;
 }`;
@@ -344,6 +410,8 @@ $x = 1;
     });
 
     it("handles closing brace without statement", async () => {
+        expect.hasAssertions();
+
         const input = "if ($true) { }";
         const result = await formatAndAssert(
             input,
@@ -355,6 +423,8 @@ $x = 1;
     });
 
     it("handles multi-element arrays with explicit syntax", async () => {
+        expect.hasAssertions();
+
         const input = "[1, 2, 3]";
         const result = await formatAndAssert(
             input,
@@ -366,6 +436,8 @@ $x = 1;
     });
 
     it("handles empty hashtables", async () => {
+        expect.hasAssertions();
+
         const input = "@{}";
         const result = await formatAndAssert(
             input,
@@ -377,6 +449,8 @@ $x = 1;
     });
 
     it("handles empty parentheses", async () => {
+        expect.hasAssertions();
+
         const input = "Get-Process()";
         const result = await formatAndAssert(
             input,
@@ -388,6 +462,8 @@ $x = 1;
     });
 
     it("handles parentheses without commas or newlines", async () => {
+        expect.hasAssertions();
+
         const input = "($x $y)";
         const result = await formatAndAssert(
             input,
@@ -401,6 +477,8 @@ $x = 1;
 
 describe("coverage - Printer edge cases", () => {
     it("handles tab indentation style", async () => {
+        expect.hasAssertions();
+
         const input = `function Foo {
 Write-Host "Hi"
 }`;
@@ -417,6 +495,8 @@ Write-Host "Hi"
     });
 
     it("handles text nodes with operator role", async () => {
+        expect.hasAssertions();
+
         const input = "-eq";
         const result = await formatAndAssert(
             input,
@@ -428,6 +508,8 @@ Write-Host "Hi"
     });
 
     it("handles text nodes with punctuation role", async () => {
+        expect.hasAssertions();
+
         const input = "$x.Property";
         const result = await formatAndAssert(
             input,
@@ -439,6 +521,8 @@ Write-Host "Hi"
     });
 
     it("handles space after opening punctuation", async () => {
+        expect.hasAssertions();
+
         const input = "($x)";
         const result = await formatAndAssert(
             input,
@@ -450,6 +534,8 @@ Write-Host "Hi"
     });
 
     it("handles space before closing punctuation", async () => {
+        expect.hasAssertions();
+
         const input = "$array[0]";
         const result = await formatAndAssert(
             input,
@@ -461,6 +547,8 @@ Write-Host "Hi"
     });
 
     it("handles symbol pairs without gap", async () => {
+        expect.hasAssertions();
+
         const input = "$obj::Method";
         const result = await formatAndAssert(
             input,
@@ -472,6 +560,8 @@ Write-Host "Hi"
     });
 
     it("handles getSymbol returning null for non-text nodes", async () => {
+        expect.hasAssertions();
+
         const input = "@{ a = 1 }";
         const result = await formatAndAssert(
             input,
@@ -483,6 +573,8 @@ Write-Host "Hi"
     });
 
     it("handles uppercase keyword casing", async () => {
+        expect.hasAssertions();
+
         const input = "function Foo { if ($true) { } }";
         const result = await formatAndAssert(
             input,
@@ -498,6 +590,8 @@ Write-Host "Hi"
     });
 
     it("handles pascal keyword casing", async () => {
+        expect.hasAssertions();
+
         const input = "function Foo { if ($true) { } }";
         const result = await formatAndAssert(
             input,
@@ -513,6 +607,8 @@ Write-Host "Hi"
     });
 
     it("handles single quotes with embedded single quote", async () => {
+        expect.hasAssertions();
+
         const input = `"It's working"`;
         const result = await formatAndAssert(
             input,
@@ -527,6 +623,8 @@ Write-Host "Hi"
     });
 
     it("handles single quotes with special characters", async () => {
+        expect.hasAssertions();
+
         const input = `"Hello$world"`;
         const result = await formatAndAssert(
             input,
@@ -541,6 +639,8 @@ Write-Host "Hi"
     });
 
     it("handles non-string quote normalization", async () => {
+        expect.hasAssertions();
+
         const input = `$var`;
         const result = await formatAndAssert(
             input,
@@ -555,6 +655,8 @@ Write-Host "Hi"
     });
 
     it("rewrites various aliases", async () => {
+        expect.hasAssertions();
+
         const input = "gi | gci | dir | cat | echo | ps | where | ?";
         const result = await formatAndAssert(
             input,
@@ -574,6 +676,8 @@ Write-Host "Hi"
     });
 
     it("never adds trailing comma to arrays (PowerShell doesn't support this)", async () => {
+        expect.hasAssertions();
+
         const input = "@(1, 2)";
         const result = await formatAndAssert(
             input,
@@ -589,6 +693,8 @@ Write-Host "Hi"
     });
 
     it("handles trailing comma set to none", async () => {
+        expect.hasAssertions();
+
         const input = `@(
 1,
 2
@@ -606,6 +712,8 @@ Write-Host "Hi"
     });
 
     it("handles hashtable with trailing semicolon set to all", async () => {
+        expect.hasAssertions();
+
         const input = "@{ a = 1; b = 2 }";
         const result = await formatAndAssert(
             input,
@@ -620,6 +728,8 @@ Write-Host "Hi"
     });
 
     it("handles zero blank lines between functions", async () => {
+        expect.hasAssertions();
+
         const input = `function A {}
 function B {}`;
         const result = await formatAndAssert(
@@ -637,6 +747,8 @@ function B {}`;
     });
 
     it("handles extreme line width values", async () => {
+        expect.hasAssertions();
+
         const input = 'Write-Host "test"';
         const result1 = await formatAndAssert(
             input,
@@ -662,6 +774,8 @@ function B {}`;
     });
 
     it("handles script blocks in expressions", async () => {
+        expect.hasAssertions();
+
         const input = 'Get-Process | Where-Object { $_.Name -eq "test" }';
         const result = await formatAndAssert(
             input,
@@ -673,6 +787,8 @@ function B {}`;
     });
 
     it("handles array literals in expressions", async () => {
+        expect.hasAssertions();
+
         const input = "$x = @(1, 2, 3)";
         const result = await formatAndAssert(
             input,
@@ -684,6 +800,8 @@ function B {}`;
     });
 
     it("handles hashtables in expressions", async () => {
+        expect.hasAssertions();
+
         const input = "$x = @{ a = 1 }";
         const result = await formatAndAssert(
             input,
@@ -695,6 +813,8 @@ function B {}`;
     });
 
     it("skips punctuation tokens correctly", async () => {
+        expect.hasAssertions();
+
         const input = "Write-Host.Invoke()";
         const result = await formatAndAssert(
             input,
@@ -706,6 +826,8 @@ function B {}`;
     });
 
     it("handles no space before block structures", async () => {
+        expect.hasAssertions();
+
         const input = '$x={ Write-Host "test" }';
         const result = await formatAndAssert(
             input,
@@ -717,6 +839,8 @@ function B {}`;
     });
 
     it("handles operators with spacing", async () => {
+        expect.hasAssertions();
+
         const input = "$x=$y+$z";
         const result = await formatAndAssert(
             input,
@@ -728,6 +852,8 @@ function B {}`;
     });
 
     it("handles single-element arrays without breaking", async () => {
+        expect.hasAssertions();
+
         const input = "@(1)";
         const result = await formatAndAssert(
             input,
@@ -739,6 +865,8 @@ function B {}`;
     });
 
     it("handles explicit array with single element", async () => {
+        expect.hasAssertions();
+
         const input = "[1]";
         const result = await formatAndAssert(
             input,
@@ -750,6 +878,8 @@ function B {}`;
     });
 
     it("handles empty keyword case transformation", async () => {
+        expect.hasAssertions();
+
         const input = "";
         const result = await formatAndAssert(
             input,
@@ -764,6 +894,8 @@ function B {}`;
     });
 
     it("handles printWidth affecting options", async () => {
+        expect.hasAssertions();
+
         const input = 'Write-Host "test"';
         const result = await formatAndAssert(
             input,
@@ -779,6 +911,8 @@ function B {}`;
     });
 
     it("handles comment nodes", async () => {
+        expect.hasAssertions();
+
         const input = "# This is a comment";
         const result = await formatAndAssert(
             input,
@@ -790,6 +924,8 @@ function B {}`;
     });
 
     it("handles blank lines with specific count", async () => {
+        expect.hasAssertions();
+
         const input = 'Write-Host "A"\n\n\nWrite-Host "B"';
         const result = await formatAndAssert(
             input,
@@ -801,6 +937,8 @@ function B {}`;
     });
 
     it("handles allman brace style for functions", async () => {
+        expect.hasAssertions();
+
         const input = 'function Test { Write-Host "Hi" }';
         const result = await formatAndAssert(
             input,
@@ -815,6 +953,8 @@ function B {}`;
     });
 
     it("handles rewriting unknown role aliases", async () => {
+        expect.hasAssertions();
+
         const input = "~";
         const result = await formatAndAssert(
             input,
@@ -829,6 +969,8 @@ function B {}`;
     });
 
     it("handles param with single element and newline", async () => {
+        expect.hasAssertions();
+
         const input = `function Foo {
 param(
 [string] $Name
@@ -844,6 +986,8 @@ param(
     });
 
     it("handles parenthesis with multiple elements without comma", async () => {
+        expect.hasAssertions();
+
         const input = "($x $y $z)";
         const result = await formatAndAssert(
             input,
@@ -855,6 +999,8 @@ param(
     });
 
     it("handles parenthesis with comma and no newline", async () => {
+        expect.hasAssertions();
+
         const input = "($x, $y)";
         const result = await formatAndAssert(
             input,
@@ -866,6 +1012,8 @@ param(
     });
 
     it("handles empty array literal", async () => {
+        expect.hasAssertions();
+
         const input = "@()";
         const result = await formatAndAssert(
             input,
@@ -877,6 +1025,8 @@ param(
     });
 
     it("handles explicit empty array", async () => {
+        expect.hasAssertions();
+
         const input = "[]";
         const result = await formatAndAssert(
             input,
@@ -888,6 +1038,8 @@ param(
     });
 
     it("handles array with shouldBreak false", async () => {
+        expect.hasAssertions();
+
         const input = "@(1)";
         const result = await formatAndAssert(
             input,
@@ -899,6 +1051,8 @@ param(
     });
 
     it("handles hashtable entry without trailing separator", async () => {
+        expect.hasAssertions();
+
         const input = `@{
 a = 1
 b = 2
@@ -913,6 +1067,8 @@ b = 2
     });
 
     it("handles array with nested structures and commas", async () => {
+        expect.hasAssertions();
+
         const input = `@(
 @{ a = 1 },
 @{ b = 2 }
@@ -927,6 +1083,8 @@ b = 2
     });
 
     it("handles hashtable with newline-separated entries", async () => {
+        expect.hasAssertions();
+
         const input = `@{
 a = 1
 b = 2
@@ -941,6 +1099,8 @@ b = 2
     });
 
     it("handles function header without body", async () => {
+        expect.hasAssertions();
+
         const input = "function Test";
         const result = await formatAndAssert(
             input,
@@ -952,6 +1112,8 @@ b = 2
     });
 
     it("handles statement with only semicolons", async () => {
+        expect.hasAssertions();
+
         const input = ";;;";
         const result = await formatAndAssert(
             input,
@@ -963,6 +1125,8 @@ b = 2
     });
 
     it("handles newlines in nested structures during statement parsing", async () => {
+        expect.hasAssertions();
+
         const input = `{
 $x = @{
 a = 1
@@ -978,6 +1142,8 @@ a = 1
     });
 
     it("handles backtick line continuation", async () => {
+        expect.hasAssertions();
+
         const input = 'Write-Host `\n"test"';
         const result = await formatAndAssert(
             input,
@@ -989,6 +1155,8 @@ a = 1
     });
 
     it("handles backtick before pipe operator", async () => {
+        expect.hasAssertions();
+
         const input = "Get-Process `\n| Where-Object";
         const result = await formatAndAssert(
             input,
@@ -1000,6 +1168,8 @@ a = 1
     });
 
     it("handles multiple consecutive comments after newlines", async () => {
+        expect.hasAssertions();
+
         const input = `# comment1\n\n\n# comment2\nWrite-Host "test"`;
         const result = await formatAndAssert(
             input,
@@ -1012,6 +1182,8 @@ a = 1
     });
 
     it("handles pipeline continuation after comment in multiline", async () => {
+        expect.hasAssertions();
+
         const input = `Get-Process | Where-Object`;
         const result = await formatAndAssert(
             input,
@@ -1023,6 +1195,8 @@ a = 1
     });
 
     it("handles hashtable key extraction with quotes", async () => {
+        expect.hasAssertions();
+
         const input = `@{ "quoted-key" = 1; 'single-key' = 2 }`;
         const result = await formatAndAssert(
             input,
@@ -1035,6 +1209,8 @@ a = 1
     });
 
     it("handles array element split with nested structures", async () => {
+        expect.hasAssertions();
+
         const input = `@(@{ a = 1 }, @{ b = 2 })`;
         const result = await formatAndAssert(
             input,
@@ -1046,6 +1222,8 @@ a = 1
     });
 
     it("handles closing token in array split", async () => {
+        expect.hasAssertions();
+
         const input = `@(1, [2, 3], 4)`;
         const result = await formatAndAssert(
             input,
@@ -1057,6 +1235,8 @@ a = 1
     });
 
     it("handles empty expressions in various contexts", async () => {
+        expect.hasAssertions();
+
         const input = "()";
         const result = await formatAndAssert(
             input,
@@ -1068,6 +1248,8 @@ a = 1
     });
 
     it("handles various symbol combinations for spacing", async () => {
+        expect.hasAssertions();
+
         const input = "$obj.Property";
         const result = await formatAndAssert(
             input,
@@ -1079,6 +1261,8 @@ a = 1
     });
 
     it("handles parenthesis with hasNewline but not hasComma", async () => {
+        expect.hasAssertions();
+
         const input = `(
 $x
 $y
@@ -1093,6 +1277,8 @@ $y
     });
 
     it("handles parenthesis with both hasNewline and hasComma", async () => {
+        expect.hasAssertions();
+
         const input = `(
 $x,
 $y
@@ -1107,6 +1293,8 @@ $y
     });
 
     it("handles shouldBreak true for arrays", async () => {
+        expect.hasAssertions();
+
         const input = "@(1, 2, 3)";
         const result = await formatAndAssert(
             input,
@@ -1118,6 +1306,8 @@ $y
     });
 
     it("handles hashtable entry with ifBreak for semicolon", async () => {
+        expect.hasAssertions();
+
         const input = `@{
 a = 1
 b = 2
@@ -1136,6 +1326,8 @@ c = 3
     });
 
     it("handles explicit array with multiple elements", async () => {
+        expect.hasAssertions();
+
         const input = "[1, 2, 3, 4]";
         const result = await formatAndAssert(
             input,
@@ -1147,6 +1339,8 @@ c = 3
     });
 
     it("handles hashtable entry is last flag correctly", async () => {
+        expect.hasAssertions();
+
         const input = "@{ a = 1; b = 2; c = 3 }";
         const result = await formatAndAssert(
             input,
@@ -1161,6 +1355,8 @@ c = 3
     });
 
     it("handles single element parenthesis without newline", async () => {
+        expect.hasAssertions();
+
         const input = "($single)";
         const result = await formatAndAssert(
             input,
@@ -1172,6 +1368,8 @@ c = 3
     });
 
     it("handles multi-element parenthesis without newline or comma", async () => {
+        expect.hasAssertions();
+
         const input = "($x $y $z)";
         const result = await formatAndAssert(
             input,
@@ -1183,6 +1381,8 @@ c = 3
     });
 
     it("handles forceMultiline scenarios in parenthesis", async () => {
+        expect.hasAssertions();
+
         const input1 = `(
 $a
 $b
@@ -1206,6 +1406,8 @@ $b
     });
 
     it("handles array elements without breaking", async () => {
+        expect.hasAssertions();
+
         const input = "@(42)";
         const result = await formatAndAssert(
             input,
@@ -1217,6 +1419,8 @@ $b
     });
 
     it("handles normalizeStringLiteral for non-quoted strings", async () => {
+        expect.hasAssertions();
+
         const input = "$variable";
         const result = await formatAndAssert(
             input,
@@ -1231,6 +1435,8 @@ $b
     });
 
     it("handles string normalization with backtick", async () => {
+        expect.hasAssertions();
+
         const input = '"Hello`nworld"';
         const result = await formatAndAssert(
             input,
@@ -1245,6 +1451,8 @@ $b
     });
 
     it("handles shouldSkipPart for backtick tokens", async () => {
+        expect.hasAssertions();
+
         const input = "Write-Host `\n$value";
         const result = await formatAndAssert(
             input,
@@ -1258,6 +1466,8 @@ $b
 
 describe("coverage - Options edge cases", () => {
     it("handles invalid blank lines between functions (too high)", async () => {
+        expect.hasAssertions();
+
         const input = "function A {}\nfunction B {}";
         const result = await formatAndAssert(
             input,
@@ -1272,6 +1482,8 @@ describe("coverage - Options edge cases", () => {
     });
 
     it("handles invalid blank lines between functions (negative)", async () => {
+        expect.hasAssertions();
+
         const input = "function A {}\nfunction B {}";
         const result = await formatAndAssert(
             input,
@@ -1286,6 +1498,8 @@ describe("coverage - Options edge cases", () => {
     });
 
     it("uses default tabWidth when not specified", async () => {
+        expect.hasAssertions();
+
         const input = "function Foo { $x = 1 }";
         const result = await formatAndAssert(
             input,
@@ -1301,6 +1515,8 @@ describe("coverage - Options edge cases", () => {
     });
 
     it("handles all combinations of keyword case transforms", async () => {
+        expect.hasAssertions();
+
         const input =
             "function Test { if ($true) { foreach ($x in @()) { } } }";
 
@@ -1324,6 +1540,8 @@ describe("coverage - Options edge cases", () => {
     });
 
     it("handles all trailing comma options for hashtables", async () => {
+        expect.hasAssertions();
+
         const input = "@{ a = 1; b = 2 }";
 
         for (const commaOption of [
@@ -1345,6 +1563,8 @@ describe("coverage - Options edge cases", () => {
     });
 
     it("sets printWidth from powershellLineWidth when printWidth is not specified", async () => {
+        expect.hasAssertions();
+
         const input = 'Write-Host "test"';
         const result = await formatAndAssert(
             input,
@@ -1361,6 +1581,8 @@ describe("coverage - Options edge cases", () => {
     });
 
     it("keeps existing printWidth when it is lower than powershellLineWidth", async () => {
+        expect.hasAssertions();
+
         const input = 'Write-Host "test"';
         const result = await formatAndAssert(
             input,
@@ -1378,6 +1600,8 @@ describe("coverage - Options edge cases", () => {
     });
 
     it("handles all boolean option combinations", async () => {
+        expect.hasAssertions();
+
         const input = "function Foo { param([string] $x) Write-Host $x }";
 
         // Test all combinations of boolean flags
@@ -1413,6 +1637,8 @@ describe("coverage - Options edge cases", () => {
     });
 
     it("handles tabs vs spaces indentation branches", async () => {
+        expect.hasAssertions();
+
         const input = 'function Foo { Write-Host "Hi" }';
 
         const spacesResult = await formatAndAssert(
@@ -1439,6 +1665,8 @@ describe("coverage - Options edge cases", () => {
     });
 
     it("handles all trailingComma option values", async () => {
+        expect.hasAssertions();
+
         const input = "@{ a = 1 }";
 
         const noneResult = await formatAndAssert(
@@ -1476,6 +1704,8 @@ describe("coverage - Options edge cases", () => {
     });
 
     it("handles all braceStyle option values", async () => {
+        expect.hasAssertions();
+
         const input = "function Foo { }";
 
         const oneTbsResult = await formatAndAssert(
@@ -1502,6 +1732,8 @@ describe("coverage - Options edge cases", () => {
     });
 
     it("handles all keywordCase option values", async () => {
+        expect.hasAssertions();
+
         const input = "function Foo { if ($true) { } }";
 
         for (const caseValue of [
@@ -1526,32 +1758,43 @@ describe("coverage - Options edge cases", () => {
 
 describe("coverage - Index exports", () => {
     it("exports plugin with hasPragma function", () => {
+        expect.hasAssertions();
+
         expect(plugin.parsers?.powershell?.hasPragma).toBeDefined();
 
         const hasPragma = plugin.parsers?.powershell?.hasPragma;
-        if (hasPragma) {
-            expect(hasPragma("")).toBeFalsy();
-        }
+
+        expect(hasPragma?.("")).toBeFalsy();
     });
 
     it("exports languages array", () => {
+        expect.hasAssertions();
+
         expect(plugin.languages).toBeDefined();
         expect(Array.isArray(plugin.languages)).toBeTruthy();
     });
 
     it("exports parsers object", () => {
+        expect.hasAssertions();
+
         expect(plugin.parsers).toBeDefined();
     });
 
     it("exports printers object", () => {
+        expect.hasAssertions();
+
         expect(plugin.printers).toBeDefined();
     });
 
     it("exports options", () => {
+        expect.hasAssertions();
+
         expect(plugin.options).toBeDefined();
     });
 
     it("exports defaultOptions", () => {
+        expect.hasAssertions();
+
         expect(plugin.defaultOptions).toBeDefined();
     });
 });

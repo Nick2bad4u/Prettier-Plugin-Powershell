@@ -14,6 +14,8 @@ const PROPERTY_RUNS = Number.parseInt(
 describe("tokenizer helper function property tests", () => {
     describe(normalizeHereString, () => {
         it("handles here-strings with various line counts", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.integer({ max: 10, min: 0 }),
@@ -64,6 +66,8 @@ describe("tokenizer helper function property tests", () => {
         });
 
         it("handles here-strings with empty lines", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.array(fc.constantFrom("", "line", "  spaces  "), {
@@ -99,6 +103,8 @@ describe("tokenizer helper function property tests", () => {
         });
 
         it("handles here-strings with mixed line endings", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.array(fc.string({ maxLength: 10 }), {
@@ -145,6 +151,8 @@ describe("tokenizer helper function property tests", () => {
         });
 
         it("handles edge cases gracefully", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.constantFrom(
@@ -182,6 +190,8 @@ describe("tokenizer helper function property tests", () => {
         });
 
         it("preserves quote type in node", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(
                     fc.constantFrom("double", "single"),
@@ -210,6 +220,8 @@ describe("tokenizer helper function property tests", () => {
         });
 
         it("returns consistent results for identical inputs", () => {
+            expect.hasAssertions();
+
             fc.assert(
                 fc.property(fc.string({ maxLength: 50 }), (value) => {
                     const node: HereStringNode = {

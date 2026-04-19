@@ -6,6 +6,8 @@ const TEST_DIR = path.join(process.cwd(), "tests");
 
 describe("enforce formatAndAssert usage", () => {
     it("does not use prettier.format directly in tests", () => {
+        expect.hasAssertions();
+
         const filePaths: string[] = [];
         const walk = (dir: string) => {
             for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -37,12 +39,9 @@ describe("enforce formatAndAssert usage", () => {
             }
         }
 
-        // If found, report files and fail
-        if (matches.length > 0) {
-            expect(
-                matches,
-                "Found direct prettier.format usages in tests; use formatAndAssert helper instead"
-            ).toEqual([]);
-        }
+        expect(
+            matches,
+            "Found direct prettier.format usages in tests; use formatAndAssert helper instead"
+        ).toStrictEqual([]);
     });
 });

@@ -10,6 +10,8 @@ const baseConfig = {
 describe("advanced PowerShell Features", () => {
     describe("expandable Strings", () => {
         it("formats expandable strings with subexpressions", async () => {
+            expect.hasAssertions();
+
             const input = `$message = "Today is $(Get-Date -Format yyyy-MM-dd)"`;
             const result = await formatAndAssert(
                 input,
@@ -21,6 +23,8 @@ describe("advanced PowerShell Features", () => {
         });
 
         it("formats expandable strings with variables", async () => {
+            expect.hasAssertions();
+
             const input = `$text = "User: $env:USERNAME on $env:COMPUTERNAME"`;
             const result = await formatAndAssert(
                 input,
@@ -33,6 +37,8 @@ describe("advanced PowerShell Features", () => {
         });
 
         it("formats expandable strings with complex expressions", async () => {
+            expect.hasAssertions();
+
             const input = `$msg = "Count: $(Get-Process | Measure-Object | Select-Object -ExpandProperty Count)"`;
             const result = await formatAndAssert(
                 input,
@@ -46,6 +52,8 @@ describe("advanced PowerShell Features", () => {
 
     describe("here-Strings", () => {
         it("formats double-quoted here-strings", async () => {
+            expect.hasAssertions();
+
             const input = `$text = @"\nLine 1\nLine 2\n"@`;
             const result = await formatAndAssert(
                 input,
@@ -58,6 +66,8 @@ describe("advanced PowerShell Features", () => {
         });
 
         it("formats single-quoted here-strings", async () => {
+            expect.hasAssertions();
+
             const input = `$text = @'\nLine 1\nLine 2\n'@`;
             const result = await formatAndAssert(
                 input,
@@ -70,6 +80,8 @@ describe("advanced PowerShell Features", () => {
         });
 
         it("preserves content in here-strings", async () => {
+            expect.hasAssertions();
+
             const input = `$text = @"\nSpecial chars: \`n\`t\`r\n"@`;
             const result = await formatAndAssert(
                 input,
@@ -83,6 +95,8 @@ describe("advanced PowerShell Features", () => {
 
     describe("script Blocks with Param", () => {
         it("formats script blocks with param in pipelines", async () => {
+            expect.hasAssertions();
+
             const input = `Get-Process | ForEach-Object { param($p) Write-Output $p.Name }`;
             const result = await formatAndAssert(
                 input,
@@ -94,6 +108,8 @@ describe("advanced PowerShell Features", () => {
         });
 
         it("formats script blocks with multiple parameters", async () => {
+            expect.hasAssertions();
+
             const input = `1..10 | ForEach-Object { param($x, $y) $x + $y }`;
             const result = await formatAndAssert(
                 input,
@@ -107,6 +123,8 @@ describe("advanced PowerShell Features", () => {
 
     describe("class Definitions", () => {
         it("formats simple class definitions", async () => {
+            expect.hasAssertions();
+
             const input = `class Person { [string]$Name; [int]$Age }`;
             const result = await formatAndAssert(
                 input,
@@ -120,6 +138,8 @@ describe("advanced PowerShell Features", () => {
         });
 
         it("formats class with constructor", async () => {
+            expect.hasAssertions();
+
             const input = `class Person { [string]$Name; Person([string]$n) { $this.Name = $n } }`;
             const result = await formatAndAssert(
                 input,
@@ -132,6 +152,8 @@ describe("advanced PowerShell Features", () => {
         });
 
         it("formats class with methods", async () => {
+            expect.hasAssertions();
+
             const input = `class Calculator { [int]Add([int]$a, [int]$b) { return $a + $b } }`;
             const result = await formatAndAssert(
                 input,
@@ -146,6 +168,8 @@ describe("advanced PowerShell Features", () => {
 
     describe("enum Definitions", () => {
         it("formats simple enum", async () => {
+            expect.hasAssertions();
+
             const input = `enum Status { Running; Stopped; Paused }`;
             const result = await formatAndAssert(
                 input,
@@ -159,6 +183,8 @@ describe("advanced PowerShell Features", () => {
         });
 
         it("formats enum with explicit values", async () => {
+            expect.hasAssertions();
+
             const input = `enum Level { Low = 1; Medium = 5; High = 10 }`;
             const result = await formatAndAssert(
                 input,
@@ -174,6 +200,8 @@ describe("advanced PowerShell Features", () => {
 
     describe("attributes", () => {
         it("formats function with CmdletBinding attribute", async () => {
+            expect.hasAssertions();
+
             const input = `function Test { [CmdletBinding()] param([string]$Name) }`;
             const result = await formatAndAssert(
                 input,
@@ -185,6 +213,8 @@ describe("advanced PowerShell Features", () => {
         });
 
         it("formats parameters with attributes", async () => {
+            expect.hasAssertions();
+
             const input = `function Test { param([Parameter(Mandatory=$true)][ValidateNotNullOrEmpty()][string]$Name) }`;
             const result = await formatAndAssert(
                 input,
@@ -197,6 +227,8 @@ describe("advanced PowerShell Features", () => {
         });
 
         it("formats multiple attributes on parameters", async () => {
+            expect.hasAssertions();
+
             const input = `function Test { param([Parameter()][ValidateSet('A','B','C')][string]$Choice) }`;
             const result = await formatAndAssert(
                 input,
@@ -210,6 +242,8 @@ describe("advanced PowerShell Features", () => {
 
     describe("dSC and Workflow", () => {
         it("formats configuration blocks", async () => {
+            expect.hasAssertions();
+
             const input = `configuration WebServer { Node localhost { WindowsFeature IIS { Name = "Web-Server" } } }`;
             const result = await formatAndAssert(
                 input,
@@ -221,6 +255,8 @@ describe("advanced PowerShell Features", () => {
         });
 
         it("formats workflow blocks", async () => {
+            expect.hasAssertions();
+
             const input = `workflow Test-Workflow { Write-Output "In workflow" }`;
             const result = await formatAndAssert(input, baseConfig, {
                 id: "advanced-features.result",
@@ -231,6 +267,8 @@ describe("advanced PowerShell Features", () => {
         });
 
         it("formats parallel blocks in workflows", async () => {
+            expect.hasAssertions();
+
             const input = `workflow Test { parallel { Get-Process; Get-Service } }`;
             const result = await formatAndAssert(input, baseConfig, {
                 id: "advanced-features.result",
@@ -241,6 +279,8 @@ describe("advanced PowerShell Features", () => {
         });
 
         it("formats sequence blocks", async () => {
+            expect.hasAssertions();
+
             const input = `workflow Test { sequence { $a = 1; $b = 2 } }`;
             const result = await formatAndAssert(input, baseConfig, {
                 id: "advanced-features.result",
@@ -251,6 +291,8 @@ describe("advanced PowerShell Features", () => {
         });
 
         it("formats inlinescript blocks", async () => {
+            expect.hasAssertions();
+
             const input = `workflow Test { inlinescript { Get-Date } }`;
             const result = await formatAndAssert(input, baseConfig, {
                 id: "advanced-features.result",
@@ -263,6 +305,8 @@ describe("advanced PowerShell Features", () => {
 
     describe("command Parameters", () => {
         it("formats short parameters", async () => {
+            expect.hasAssertions();
+
             const input = `Get-Process -Name powershell -Id 1234`;
             const result = await formatAndAssert(
                 input,
@@ -275,6 +319,8 @@ describe("advanced PowerShell Features", () => {
         });
 
         it("formats long parameters", async () => {
+            expect.hasAssertions();
+
             const input = `dotnet --version --list-sdks`;
             const result = await formatAndAssert(
                 input,
@@ -287,6 +333,8 @@ describe("advanced PowerShell Features", () => {
         });
 
         it("preserves parameter values", async () => {
+            expect.hasAssertions();
+
             const input = String.raw`Get-ChildItem -Path "C:\Windows" -Filter "*.log" -Recurse`;
             const result = await formatAndAssert(
                 input,
@@ -302,6 +350,8 @@ describe("advanced PowerShell Features", () => {
 
     describe("advanced Formatting", () => {
         it("formats long pipeline chains", async () => {
+            expect.hasAssertions();
+
             const input = `Get-Process | Where-Object { $_.CPU -gt 10 } | Select-Object Name, CPU | Sort-Object CPU -Descending | Format-Table -AutoSize`;
             const result = await formatAndAssert(
                 input,
@@ -314,6 +364,8 @@ describe("advanced PowerShell Features", () => {
         });
 
         it("formats nested hashtables", async () => {
+            expect.hasAssertions();
+
             const input = `$data = @{ Server = @{ Name = "srv1"; Port = 8080 }; Client = @{ Name = "client1" } }`;
             const result = await formatAndAssert(
                 input,
@@ -326,6 +378,8 @@ describe("advanced PowerShell Features", () => {
         });
 
         it("formats splatting correctly", async () => {
+            expect.hasAssertions();
+
             const input = `$params = @{ Name = "test" }; Get-Process @params`;
             const result = await formatAndAssert(
                 input,

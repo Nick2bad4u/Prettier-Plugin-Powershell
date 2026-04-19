@@ -178,7 +178,7 @@ describe("parser edge case property tests", () => {
                             hasComment ||
                                 hasPipelineWithComment ||
                                 ast.body.length > 0
-                        ).toBe(true);
+                        ).toBeTruthy();
                     }
                 ),
                 { numRuns: PROPERTY_RUNS }
@@ -501,7 +501,7 @@ describe("parser edge case property tests", () => {
 
                         // Recursively verify all locations
                         const checkNode = (
-                            node: BaseNode,
+                            node: Readonly<BaseNode>,
                             sourceLength: number
                         ): void => {
                             if (

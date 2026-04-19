@@ -12,8 +12,10 @@ const baseConfig = {
 
 const normalize = (text: string) => text.replaceAll("\r\n", "\n");
 
-describe("PowerShell Prettier plugin", () => {
+describe("powershell Prettier plugin", () => {
     it("formats the sample fixture as expected", async () => {
+        expect.hasAssertions();
+
         const input = await readFile(
             new URL("fixtures/sample-unformatted.ps1", import.meta.url),
             "utf8"
@@ -33,6 +35,8 @@ describe("PowerShell Prettier plugin", () => {
     });
 
     it("is idempotent on formatted output", async () => {
+        expect.hasAssertions();
+
         const formatted = await readFile(
             new URL("fixtures/sample-formatted.ps1", import.meta.url),
             "utf8"
@@ -49,6 +53,8 @@ describe("PowerShell Prettier plugin", () => {
     });
 
     it("respects custom indentation size", async () => {
+        expect.hasAssertions();
+
         const input = `function Test {
 param(
 [string] $Name
@@ -80,6 +86,8 @@ Write-Host "Hello"
     });
 
     it("sorts hashtable keys when enabled", async () => {
+        expect.hasAssertions();
+
         const input = `@{ z = 1; a = 2; m = 3 }`;
         const result = await formatAndAssert(
             input,
@@ -94,6 +102,8 @@ Write-Host "Hello"
     });
 
     it("expands compact param lists and inserts a blank line after param blocks", async () => {
+        expect.hasAssertions();
+
         const input = `function Foo {
 param([string] $Name, [int] $Count)
 Write-Host $Name
@@ -119,6 +129,8 @@ Write-Host $Name
     });
 
     it("honors the blank-line-after-param option when disabled", async () => {
+        expect.hasAssertions();
+
         const input = `function Foo {
 param([string] $Name, [int] $Count)
 Write-Host $Name
@@ -146,6 +158,8 @@ Write-Host $Name
     });
 
     it("keeps statements following here-strings aligned to the enclosing block", async () => {
+        expect.hasAssertions();
+
         const input = `function Foo {
 $here = @"
 line
@@ -163,6 +177,8 @@ return $here
     });
 
     it("places opening braces according to the configured brace style", async () => {
+        expect.hasAssertions();
+
         const input = `function Foo {
 Write-Host "Hi"
 }`;
@@ -200,6 +216,8 @@ Write-Host "Hi"
     });
 
     it("applies trailing delimiter rules for hashtables only (arrays don't support trailing commas)", async () => {
+        expect.hasAssertions();
+
         const arrayInput = `@(
 1,
 2
@@ -233,6 +251,8 @@ b = 2
     });
 
     it("wraps pipelines when exceeding the configured line width", async () => {
+        expect.hasAssertions();
+
         const input = `$items = Get-Process | Where-Object { $_.CPU -gt 0 } | Select-Object -First 5`;
 
         const result = await formatAndAssert(
@@ -251,6 +271,8 @@ b = 2
     });
 
     it("prefers single quotes for simple strings when enabled", async () => {
+        expect.hasAssertions();
+
         const input = `Write-Host "Hello"`;
 
         const result = await formatAndAssert(
@@ -266,6 +288,8 @@ b = 2
     });
 
     it("rewrites common aliases when enabled", async () => {
+        expect.hasAssertions();
+
         const input = `ls | % { $_.Name }`;
 
         const result = await formatAndAssert(
@@ -282,6 +306,8 @@ b = 2
     });
 
     it("rewrites Write-Host when configured", async () => {
+        expect.hasAssertions();
+
         const input = `Write-Host $Message`;
 
         const result = await formatAndAssert(
@@ -297,6 +323,8 @@ b = 2
     });
 
     it("removes explicit backtick line continuations", async () => {
+        expect.hasAssertions();
+
         const input =
             `$value = 1
 Write-Host ` +
@@ -319,6 +347,8 @@ $value`;
     });
 
     it("normalises keyword casing by default", async () => {
+        expect.hasAssertions();
+
         const input = `FUNCTION Foo {
 IF ($true) {
 Write-Output "hi"
@@ -337,6 +367,8 @@ Write-Output "hi"
     });
 
     it("preserves keyword casing when configured", async () => {
+        expect.hasAssertions();
+
         const input = `FUNCTION Foo {
 IF ($true) {
 Write-Output "hi"
@@ -358,6 +390,8 @@ Write-Output "hi"
     });
 
     it("normalises whitespace and removes trailing semicolons", async () => {
+        expect.hasAssertions();
+
         const input = `Write-Host  $value ;`;
 
         const result = await formatAndAssert(
@@ -370,6 +404,8 @@ Write-Output "hi"
     });
 
     it("preserves block comments, attributes, and double-dash arguments", async () => {
+        expect.hasAssertions();
+
         const input = `<#
 .SYNOPSIS
   Example script

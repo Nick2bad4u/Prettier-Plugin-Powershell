@@ -7,9 +7,11 @@ const baseConfig = {
     plugins: ["./dist/index.cjs"],
 };
 
-describe("PowerShell Version Compatibility", () => {
-    describe("PowerShell 5.1 Features", () => {
+describe("powershell version compatibility", () => {
+    describe("powershell 5.1 features", () => {
         it("formats classes (PS 5.0+)", async () => {
+            expect.hasAssertions();
+
             const input = `class Person { [string]$Name; [int]$Age }`;
             const result = await formatAndAssert(
                 input,
@@ -21,6 +23,8 @@ describe("PowerShell Version Compatibility", () => {
         });
 
         it("formats enums (PS 5.0+)", async () => {
+            expect.hasAssertions();
+
             const input = `enum Color { Red; Green; Blue }`;
             const result = await formatAndAssert(
                 input,
@@ -32,6 +36,8 @@ describe("PowerShell Version Compatibility", () => {
         });
 
         it("formats using namespace (PS 5.0+)", async () => {
+            expect.hasAssertions();
+
             const input = `using namespace System.IO`;
             const result = await formatAndAssert(
                 input,
@@ -43,6 +49,8 @@ describe("PowerShell Version Compatibility", () => {
         });
 
         it("formats using module (PS 5.0+)", async () => {
+            expect.hasAssertions();
+
             const input = `using module MyModule`;
             const result = await formatAndAssert(input, baseConfig, {
                 id: "version-compat",
@@ -53,8 +61,10 @@ describe("PowerShell Version Compatibility", () => {
         });
     });
 
-    describe("PowerShell 6.0+ Features", () => {
+    describe("powershell 6.0+ features", () => {
         it("formats ternary operator (PS 7.0+)", async () => {
+            expect.hasAssertions();
+
             const input = `$result = $test ? "yes" : "no"`;
             const result = await formatAndAssert(
                 input,
@@ -67,6 +77,8 @@ describe("PowerShell Version Compatibility", () => {
         });
 
         it("formats null-coalescing operator (PS 7.0+)", async () => {
+            expect.hasAssertions();
+
             const input = `$value = $input ?? "default"`;
             const result = await formatAndAssert(
                 input,
@@ -78,6 +90,8 @@ describe("PowerShell Version Compatibility", () => {
         });
 
         it("formats null-conditional assignment (PS 7.0+)", async () => {
+            expect.hasAssertions();
+
             const input = `$var ??= "value"`;
             const result = await formatAndAssert(input, baseConfig, {
                 id: "version-compatibility.test.ts.result",
@@ -89,6 +103,8 @@ describe("PowerShell Version Compatibility", () => {
         });
 
         it("formats pipeline chain operators (PS 7.0+)", async () => {
+            expect.hasAssertions();
+
             const input = `Get-Process && Get-Service || Write-Error "fail"`;
             const result = await formatAndAssert(
                 input,
@@ -101,8 +117,10 @@ describe("PowerShell Version Compatibility", () => {
         });
     });
 
-    describe("PowerShell 7.1+ Features", () => {
+    describe("powershell 7.1+ features", () => {
         it("formats enhanced error view", async () => {
+            expect.hasAssertions();
+
             const input = `$ErrorView = "ConciseView"`;
             const result = await formatAndAssert(
                 input,
@@ -114,6 +132,8 @@ describe("PowerShell Version Compatibility", () => {
         });
 
         it("formats clean block", async () => {
+            expect.hasAssertions();
+
             const input = `function Test { clean { Write-Output "cleanup" } process { } }`;
             const result = await formatAndAssert(
                 input,
@@ -125,8 +145,10 @@ describe("PowerShell Version Compatibility", () => {
         });
     });
 
-    describe("PowerShell 7.2+ Features", () => {
+    describe("powershell 7.2+ features", () => {
         it("formats PSNativeCommandArgumentPassing", async () => {
+            expect.hasAssertions();
+
             const input = `$PSNativeCommandArgumentPassing = "Windows"`;
             const result = await formatAndAssert(
                 input,
@@ -138,8 +160,10 @@ describe("PowerShell Version Compatibility", () => {
         });
     });
 
-    describe("PowerShell 7.3+ Features", () => {
+    describe("powershell 7.3+ features", () => {
         it("formats improved -replace operator", async () => {
+            expect.hasAssertions();
+
             const input = `$text -replace "old", "new"`;
             const result = await formatAndAssert(
                 input,
@@ -151,6 +175,8 @@ describe("PowerShell Version Compatibility", () => {
         });
 
         it("formats $PSStyle automatic variable", async () => {
+            expect.hasAssertions();
+
             const input = `$PSStyle.Foreground.Red`;
             const result = await formatAndAssert(
                 input,
@@ -162,8 +188,10 @@ describe("PowerShell Version Compatibility", () => {
         });
     });
 
-    describe("PowerShell 7.4+ Features", () => {
+    describe("powershell 7.4+ features", () => {
         it("formats improved tab completion", async () => {
+            expect.hasAssertions();
+
             const input = `Get-Command -Name Get-*Process`;
             const result = await formatAndAssert(
                 input,
@@ -175,6 +203,8 @@ describe("PowerShell Version Compatibility", () => {
         });
 
         it("formats SecureString improvements", async () => {
+            expect.hasAssertions();
+
             const input = `$secure = ConvertTo-SecureString "password" -AsPlainText -Force`;
             const result = await formatAndAssert(
                 input,
@@ -186,8 +216,10 @@ describe("PowerShell Version Compatibility", () => {
         });
     });
 
-    describe("cross-Version Compatibility", () => {
+    describe("cross-version compatibility", () => {
         it("handles backward-compatible syntax", async () => {
+            expect.hasAssertions();
+
             const input = `
                 # Works in all versions
                 function Get-Data {
@@ -207,6 +239,8 @@ describe("PowerShell Version Compatibility", () => {
         });
 
         it("formats common cmdlets (all versions)", async () => {
+            expect.hasAssertions();
+
             const input = `
                 Get-Process
                 Get-Service
@@ -225,6 +259,8 @@ describe("PowerShell Version Compatibility", () => {
         });
 
         it("handles version-specific features gracefully", async () => {
+            expect.hasAssertions();
+
             const input = `
                 # PS 7.0+ ternary
                 $result = $test ? "new" : "old"
@@ -242,8 +278,10 @@ describe("PowerShell Version Compatibility", () => {
         });
     });
 
-    describe("deprecated Features", () => {
+    describe("deprecated features", () => {
         it("still formats deprecated cmdlets", async () => {
+            expect.hasAssertions();
+
             const input = `Write-Host "This is deprecated but still works"`;
             const result = await formatAndAssert(
                 input,
@@ -255,6 +293,8 @@ describe("PowerShell Version Compatibility", () => {
         });
 
         it("formats legacy array syntax", async () => {
+            expect.hasAssertions();
+
             const input = `$array = 1, 2, 3, 4, 5`;
             const result = await formatAndAssert(
                 input,
@@ -266,8 +306,10 @@ describe("PowerShell Version Compatibility", () => {
         });
     });
 
-    describe("platform-Specific Features", () => {
+    describe("platform-specific features", () => {
         it("formats Windows-specific cmdlets", async () => {
+            expect.hasAssertions();
+
             const input = `Get-WmiObject -Class Win32_Process`;
             const result = await formatAndAssert(
                 input,
@@ -279,6 +321,8 @@ describe("PowerShell Version Compatibility", () => {
         });
 
         it("formats cross-platform cmdlets", async () => {
+            expect.hasAssertions();
+
             const input = `Get-Process -Name pwsh`;
             const result = await formatAndAssert(
                 input,
@@ -290,6 +334,8 @@ describe("PowerShell Version Compatibility", () => {
         });
 
         it("handles path separators in strings", async () => {
+            expect.hasAssertions();
+
             const input = String.raw`
                 $windowsPath = "C:\Windows\System32"
                 $unixPath = "/usr/local/bin"
@@ -305,8 +351,10 @@ describe("PowerShell Version Compatibility", () => {
         });
     });
 
-    describe("experimental Features", () => {
+    describe("experimental features", () => {
         it("formats PSAnsiRendering settings", async () => {
+            expect.hasAssertions();
+
             const input = `$PSStyle.OutputRendering = "Ansi"`;
             const result = await formatAndAssert(
                 input,
@@ -318,6 +366,8 @@ describe("PowerShell Version Compatibility", () => {
         });
 
         it("handles experimental syntax gracefully", async () => {
+            expect.hasAssertions();
+
             const input = `
                 # Even if syntax is experimental, format what we can
                 $data = Get-Something | Process-Data

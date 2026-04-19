@@ -13,7 +13,7 @@ import {
 import * as https from "node:https";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { parsePowerShell } from "../src/parser.js";
 import plugin from "../src/plugin.js";
@@ -32,6 +32,11 @@ interface GitHubCodeItem {
 
 interface GitHubSearchResponse {
     items: GitHubCodeItem[];
+}
+
+interface SampleCollection {
+    readonly length: number;
+    push: (sample: Readonly<SampledScript>) => number;
 }
 
 interface SampledScript {
@@ -76,26 +81,32 @@ const githubHeaders: Record<string, string> = {
     "User-Agent": "prettier-plugin-powershell-tests",
 };
 const githubToken = testEnv.GITHUB_TOKEN;
-if (githubToken) {
+if (githubToken !== undefined && githubToken.length > 0) {
     githubHeaders.Authorization = `token ${githubToken}`;
 }
 
-const sanitizeIdentifier = (identifier: string): string => {
-    const sanitizedCharacters = [...identifier].map((character) => {
-        const isDecimalDigit = /\d/v.test(character);
-        const isLowercaseLetter = /[a-z]/v.test(character);
-        const isUppercaseLetter = /[A-Z]/v.test(character);
-        const isDot = character === ".";
-        const isDash = character === "-";
+const graphemeSegmenter = new Intl.Segmenter("en", {
+    granularity: "grapheme",
+});
 
-        return isDecimalDigit ||
-            isLowercaseLetter ||
-            isUppercaseLetter ||
-            isDot ||
-            isDash
-            ? character
-            : "_";
-    });
+const sanitizeIdentifier = (identifier: string): string => {
+    const sanitizedCharacters = [...graphemeSegmenter.segment(identifier)].map(
+        ({ segment: character }) => {
+            const isDecimalDigit = /\d/v.test(character);
+            const isLowercaseLetter = /[a-z]/v.test(character);
+            const isUppercaseLetter = /[A-Z]/v.test(character);
+            const isDot = character === ".";
+            const isDash = character === "-";
+
+            return isDecimalDigit ||
+                isLowercaseLetter ||
+                isUppercaseLetter ||
+                isDot ||
+                isDash
+                ? character
+                : "_";
+        }
+    );
 
     return sanitizedCharacters.join("").slice(0, 50);
 };
@@ -149,14 +160,16 @@ const saveToCache = (identifier: string, content: string): void => {
 
 const getResponse = async (url: string): Promise<IncomingMessage> => {
     const request = https.get(url, { headers: githubHeaders });
-    const responsePromise = once(request, "response").then(
-        ([response]) => response as IncomingMessage
-    );
-    const errorPromise: Promise<never> = once(request, "error").then(
-        ([error]) => {
-            throw error instanceof Error ? error : new Error(String(error));
-        }
-    );
+    const responsePromise = (async (): Promise<IncomingMessage> => {
+        const [response] = await once(request, "response");
+
+        return response as IncomingMessage;
+    })();
+    const errorPromise = (async (): Promise<never> => {
+        const [error] = await once(request, "error");
+
+        throw error instanceof Error ? error : new Error(String(error));
+    })();
 
     return Promise.race([responsePromise, errorPromise]);
 };
@@ -176,7 +189,7 @@ const requestText = async (
 
     response.setEncoding("utf8");
 
-    for await (const chunk of response) {
+    for await (const chunk of response as AsyncIterable<Buffer | string>) {
         body += typeof chunk === "string" ? chunk : chunk.toString("utf8");
     }
 
@@ -191,12 +204,22 @@ const requestText = async (
 const fetchJson = async <T>(url: string): Promise<T> => {
     const response = await requestText(url);
 
+    const stringifyHeaderValue = (
+        value: readonly string[] | string | undefined
+    ): string => {
+        if (value === undefined) {
+            return "unknown";
+        }
+
+        return typeof value === "string" ? value : value.join(",");
+    };
+
     if (response.status === 403) {
         const remaining = response.headers["x-ratelimit-remaining"];
         const reset = response.headers["x-ratelimit-reset"];
 
         throw new Error(
-            `GitHub API rate limit exceeded (remaining=${remaining}, reset=${reset}).`
+            `GitHub API rate limit exceeded (remaining=${stringifyHeaderValue(remaining)}, reset=${stringifyHeaderValue(reset)}).`
         );
     }
 
@@ -221,7 +244,10 @@ const fetchText = async (url: string): Promise<string> => {
     return response.body;
 };
 
-const loadFallbackSamples = (samples: SampledScript[], limit: number): void => {
+const loadFallbackSamples = (
+    samples: Readonly<SampleCollection>,
+    limit: number
+): void => {
     for (const relativePath of fallbackSamplePaths) {
         if (samples.length >= limit) {
             break;
@@ -249,7 +275,10 @@ const loadFallbackSamples = (samples: SampledScript[], limit: number): void => {
     }
 };
 
-const loadCachedSamples = (samples: SampledScript[], limit: number): void => {
+const loadCachedSamples = (
+    samples: Readonly<SampleCollection>,
+    limit: number
+): void => {
     if (!CACHE_GITHUB_SAMPLES || !existsSync(cacheDir)) {
         return;
     }
@@ -296,7 +325,7 @@ const fetchGitHubCandidates = async (): Promise<GitHubCodeItem[]> => {
 };
 
 const fetchCandidateContent = async (
-    candidate: GitHubCodeItem
+    candidate: Readonly<GitHubCodeItem>
 ): Promise<null | string> => {
     const possibleRefs = [
         "refs/heads/main",
@@ -318,7 +347,7 @@ const fetchCandidateContent = async (
 };
 
 const addGitHubSamples = async (
-    samples: SampledScript[],
+    samples: Readonly<SampleCollection>,
     limit: number
 ): Promise<void> => {
     const candidates = await fetchGitHubCandidates();
@@ -366,28 +395,41 @@ const fallbackSamplePaths = [
 
 describe("real-world GitHub PowerShell samples", () => {
     const samples: SampledScript[] = [];
-    beforeAll(async () => {
-        if (ENABLE_GITHUB_SAMPLES) {
-            loadCachedSamples(samples, GITHUB_SAMPLE_COUNT);
+    let samplesLoadPromise: null | Promise<void> = null;
+
+    const ensureSamplesLoaded = async (): Promise<void> => {
+        if (samplesLoadPromise !== null) {
+            await samplesLoadPromise;
+            return;
+        }
+
+        samplesLoadPromise = (async (): Promise<void> => {
+            if (ENABLE_GITHUB_SAMPLES) {
+                loadCachedSamples(samples, GITHUB_SAMPLE_COUNT);
+
+                if (samples.length < GITHUB_SAMPLE_COUNT) {
+                    await addGitHubSamples(samples, GITHUB_SAMPLE_COUNT);
+                }
+            }
 
             if (samples.length < GITHUB_SAMPLE_COUNT) {
-                await addGitHubSamples(samples, GITHUB_SAMPLE_COUNT);
+                loadFallbackSamples(samples, GITHUB_SAMPLE_COUNT);
             }
-        }
 
-        if (samples.length < GITHUB_SAMPLE_COUNT) {
-            loadFallbackSamples(samples, GITHUB_SAMPLE_COUNT);
-        }
+            if (samples.length === 0) {
+                throw new Error(
+                    "No PowerShell samples available for GitHub property tests"
+                );
+            }
+        })();
 
-        if (samples.length === 0) {
-            throw new Error(
-                "No PowerShell samples available for GitHub property tests"
-            );
-        }
-    });
+        await samplesLoadPromise;
+    };
 
     it("formats GitHub PowerShell scripts without regressions", async () => {
         expect.hasAssertions();
+
+        await ensureSamplesLoaded();
 
         const runCount = Math.min(PROPERTY_RUNS, samples.length);
         await withProgress("githubSamples", runCount, async (tracker) => {

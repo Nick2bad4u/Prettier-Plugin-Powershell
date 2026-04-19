@@ -22,6 +22,114 @@ interface FixtureCheck {
     skipParse?: boolean;
 }
 
+/**
+ * Builds a stable snapshot/assertion id for fixture formatting passes.
+ */
+const buildFixturePassId = (
+    idBase: string,
+    passLabel: string,
+    skipParse: boolean
+): string =>
+    skipParse ? `${idBase}.${passLabel}|skipParse` : `${idBase}.${passLabel}`;
+
+/**
+ * Parses formatted output unless the fixture explicitly opts out.
+ */
+const assertParsesWhenEnabled = async (
+    script: string,
+    idBase: string,
+    skipParse: boolean
+): Promise<void> => {
+    if (!skipParse) {
+        await assertPowerShellParses(script, idBase);
+    }
+};
+
+/**
+ * Executes the two-pass formatting flow for fixtures that intentionally skip
+ * strict first/second pass equality.
+ */
+const runNonIdempotentFixture = async (
+    fixture: Readonly<FixtureCheck>,
+    filePath: string,
+    idBase: string,
+    input: string,
+    skipParse: boolean
+): Promise<string> => {
+    const firstPass = await formatAndAssert(
+        input,
+        {
+            ...baseConfig,
+            filepath: filePath,
+        },
+        buildFixturePassId(idBase, "first", skipParse)
+    );
+
+    const secondPass = await formatAndAssert(
+        firstPass,
+        {
+            ...baseConfig,
+            filepath: filePath,
+        },
+        buildFixturePassId(idBase, "second", skipParse)
+    );
+
+    await assertParsesWhenEnabled(
+        secondPass,
+        `${idBase}.secondPass.${fixture.name}`,
+        skipParse
+    );
+
+    const normalizedSecond = secondPass.replaceAll(/;{2,}/gv, ";");
+
+    expect(normalizedSecond).toBe(firstPass);
+
+    return firstPass;
+};
+
+/**
+ * Executes the round-trip formatting flow for regular fixtures.
+ */
+const runRoundTripFixture = async (
+    filePath: string,
+    idBase: string,
+    input: string,
+    skipParse: boolean
+): Promise<string> =>
+    formatAndAssertRoundTrip(
+        input,
+        {
+            ...baseConfig,
+            filepath: filePath,
+        },
+        skipParse ? `${idBase}|skipParse` : idBase
+    );
+
+/**
+ * Runs a fixture through the appropriate formatting flow based on fixture
+ * metadata.
+ */
+const runFixture = async (
+    fixture: Readonly<FixtureCheck>,
+    filePath: string,
+    input: string
+): Promise<string> => {
+    const idBase = `weird-fixtures.${fixture.name}`;
+    const skipParse = Boolean(fixture.skipParse);
+
+    if (fixture.expectIdempotent === false) {
+        return runNonIdempotentFixture(
+            fixture,
+            filePath,
+            idBase,
+            input,
+            skipParse
+        );
+    }
+
+    return runRoundTripFixture(filePath, idBase, input, skipParse);
+};
+
 describe("additional regression fixtures", () => {
     const fixtures: FixtureCheck[] = [
         {
@@ -166,62 +274,22 @@ describe("additional regression fixtures", () => {
         },
     ];
 
-    for (const fixture of fixtures) {
-        it(`formats ${fixture.name}`, async () => {
-            const fileUrl = new URL(fixture.file, import.meta.url);
-            const filePath = fileURLToPath(fileUrl);
-            const input = readFileSync(filePath, "utf8");
+    it.each(fixtures)("formats $name", async (fixture) => {
+        expect.hasAssertions();
 
-            fixture.assertInput?.(input);
+        const fileUrl = new URL(fixture.file, import.meta.url);
+        const filePath = fileURLToPath(fileUrl);
+        const input = readFileSync(filePath, "utf8");
 
-            let firstPass: string;
-            const idBase = `weird-fixtures.${fixture.name}`;
-            if (fixture.expectIdempotent === false) {
-                firstPass = await formatAndAssert(
-                    input,
-                    {
-                        ...baseConfig,
-                        filepath: filePath,
-                    },
-                    fixture.skipParse
-                        ? `${idBase}.first|skipParse`
-                        : `${idBase}.first`
-                );
+        fixture.assertInput?.(input);
 
-                const secondPass = await formatAndAssert(
-                    firstPass,
-                    {
-                        ...baseConfig,
-                        filepath: filePath,
-                    },
-                    fixture.skipParse
-                        ? "weird-fixtures.secondPass|skipParse"
-                        : "weird-fixtures.secondPass"
-                );
-                if (!fixture.skipParse) {
-                    await assertPowerShellParses(
-                        secondPass,
-                        `weird-fixtures.secondPass.${fixture.name}`
-                    );
-                }
-                const normalizedSecond = secondPass.replaceAll(/;{2,}/gv, ";");
+        const firstPass = await runFixture(fixture, filePath, input);
+        fixture.assertFormatted?.(firstPass);
 
-                expect(normalizedSecond).toBe(firstPass);
-            } else {
-                firstPass = await formatAndAssertRoundTrip(
-                    input,
-                    {
-                        ...baseConfig,
-                        filepath: filePath,
-                    },
-                    fixture.skipParse ? `${idBase}|skipParse` : idBase
-                );
-            }
-            fixture.assertFormatted?.(firstPass);
-
-            if (!fixture.skipParse) {
-                await assertPowerShellParses(firstPass, idBase);
-            }
-        });
-    }
+        await assertParsesWhenEnabled(
+            firstPass,
+            `weird-fixtures.${fixture.name}`,
+            Boolean(fixture.skipParse)
+        );
+    });
 });

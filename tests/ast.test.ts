@@ -46,18 +46,24 @@ function createTextExpression(
 describe("AST utility functions", () => {
     describe(createLocation, () => {
         it("creates a location object with start and end", () => {
+            expect.hasAssertions();
+
             const loc = createLocation(5, 15);
 
             expect(loc).toEqual({ end: 15, start: 5 });
         });
 
         it("handles zero positions", () => {
+            expect.hasAssertions();
+
             const loc = createLocation(0, 0);
 
             expect(loc).toEqual({ end: 0, start: 0 });
         });
 
         it("handles large positions", () => {
+            expect.hasAssertions();
+
             const loc = createLocation(1000, 2000);
 
             expect(loc).toEqual({ end: 2000, start: 1000 });
@@ -66,6 +72,8 @@ describe("AST utility functions", () => {
 
     describe(isNodeType, () => {
         it("returns true when node type matches", () => {
+            expect.hasAssertions();
+
             const node: ScriptNode = {
                 body: [],
                 loc: createLocation(0, 10),
@@ -76,6 +84,8 @@ describe("AST utility functions", () => {
         });
 
         it("returns false when node type does not match", () => {
+            expect.hasAssertions();
+
             const node: ScriptNode = {
                 body: [],
                 loc: createLocation(0, 10),
@@ -86,6 +96,8 @@ describe("AST utility functions", () => {
         });
 
         it("works with different node types", () => {
+            expect.hasAssertions();
+
             const comment: CommentNode = {
                 inline: false,
                 loc: createLocation(0, 6),
@@ -101,6 +113,8 @@ describe("AST utility functions", () => {
 
     describe(cloneNode, () => {
         it("clones a simple node", () => {
+            expect.hasAssertions();
+
             const node: CommentNode = {
                 inline: false,
                 loc: createLocation(0, 14),
@@ -116,6 +130,8 @@ describe("AST utility functions", () => {
         });
 
         it("clones a node with body array", () => {
+            expect.hasAssertions();
+
             const node: ScriptNode = {
                 body: [
                     {
@@ -138,6 +154,8 @@ describe("AST utility functions", () => {
         });
 
         it("clones a node with parts array", () => {
+            expect.hasAssertions();
+
             const node = {
                 loc: createLocation(0, 11),
                 parts: ["hello", "world"],
@@ -154,6 +172,8 @@ describe("AST utility functions", () => {
         });
 
         it("clones a node with segments array", () => {
+            expect.hasAssertions();
+
             const node = {
                 loc: createLocation(0, 4),
                 segments: [{ type: "StringSegment", value: "test" }],
@@ -167,6 +187,8 @@ describe("AST utility functions", () => {
         });
 
         it("clones a node with elements array", () => {
+            expect.hasAssertions();
+
             const node: ArrayLiteralNode = {
                 elements: [createTextExpression("1", "number")],
                 kind: "implicit",
@@ -180,6 +202,8 @@ describe("AST utility functions", () => {
         });
 
         it("clones a node with entries array", () => {
+            expect.hasAssertions();
+
             const node: HashtableNode = {
                 entries: [
                     {
@@ -200,6 +224,8 @@ describe("AST utility functions", () => {
         });
 
         it("clones a node with parameters array", () => {
+            expect.hasAssertions();
+
             const node = {
                 loc: createLocation(0, 20),
                 parameters: [
@@ -222,6 +248,8 @@ describe("AST utility functions", () => {
     describe("type guard functions", () => {
         describe(isScriptNode, () => {
             it("returns true for Script nodes", () => {
+                expect.hasAssertions();
+
                 const node: ScriptNode = {
                     body: [],
                     loc: createLocation(0, 0),
@@ -232,6 +260,8 @@ describe("AST utility functions", () => {
             });
 
             it("returns false for non-Script nodes", () => {
+                expect.hasAssertions();
+
                 const node: CommentNode = {
                     inline: false,
                     loc: createLocation(0, 6),
@@ -246,6 +276,8 @@ describe("AST utility functions", () => {
 
         describe(isPipelineNode, () => {
             it("returns true for Pipeline nodes", () => {
+                expect.hasAssertions();
+
                 const node: PipelineNode = {
                     loc: createLocation(0, 10),
                     segments: [],
@@ -256,6 +288,8 @@ describe("AST utility functions", () => {
             });
 
             it("returns false for non-Pipeline nodes", () => {
+                expect.hasAssertions();
+
                 const node: ScriptNode = {
                     body: [],
                     loc: createLocation(0, 0),
@@ -268,6 +302,8 @@ describe("AST utility functions", () => {
 
         describe(isFunctionDeclarationNode, () => {
             it("returns true for FunctionDeclaration nodes", () => {
+                expect.hasAssertions();
+
                 const node: FunctionDeclarationNode = {
                     body: {
                         body: [],
@@ -283,6 +319,8 @@ describe("AST utility functions", () => {
             });
 
             it("returns false for non-FunctionDeclaration nodes", () => {
+                expect.hasAssertions();
+
                 const node: ScriptNode = {
                     body: [],
                     loc: createLocation(0, 0),
@@ -295,6 +333,8 @@ describe("AST utility functions", () => {
 
         describe(isScriptBlockNode, () => {
             it("returns true for ScriptBlock nodes", () => {
+                expect.hasAssertions();
+
                 const node: ScriptBlockNode = {
                     body: [],
                     loc: createLocation(0, 2),
@@ -305,6 +345,8 @@ describe("AST utility functions", () => {
             });
 
             it("returns false for non-ScriptBlock nodes", () => {
+                expect.hasAssertions();
+
                 const node: ScriptNode = {
                     body: [],
                     loc: createLocation(0, 0),
@@ -317,6 +359,8 @@ describe("AST utility functions", () => {
 
         describe(isHashtableNode, () => {
             it("returns true for Hashtable nodes", () => {
+                expect.hasAssertions();
+
                 const node: HashtableNode = {
                     entries: [],
                     loc: createLocation(0, 2),
@@ -327,6 +371,8 @@ describe("AST utility functions", () => {
             });
 
             it("returns false for non-Hashtable nodes", () => {
+                expect.hasAssertions();
+
                 const node: ScriptNode = {
                     body: [],
                     loc: createLocation(0, 0),
@@ -339,6 +385,8 @@ describe("AST utility functions", () => {
 
         describe(isArrayLiteralNode, () => {
             it("returns true for ArrayLiteral nodes", () => {
+                expect.hasAssertions();
+
                 const node: ArrayLiteralNode = {
                     elements: [],
                     kind: "implicit",
@@ -350,6 +398,8 @@ describe("AST utility functions", () => {
             });
 
             it("returns false for non-ArrayLiteral nodes", () => {
+                expect.hasAssertions();
+
                 const node: ScriptNode = {
                     body: [],
                     loc: createLocation(0, 0),
@@ -362,6 +412,8 @@ describe("AST utility functions", () => {
 
         describe(isCommentNode, () => {
             it("returns true for Comment nodes", () => {
+                expect.hasAssertions();
+
                 const node: CommentNode = {
                     inline: false,
                     loc: createLocation(0, 6),
@@ -374,6 +426,8 @@ describe("AST utility functions", () => {
             });
 
             it("returns false for non-Comment nodes", () => {
+                expect.hasAssertions();
+
                 const node: ScriptNode = {
                     body: [],
                     loc: createLocation(0, 0),
@@ -386,6 +440,8 @@ describe("AST utility functions", () => {
 
         describe(isHereStringNode, () => {
             it("returns true for HereString nodes", () => {
+                expect.hasAssertions();
+
                 const node: HereStringNode = {
                     loc: createLocation(0, 10),
                     quote: "single",
@@ -397,6 +453,8 @@ describe("AST utility functions", () => {
             });
 
             it("returns false for non-HereString nodes", () => {
+                expect.hasAssertions();
+
                 const node: ScriptNode = {
                     body: [],
                     loc: createLocation(0, 0),

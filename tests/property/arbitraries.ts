@@ -4,17 +4,35 @@ const letters = "abcdefghijklmnopqrstuvwxyz";
 const lettersUpper = letters.toUpperCase();
 const digits = "0123456789";
 const symbolChars = "-_";
+const graphemeSegmenter = new Intl.Segmenter("en", {
+    granularity: "grapheme",
+});
+
+const splitGraphemes = (value: string): string[] => {
+    const parts: string[] = [];
+
+    for (const segment of graphemeSegmenter.segment(value)) {
+        parts.push(segment.segment);
+    }
+
+    return parts;
+};
+
+const letterCharacters = splitGraphemes(letters);
+const upperLetterCharacters = splitGraphemes(lettersUpper);
+const digitCharacters = splitGraphemes(digits);
+const symbolCharacters = splitGraphemes(symbolChars);
 
 const identifierStartArb: fc.Arbitrary<string> = fc.constantFrom<string>(
-    ...letters,
-    ...lettersUpper,
+    ...letterCharacters,
+    ...upperLetterCharacters,
     "_"
 );
 const identifierCharArb: fc.Arbitrary<string> = fc.constantFrom<string>(
-    ...letters,
-    ...lettersUpper,
-    ...digits,
-    ...symbolChars
+    ...letterCharacters,
+    ...upperLetterCharacters,
+    ...digitCharacters,
+    ...symbolCharacters
 );
 
 const baseIdentifierArb: fc.Arbitrary<string> = fc
@@ -23,9 +41,9 @@ const baseIdentifierArb: fc.Arbitrary<string> = fc
         ([
             head,
             tail,
-        ]: [
+        ]: readonly [
             string,
-            string[],
+            readonly string[],
         ]) => `${head}${tail.join("")}`
     );
 
@@ -38,9 +56,9 @@ const variableNameArb: fc.Arbitrary<string> = baseIdentifierArb.map(
 );
 
 const stringCharArb: fc.Arbitrary<string> = fc.constantFrom<string>(
-    ...letters,
-    ...lettersUpper,
-    ...digits,
+    ...letterCharacters,
+    ...upperLetterCharacters,
+    ...digitCharacters,
     " ",
     ".",
     "/",
@@ -61,18 +79,18 @@ const stringCharArb: fc.Arbitrary<string> = fc.constantFrom<string>(
 
 const singleQuotedStringArb: fc.Arbitrary<string> = fc
     .array(stringCharArb, { maxLength: 18 })
-    .map((chars: string[]) => {
+    .map((chars: readonly string[]) => {
         const content = chars.join("");
         return `'${content.replaceAll("'", "''")}'`;
     });
 
 const doubleQuotedStringArb: fc.Arbitrary<string> = fc
     .array(stringCharArb, { maxLength: 18 })
-    .map((chars: string[]) => `"${chars.join("")}"`);
+    .map((chars: readonly string[]) => `"${chars.join("")}"`);
 
 const hereStringLiteralArb: fc.Arbitrary<string> = fc
     .array(stringCharArb, { maxLength: 40, minLength: 3 })
-    .map((chars: string[]) => `@"\n${chars.join("")}\n"@`);
+    .map((chars: readonly string[]) => `@"\n${chars.join("")}\n"@`);
 
 const numberLiteralArb: fc.Arbitrary<string> = fc
     .integer({ max: 999, min: -999 })
@@ -114,13 +132,16 @@ const hashtableEntryArb: fc.Arbitrary<HashtableEntry> = fc
         ([
             key,
             value,
-        ]: [
+        ]: readonly [
             string,
             string,
         ]) => ({ key, value })
     );
 
-const formatHashtableEntry = ({ key, value }: HashtableEntry): string => {
+const formatHashtableEntry = ({
+    key,
+    value,
+}: Readonly<HashtableEntry>): string => {
     if (!value.includes("\n")) {
         return `${key} = ${value}`;
     }
@@ -144,7 +165,7 @@ const formatHashtableEntry = ({ key, value }: HashtableEntry): string => {
 
 const hashtableLiteralArb: fc.Arbitrary<string> = fc
     .array(hashtableEntryArb, { maxLength: 5 })
-    .map((entries: HashtableEntry[]) => {
+    .map((entries: readonly Readonly<HashtableEntry>[]) => {
         if (entries.length === 0) {
             return "@{}";
         }
@@ -178,7 +199,7 @@ const expressionValueArb: fc.Arbitrary<string> = fc.oneof(
 
 const commentArb: fc.Arbitrary<string> = fc
     .array(stringCharArb, { maxLength: 40, minLength: 3 })
-    .map((chars: string[]) => `# ${chars.join("")}`);
+    .map((chars: readonly string[]) => `# ${chars.join("")}`);
 
 const comparisonOperatorArb: fc.Arbitrary<string> = fc.constantFrom(
     "-gt",
@@ -246,9 +267,9 @@ const commandStatementArb: fc.Arbitrary<string> = fc
             cmdlet,
             args,
             predicate,
-        ]: [
+        ]: readonly [
             string,
-            string[],
+            readonly string[],
             (
                 | string
                 | undefined
@@ -258,7 +279,7 @@ const commandStatementArb: fc.Arbitrary<string> = fc
             if (args.length > 0) {
                 pieces.push(args.join(" "));
             }
-            if (predicate) {
+            if (predicate !== undefined) {
                 pieces.push(predicate);
             }
             return pieces.join(" ");
@@ -271,7 +292,7 @@ const assignmentStatementArb: fc.Arbitrary<string> = fc
         ([
             variable,
             value,
-        ]: [
+        ]: readonly [
             string,
             string,
         ]) => `${variable} = ${value}`
@@ -296,9 +317,9 @@ const pipelineStatementArb: fc.Arbitrary<string> = fc
         ([
             input,
             stages,
-        ]: [
+        ]: readonly [
             string,
-            string[],
+            readonly string[],
         ]) => {
             const pipelineHead = `Write-Output ${input}`;
             return [pipelineHead, ...stages].join(" | ");
@@ -311,7 +332,7 @@ const hereStringAssignmentArb: fc.Arbitrary<string> = fc
         ([
             variable,
             literal,
-        ]: [
+        ]: readonly [
             string,
             string,
         ]) => `${variable} = ${literal}`
@@ -348,7 +369,7 @@ const conditionArb: fc.Arbitrary<string> = fc.oneof(
                 variable,
                 op,
                 value,
-            ]: [
+            ]: readonly [
                 string,
                 string,
                 string,
@@ -371,7 +392,7 @@ const parameterDeclarationArb: fc.Arbitrary<string> = fc
         ([
             type,
             variable,
-        ]: [
+        ]: readonly [
             string,
             string,
         ]) => `${type} ${variable}`
@@ -390,10 +411,10 @@ interface LetrecShape {
 const arbitraries = fc.letrec<LetrecShape>((tie) => {
     const block: fc.Arbitrary<string> = fc
         .array(tie("statement"), { maxLength: 6, minLength: 1 })
-        .filter((statements) =>
+        .filter((statements: readonly string[]) =>
             statements.some((statement) => statement.trim().length > 0)
         )
-        .map((statements) => statements.join("\n"));
+        .map((statements: readonly string[]) => statements.join("\n"));
 
     const elseIfClausesArb: fc.Arbitrary<[string, string][]> = fc.array(
         fc.tuple(conditionArb, tie("block")),
@@ -423,7 +444,7 @@ const arbitraries = fc.letrec<LetrecShape>((tie) => {
                     `elseif (${elseifCondition}) {\n${indent(elseifBody)}\n}`
                 );
             }
-            if (elseBody) {
+            if (elseBody !== undefined) {
                 segments.push(`else {\n${indent(elseBody)}\n}`);
             }
             return segments.join("\n");
@@ -460,7 +481,7 @@ const arbitraries = fc.letrec<LetrecShape>((tie) => {
                 .map((bodies) =>
                     sections.map(
                         (section, index) =>
-                            `${section} {\n${indent(bodies[index])}\n}`
+                            `${section} {\n${indent(bodies[index] ?? "")}\n}`
                     )
                 )
         );
@@ -483,7 +504,7 @@ const arbitraries = fc.letrec<LetrecShape>((tie) => {
         })
         .map(({ body, name, paramBlock, sections, verb }) => {
             const innerSegments: string[] = [];
-            if (paramBlock) {
+            if (paramBlock !== undefined) {
                 innerSegments.push(indent(paramBlock));
             }
             innerSegments.push(indent(body));
@@ -511,9 +532,10 @@ const arbitraries = fc.letrec<LetrecShape>((tie) => {
         })
         .map(({ catchBody, catchType, finallyBody, tryBody }) => {
             const clauses = [`try {\n${indent(tryBody)}\n}`];
-            const catchHeader = catchType ? `catch ${catchType}` : "catch";
+            const catchHeader =
+                catchType === undefined ? "catch" : `catch ${catchType}`;
             clauses.push(`${catchHeader} {\n${indent(catchBody)}\n}`);
-            if (finallyBody) {
+            if (finallyBody !== undefined) {
                 clauses.push(`finally {\n${indent(finallyBody)}\n}`);
             }
             return clauses.join("\n");
@@ -593,7 +615,9 @@ const arbitraries = fc.letrec<LetrecShape>((tie) => {
                     newline === "\n"
                         ? joined
                         : joined.replaceAll("\n", newline);
-                return trailing ? `${normalised}${newline}` : normalised;
+                return trailing.length > 0
+                    ? `${normalised}${newline}`
+                    : normalised;
             }
         );
 

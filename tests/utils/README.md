@@ -8,8 +8,8 @@ Usage: import { formatAndAssert } from "./format-and-assert.js";
 
 Example:
 
-```
-const formatted = await formatAndAssert(script, baseConfig, { id: 'test.id' });
+```ts
+const formatted = await formatAndAssert(script, baseConfig, { id: "test.id" });
 ```
 
 Options:
@@ -23,8 +23,10 @@ Usage: import { formatAndAssertRoundTrip } from "./format-and-assert.js";
 
 Example:
 
-```
-const formatted = await formatAndAssertRoundTrip(script, baseConfig, { id: 'test.id' });
+```ts
+const formatted = await formatAndAssertRoundTrip(script, baseConfig, {
+ id: "test.id",
+});
 ```
 
 Options (third argument):

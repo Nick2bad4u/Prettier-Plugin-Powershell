@@ -204,11 +204,10 @@ function ${second} {
                                 powershellPreferSingleQuote: true,
                             });
 
-                            if (!/\$value\s*=\s*'[^']*'/v.test(formatted)) {
-                                throw new Error(
-                                    `Expected single-quoted literal when preferSingleQuote is true.\n${formatted}`
-                                );
-                            }
+                            expect(
+                                /\$value\s*=\s*'[^']*'/v.test(formatted),
+                                `Expected single-quoted literal when preferSingleQuote is true.\n${formatted}`
+                            ).toBeTruthy();
                         }),
                         { numRuns: PROPERTY_RUNS }
                     );
@@ -235,12 +234,10 @@ function ${second} {
                                     powershellPreferSingleQuote: true,
                                 });
 
-                                if (!/\$value\s*=\s*"/v.test(formatted)) {
-                                    throw new Error(
-                                        `Expected double quotes to be preserved when content contains $.
-${formatted}`
-                                    );
-                                }
+                                expect(
+                                    /\$value\s*=\s*"/v.test(formatted),
+                                    `Expected double quotes to be preserved when content contains $.\n${formatted}`
+                                ).toBeTruthy();
                             }
                         ),
                         { numRuns: PROPERTY_RUNS }
@@ -346,11 +343,11 @@ ${formatted}`
                             const formatted = await runFormat(script, {
                                 powershellRewriteWriteHost: true,
                             });
-                            if (!/write-output/iv.test(formatted)) {
-                                throw new Error(
-                                    `Expected Write-Host rewrite when enabled.\n${formatted}`
-                                );
-                            }
+
+                            expect(
+                                /write-output/iv.test(formatted),
+                                `Expected Write-Host rewrite when enabled.\n${formatted}`
+                            ).toBeTruthy();
                         }),
                         { numRuns: PROPERTY_RUNS }
                     );
@@ -609,8 +606,10 @@ ${formatted}`
 
         const keySetArb: fc.Arbitrary<string[]> = fc
             .array(fc.constantFrom(...keyPool), { maxLength: 5, minLength: 2 })
-            .map((keys) => [...new Set(keys)])
-            .filter((keys) => keys.length >= 2);
+            .map((keys: readonly string[]): string[] => [
+                ...new Set<string>(keys),
+            ])
+            .filter((keys: readonly string[]) => keys.length >= 2);
 
         const extractKeys = (formatted: string): string[] => {
             const startIndex = formatted.indexOf("@{");
@@ -640,36 +639,39 @@ ${formatted}`
                 PROPERTY_RUNS,
                 async (tracker) => {
                     await fc.assert(
-                        fc.asyncProperty(keySetArb, async (keys) => {
-                            tracker.advance();
-                            const entries = keys
-                                .map(
-                                    (key: string, index: number) =>
-                                        `${key} = ${index}`
-                                )
-                                .join("; ");
-                            const script = `$map = @{ ${entries} }`;
-                            const formatted = await runFormat(script, {
-                                powershellSortHashtableKeys: false,
-                            });
-                            const formattedKeys = extractKeys(formatted);
-                            if (formattedKeys.length !== keys.length) {
-                                throw new Error(
-                                    `Mismatch in key counts. expected=${keys.length} actual=${formattedKeys.length}`
-                                );
-                            }
-                            for (
-                                let index = 0;
-                                index < keys.length;
-                                index += 1
-                            ) {
-                                if (formattedKeys[index] !== keys[index]) {
+                        fc.asyncProperty(
+                            keySetArb,
+                            async (keys: readonly string[]) => {
+                                tracker.advance();
+                                const entries = keys
+                                    .map(
+                                        (key: string, index: number) =>
+                                            `${key} = ${index}`
+                                    )
+                                    .join("; ");
+                                const script = `$map = @{ ${entries} }`;
+                                const formatted = await runFormat(script, {
+                                    powershellSortHashtableKeys: false,
+                                });
+                                const formattedKeys = extractKeys(formatted);
+                                if (formattedKeys.length !== keys.length) {
                                     throw new Error(
-                                        `Key order changed when sorting disabled. expected=${keys.join(", ")} actual=${formattedKeys.join(", ")}`
+                                        `Mismatch in key counts. expected=${keys.length} actual=${formattedKeys.length}`
                                     );
                                 }
+                                for (
+                                    let index = 0;
+                                    index < keys.length;
+                                    index += 1
+                                ) {
+                                    if (formattedKeys[index] !== keys[index]) {
+                                        throw new Error(
+                                            `Key order changed when sorting disabled. expected=${keys.join(", ")} actual=${formattedKeys.join(", ")}`
+                                        );
+                                    }
+                                }
                             }
-                        }),
+                        ),
                         { numRuns: PROPERTY_RUNS }
                     );
                 }
@@ -685,41 +687,49 @@ ${formatted}`
                 PROPERTY_RUNS,
                 async (tracker) => {
                     await fc.assert(
-                        fc.asyncProperty(keySetArb, async (keys) => {
-                            tracker.advance();
-                            const entries = keys
-                                .map(
-                                    (key: string, index: number) =>
-                                        `${key} = ${index}`
-                                )
-                                .join("; ");
-                            const script = `$map = @{ ${entries} }`;
-                            const formatted = await runFormat(script, {
-                                powershellSortHashtableKeys: true,
-                            });
-                            const formattedKeys = extractKeys(formatted).map(
-                                (key) => key.toLowerCase()
-                            );
-                            const expected = [...keys]
-                                .map((key: string) => key.toLowerCase())
-                                .toSorted((a, b) => a.localeCompare(b));
-                            if (formattedKeys.length !== expected.length) {
-                                throw new Error(
-                                    `Mismatch in key counts for sorted case. expected=${expected.length} actual=${formattedKeys.length}`
+                        fc.asyncProperty(
+                            keySetArb,
+                            async (keys: readonly string[]) => {
+                                tracker.advance();
+                                const entries = keys
+                                    .map(
+                                        (key: string, index: number) =>
+                                            `${key} = ${index}`
+                                    )
+                                    .join("; ");
+                                const script = `$map = @{ ${entries} }`;
+                                const formatted = await runFormat(script, {
+                                    powershellSortHashtableKeys: true,
+                                });
+                                const formattedKeys: string[] = extractKeys(
+                                    formatted
+                                ).map((key: string) => key.toLowerCase());
+                                const expected: string[] = keys.map(
+                                    (key: string) => key.toLowerCase()
                                 );
-                            }
-                            for (
-                                let index = 0;
-                                index < expected.length;
-                                index += 1
-                            ) {
-                                if (formattedKeys[index] !== expected[index]) {
+                                expected.sort((a: string, b: string) =>
+                                    a.localeCompare(b)
+                                );
+                                if (formattedKeys.length !== expected.length) {
                                     throw new Error(
-                                        `Expected alphabetical order but received ${formattedKeys.join(", ")} != ${expected.join(", ")}`
+                                        `Mismatch in key counts for sorted case. expected=${expected.length} actual=${formattedKeys.length}`
                                     );
                                 }
+                                for (
+                                    let index = 0;
+                                    index < expected.length;
+                                    index += 1
+                                ) {
+                                    if (
+                                        formattedKeys[index] !== expected[index]
+                                    ) {
+                                        throw new Error(
+                                            `Expected alphabetical order but received ${formattedKeys.join(", ")} != ${expected.join(", ")}`
+                                        );
+                                    }
+                                }
                             }
-                        }),
+                        ),
                         { numRuns: PROPERTY_RUNS }
                     );
                 }

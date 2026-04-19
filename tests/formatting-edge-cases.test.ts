@@ -10,6 +10,8 @@ const baseConfig = {
 
 describe("formatting edge cases", () => {
     it("formats static member access (::) without spaces", async () => {
+        expect.hasAssertions();
+
         const script = "[System.IO.Path] :: PathSeparator";
         const result = await formatAndAssert(
             script,
@@ -21,6 +23,8 @@ describe("formatting edge cases", () => {
     });
 
     it("formats named parameter colons without spaces", async () => {
+        expect.hasAssertions();
+
         const script = "Get-Module -Name : $ModuleName";
         const result = await formatAndAssert(
             script,
@@ -32,6 +36,8 @@ describe("formatting edge cases", () => {
     });
 
     it("formats splatting (@) without spaces", async () => {
+        expect.hasAssertions();
+
         const script = "Add-Profile @ profileArguments";
         const result = await formatAndAssert(
             script,
@@ -43,6 +49,8 @@ describe("formatting edge cases", () => {
     });
 
     it("formats logical operators with space before parenthesis", async () => {
+        expect.hasAssertions();
+
         const script = "if (-not(Test-Path $path)) { }";
         const result = await formatAndAssert(
             script,
@@ -54,6 +62,8 @@ describe("formatting edge cases", () => {
     });
 
     it("formats -and operator with space before parenthesis", async () => {
+        expect.hasAssertions();
+
         const script = "if ($a -and($b)) { }";
         const result = await formatAndAssert(
             script,
@@ -65,6 +75,8 @@ describe("formatting edge cases", () => {
     });
 
     it("formats -or operator with space before parenthesis", async () => {
+        expect.hasAssertions();
+
         const script = "if ($a -or($b)) { }";
         const result = await formatAndAssert(
             script,
@@ -76,6 +88,8 @@ describe("formatting edge cases", () => {
     });
 
     it("handles complex combinations correctly", async () => {
+        expect.hasAssertions();
+
         const script = `
 $separator = [System.IO.Path] :: PathSeparator
 $paths = $env:PSModulePath -split [System.Text.RegularExpressions.Regex] :: Escape($separator)
@@ -99,6 +113,8 @@ if (-not(Test-Path $path)) { }
     });
 
     it("formats operators before parentheses with space", async () => {
+        expect.hasAssertions();
+
         const script = "$h =($Hue % 1) * 6";
         const result = await formatAndAssert(
             script,
@@ -110,6 +126,8 @@ if (-not(Test-Path $path)) { }
     });
 
     it("formats cmdlets before parentheses with space", async () => {
+        expect.hasAssertions();
+
         const script = "Write-Host($message)";
         const result = await formatAndAssert(
             script,
@@ -121,6 +139,8 @@ if (-not(Test-Path $path)) { }
     });
 
     it("formats method calls without space before parenthesis", async () => {
+        expect.hasAssertions();
+
         const script = "$obj.ContainsKey ($key)";
         const result = await formatAndAssert(
             script,
@@ -132,6 +152,8 @@ if (-not(Test-Path $path)) { }
     });
 
     it("formats static method calls without space", async () => {
+        expect.hasAssertions();
+
         const script = "[Math]:: Round ($value)";
         const result = await formatAndAssert(
             script,
@@ -143,6 +165,8 @@ if (-not(Test-Path $path)) { }
     });
 
     it("formats hexadecimal numbers correctly", async () => {
+        expect.hasAssertions();
+
         const script = "$mode.Value = 0x0004";
         const result = await formatAndAssert(
             script,
@@ -154,6 +178,8 @@ if (-not(Test-Path $path)) { }
     });
 
     it("formats various hex number formats", async () => {
+        expect.hasAssertions();
+
         const script = `
 $a = 0x00
 $b = 0xFF
@@ -173,6 +199,8 @@ $d = 0X1234
     });
 
     it("formats binary literals correctly", async () => {
+        expect.hasAssertions();
+
         const script = "$binary = 0b1010";
         const result = await formatAndAssert(
             script,
@@ -184,6 +212,8 @@ $d = 0X1234
     });
 
     it("formats multiplier suffixes correctly", async () => {
+        expect.hasAssertions();
+
         const script = `
 $kb = 10KB
 $mb = 5MB
@@ -205,6 +235,8 @@ $pb = 1PB
     });
 
     it("formats scientific notation correctly", async () => {
+        expect.hasAssertions();
+
         const script = `
 $a = 1e10
 $b = 1e-5
@@ -224,6 +256,8 @@ $d = 2.5E-3
     });
 
     it("formats type suffixes correctly", async () => {
+        expect.hasAssertions();
+
         const script = `
 $long = 100L
 $longLower = 200l
@@ -247,6 +281,8 @@ $floatUpper = 2.5F
     });
 
     it("formats combined number features correctly", async () => {
+        expect.hasAssertions();
+
         const script = `
 $hexLong = 0x10L
 $hexWithSuffix = 0xFFMB

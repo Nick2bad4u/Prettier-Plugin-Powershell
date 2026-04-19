@@ -7,10 +7,12 @@ const baseConfig = {
     plugins: ["./dist/index.cjs"],
 };
 
-const joinLines = (...values: string[]): string => values.join("\n");
+const joinLines = (...values: readonly string[]): string => values.join("\n");
 
 describe("call operator formatting", () => {
     it("formats call operator against script blocks", async () => {
+        expect.hasAssertions();
+
         const input = joinLines(
             "",
             "$scriptBlock = {",
@@ -32,6 +34,8 @@ describe("call operator formatting", () => {
     });
 
     it("handles call operator with command expressions", async () => {
+        expect.hasAssertions();
+
         const input = '& (Get-Command Write-Host) "hi"';
         const result = await formatAndAssert(
             input,
@@ -43,6 +47,8 @@ describe("call operator formatting", () => {
     });
 
     it("supports splatted arguments", async () => {
+        expect.hasAssertions();
+
         const input = joinLines(
             "",
             "$invoke = Get-Command Invoke-RestMethod",
@@ -64,6 +70,8 @@ describe("call operator formatting", () => {
     });
 
     it("supports property invocation via call operator", async () => {
+        expect.hasAssertions();
+
         const input = joinLines(
             "",
             '$object = [PSCustomObject]@{ Script = { "ok" } }',

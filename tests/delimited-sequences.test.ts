@@ -9,6 +9,8 @@ const baseConfig = {
 
 describe("delimited sequence handling", () => {
     it("keeps array elements stable across commas and newlines", async () => {
+        expect.hasAssertions();
+
         const input = "@(1, 2, 3,\n4, 5)";
         const result = await formatAndAssert(
             input,
@@ -20,6 +22,8 @@ describe("delimited sequence handling", () => {
     });
 
     it("formats param blocks consistently", async () => {
+        expect.hasAssertions();
+
         const input = `function Test {
     param (
         [int] $A,
@@ -48,6 +52,8 @@ describe("delimited sequence handling", () => {
     });
 
     it("preserves hashtable comments and delimiters", async () => {
+        expect.hasAssertions();
+
         const input = `@{
     Name = "Value"
     # trailing

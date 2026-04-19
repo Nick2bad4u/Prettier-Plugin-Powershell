@@ -5,6 +5,8 @@ import { createProgressTracker, withProgress } from "./progress.js";
 describe("progress utilities", () => {
     describe(createProgressTracker, () => {
         it("creates a tracker that counts advances", () => {
+            expect.hasAssertions();
+
             const tracker = createProgressTracker("test");
 
             expect(tracker.advance()).toBe(1);
@@ -13,6 +15,8 @@ describe("progress utilities", () => {
         });
 
         it("accepts totalHint parameter", () => {
+            expect.hasAssertions();
+
             const tracker = createProgressTracker("test", 10);
 
             expect(tracker.advance()).toBe(1);
@@ -20,6 +24,8 @@ describe("progress utilities", () => {
         });
 
         it("has complete method", () => {
+            expect.hasAssertions();
+
             const tracker = createProgressTracker("test");
 
             expect(typeof tracker.complete).toBe("function");
@@ -28,6 +34,8 @@ describe("progress utilities", () => {
         });
 
         it("continues counting after many advances", () => {
+            expect.hasAssertions();
+
             const tracker = createProgressTracker("test");
             for (let i = 0; i < 100; i++) {
                 tracker.advance();
@@ -39,6 +47,8 @@ describe("progress utilities", () => {
 
     describe(withProgress, () => {
         it("executes action and returns result", async () => {
+            expect.hasAssertions();
+
             const result = await withProgress("test", 5, (tracker) => {
                 tracker.advance();
                 return "done";
@@ -48,6 +58,8 @@ describe("progress utilities", () => {
         });
 
         it("propagates errors from action", async () => {
+            expect.hasAssertions();
+
             await expect(
                 withProgress("test", 5, () => {
                     throw new Error("test error");
@@ -56,6 +68,8 @@ describe("progress utilities", () => {
         });
 
         it("supports synchronous actions", async () => {
+            expect.hasAssertions();
+
             const result = await withProgress("test", 5, (tracker) => {
                 tracker.advance();
                 return "sync result";
@@ -65,6 +79,8 @@ describe("progress utilities", () => {
         });
 
         it("supports async actions", async () => {
+            expect.hasAssertions();
+
             const result = await withProgress("test", 5, async (tracker) => {
                 tracker.advance();
                 await Promise.resolve();
@@ -75,6 +91,8 @@ describe("progress utilities", () => {
         });
 
         it("passes tracker to action", async () => {
+            expect.hasAssertions();
+
             let count = 0;
 
             await withProgress("test", 5, (tracker) => {
@@ -86,6 +104,8 @@ describe("progress utilities", () => {
         });
 
         it("allows tracker to be advanced multiple times", async () => {
+            expect.hasAssertions();
+
             let finalCount = 0;
 
             await withProgress("test", 10, (tracker) => {

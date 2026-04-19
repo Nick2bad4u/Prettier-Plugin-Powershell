@@ -10,6 +10,8 @@ import {
 describe("error and warning classes", () => {
     describe(PowerShellParseError, () => {
         it("creates error with all parameters", () => {
+            expect.hasAssertions();
+
             const error = new PowerShellParseError(
                 "Test error",
                 "Get-Item $test",
@@ -27,6 +29,8 @@ describe("error and warning classes", () => {
         });
 
         it("formats error message with toString", () => {
+            expect.hasAssertions();
+
             const error = new PowerShellParseError(
                 "Unexpected token",
                 "Get-Item $test",
@@ -45,6 +49,8 @@ describe("error and warning classes", () => {
         });
 
         it("handles multiline source in toString", () => {
+            expect.hasAssertions();
+
             const source = "Get-Item $test\nWrite-Host 'hello'\n$x = 5";
             const error = new PowerShellParseError(
                 "Syntax error",
@@ -61,6 +67,8 @@ describe("error and warning classes", () => {
         });
 
         it("gets context with default context lines", () => {
+            expect.hasAssertions();
+
             const source = [
                 "line1",
                 "line2",
@@ -82,6 +90,8 @@ describe("error and warning classes", () => {
         });
 
         it("gets context with custom context lines", () => {
+            expect.hasAssertions();
+
             const source = [
                 "line1",
                 "line2",
@@ -101,6 +111,8 @@ describe("error and warning classes", () => {
         });
 
         it("handles error at first line", () => {
+            expect.hasAssertions();
+
             const source = "line1\nline2\nline3";
             const error = new PowerShellParseError("Error", source, 3, 1, 4);
 
@@ -111,6 +123,8 @@ describe("error and warning classes", () => {
         });
 
         it("handles error at last line", () => {
+            expect.hasAssertions();
+
             const source = "line1\nline2\nline3";
             const error = new PowerShellParseError("Error", source, 15, 3, 3);
 
@@ -121,6 +135,8 @@ describe("error and warning classes", () => {
         });
 
         it("handles out-of-range line numbers in toString", () => {
+            expect.hasAssertions();
+
             const error = new PowerShellParseError(
                 "Out of range",
                 "single line",
@@ -136,15 +152,20 @@ describe("error and warning classes", () => {
         });
 
         it("includes stack trace when available", () => {
+            expect.hasAssertions();
+
             const error = new PowerShellParseError("Error", "test", 1, 1, 1);
             const hasCaptureStackTrace =
                 typeof Error.captureStackTrace === "function";
-            if (hasCaptureStackTrace) {
-                expect(error.stack).toBeDefined();
-            }
+            const stackExpectationMet =
+                !hasCaptureStackTrace || error.stack !== undefined;
+
+            expect(stackExpectationMet).toBeTruthy();
         });
 
         it("constructs correctly when Error.captureStackTrace is unavailable", () => {
+            expect.hasAssertions();
+
             const descriptor = Object.getOwnPropertyDescriptor(
                 Error,
                 "captureStackTrace"
@@ -182,6 +203,8 @@ describe("error and warning classes", () => {
 
     describe(PowerShellWarning, () => {
         it("creates warning with basic information", () => {
+            expect.hasAssertions();
+
             const warning = new PowerShellWarning(
                 "This syntax is deprecated",
                 "deprecated-syntax",
@@ -199,6 +222,8 @@ describe("error and warning classes", () => {
         });
 
         it("creates warning with suggestion", () => {
+            expect.hasAssertions();
+
             const warning = new PowerShellWarning(
                 "Use approved verb",
                 "best-practice",
@@ -213,6 +238,8 @@ describe("error and warning classes", () => {
         });
 
         it("formats warning without suggestion", () => {
+            expect.hasAssertions();
+
             const warning = new PowerShellWarning(
                 "Performance issue",
                 "performance",
@@ -230,6 +257,8 @@ describe("error and warning classes", () => {
         });
 
         it("formats warning with suggestion", () => {
+            expect.hasAssertions();
+
             const warning = new PowerShellWarning(
                 "Anti-pattern detected",
                 "anti-pattern",
@@ -248,6 +277,8 @@ describe("error and warning classes", () => {
         });
 
         it("supports all warning types", () => {
+            expect.hasAssertions();
+
             const types: WarningType[] = [
                 "deprecated-syntax",
                 "anti-pattern",
@@ -273,42 +304,54 @@ describe("error and warning classes", () => {
 
     describe(getLineAndColumn, () => {
         it("calculates position 0", () => {
+            expect.hasAssertions();
+
             const result = getLineAndColumn("test", 0);
 
-            expect(result).toEqual({ column: 1, line: 1 });
+            expect(result).toStrictEqual({ column: 1, line: 1 });
         });
 
         it("calculates position in single line", () => {
+            expect.hasAssertions();
+
             const result = getLineAndColumn("Hello World", 6);
 
-            expect(result).toEqual({ column: 7, line: 1 });
+            expect(result).toStrictEqual({ column: 7, line: 1 });
         });
 
         it("calculates position in multiline text", () => {
+            expect.hasAssertions();
+
             const source = "line1\nline2\nline3";
             const result = getLineAndColumn(source, 6);
 
-            expect(result).toEqual({ column: 1, line: 2 });
+            expect(result).toStrictEqual({ column: 1, line: 2 });
         });
 
         it("calculates position mid-line", () => {
+            expect.hasAssertions();
+
             const source = "line1\nline2\nline3";
             const result = getLineAndColumn(source, 9);
 
-            expect(result).toEqual({ column: 4, line: 2 });
+            expect(result).toStrictEqual({ column: 4, line: 2 });
         });
 
         it("handles position at end of file", () => {
+            expect.hasAssertions();
+
             const source = "line1\nline2";
             const result = getLineAndColumn(source, source.length);
 
-            expect(result).toEqual({ column: 6, line: 2 });
+            expect(result).toStrictEqual({ column: 6, line: 2 });
         });
 
         it("handles empty string", () => {
+            expect.hasAssertions();
+
             const result = getLineAndColumn("", 0);
 
-            expect(result).toEqual({ column: 1, line: 1 });
+            expect(result).toStrictEqual({ column: 1, line: 1 });
         });
     });
 });

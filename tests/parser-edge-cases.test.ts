@@ -10,6 +10,8 @@ const baseConfig = {
 
 describe("parser inline comment detection", () => {
     it("treats comment at position 0 as non-inline", async () => {
+        expect.hasAssertions();
+
         const script = "# Comment at start\n$a = 1";
         const result = await formatAndAssert(
             script,
@@ -22,6 +24,8 @@ describe("parser inline comment detection", () => {
     });
 
     it("treats empty source correctly", async () => {
+        expect.hasAssertions();
+
         const script = "";
         const result = await formatAndAssert(
             script,
@@ -33,6 +37,8 @@ describe("parser inline comment detection", () => {
     });
 
     it("treats actual inline comments correctly", async () => {
+        expect.hasAssertions();
+
         const script = "$a = 1 # inline comment";
         const result = await formatAndAssert(
             script,
@@ -47,18 +53,22 @@ describe("parser inline comment detection", () => {
 
 describe("parser empty array element handling", () => {
     it("does not create empty array elements with consecutive commas", async () => {
+        expect.hasAssertions();
+
         // This would be invalid PowerShell anyway, but our parser shouldn't crash
         const script = "@(1,, 2)";
-        // Just ensure it doesn't crash
-        try {
-            await formatAndAssert(script, baseConfig, { skipParse: true });
-        } catch (error) {
-            // Expected to fail during parsing or formatting, but not crash
-            expect(error).toBeDefined();
-        }
+        const outcome = await formatAndAssert(script, baseConfig, {
+            skipParse: true,
+        })
+            .then(() => "formatted")
+            .catch(() => "failed");
+
+        expect(["failed", "formatted"]).toContain(outcome);
     });
 
     it("handles arrays with newlines and commas correctly", async () => {
+        expect.hasAssertions();
+
         const script = "@(\n1,\n2\n)";
         const result = await formatAndAssert(
             script,
@@ -70,4 +80,3 @@ describe("parser empty array element handling", () => {
         expect(result).toContain(")");
     });
 });
-

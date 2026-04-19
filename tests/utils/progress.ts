@@ -57,7 +57,7 @@ export const createProgressTracker = (
 export const withProgress = async <T>(
     name: string,
     totalHint: number | undefined,
-    action: (tracker: ProgressTracker) => Promise<T> | T
+    action: (tracker: Readonly<ProgressTracker>) => Promise<T> | T
 ): Promise<T> => {
     const tracker = createProgressTracker(name, totalHint);
     try {

@@ -10,6 +10,8 @@ const baseConfig = {
 describe("advanced Printer Features", () => {
     describe("multi-line Condition Alignment", () => {
         it("handles multi-line if conditions", async () => {
+            expect.hasAssertions();
+
             const input = `if ($value -gt 10 -and $name -like "*test*" -or $status -eq "active") { Write-Output "matched" }`;
             const result = await formatAndAssert(
                 input,
@@ -24,6 +26,8 @@ describe("advanced Printer Features", () => {
         });
 
         it("handles complex nested conditions", async () => {
+            expect.hasAssertions();
+
             const input = `if (($x -gt 5 -and $y -lt 10) -or ($z -eq 0 -and $w -ne 100)) { $true }`;
             const result = await formatAndAssert(
                 input,
@@ -37,6 +41,8 @@ describe("advanced Printer Features", () => {
         });
 
         it("handles where-object with conditions", async () => {
+            expect.hasAssertions();
+
             const input = `Get-Process | Where-Object { $_.CPU -gt 10 -and $_.WorkingSet -gt 1MB -or $_.Name -like "*chrome*" }`;
             const result = await formatAndAssert(
                 input,
@@ -52,6 +58,8 @@ describe("advanced Printer Features", () => {
 
     describe("error Recovery", () => {
         it("recovers from unclosed braces", async () => {
+            expect.hasAssertions();
+
             const input = `function Test { Write-Output "test"`;
             const result = await formatAndAssert(
                 input,
@@ -64,6 +72,8 @@ describe("advanced Printer Features", () => {
         });
 
         it("recovers from unclosed parentheses", async () => {
+            expect.hasAssertions();
+
             const input = `$result = (Get-Process | Select-Object Name`;
             const result = await formatAndAssert(
                 input,
@@ -75,6 +85,8 @@ describe("advanced Printer Features", () => {
         });
 
         it("recovers from unclosed strings", async () => {
+            expect.hasAssertions();
+
             const input = `$text = "incomplete string`;
             const result = await formatAndAssert(
                 input,
@@ -86,6 +98,8 @@ describe("advanced Printer Features", () => {
         });
 
         it("handles mixed valid and invalid syntax", async () => {
+            expect.hasAssertions();
+
             const input = `$valid = 1\nif ($broken { \n$alsoValid = 2`;
             const result = await formatAndAssert(
                 input,
@@ -99,6 +113,8 @@ describe("advanced Printer Features", () => {
         });
 
         it("recovers from malformed hashtables", async () => {
+            expect.hasAssertions();
+
             const input = `$hash = @{ Key1 = "Value1"; Key2 =`;
             const result = await formatAndAssert(
                 input,
@@ -112,6 +128,8 @@ describe("advanced Printer Features", () => {
 
     describe("command Parameter Handling", () => {
         it("formats short parameters correctly", async () => {
+            expect.hasAssertions();
+
             const input = `Get-Process -Name "powershell" -Id 1234`;
             const result = await formatAndAssert(
                 input,
@@ -124,6 +142,8 @@ describe("advanced Printer Features", () => {
         });
 
         it("formats long GNU-style parameters", async () => {
+            expect.hasAssertions();
+
             const input = `docker run --name mycontainer --detach --publish 8080:80 nginx`;
             const result = await formatAndAssert(
                 input,
@@ -137,6 +157,8 @@ describe("advanced Printer Features", () => {
         });
 
         it("preserves mixed parameter styles", async () => {
+            expect.hasAssertions();
+
             const input = `node script.js --verbose -p 3000 --config "config.json"`;
             const result = await formatAndAssert(
                 input,
@@ -150,6 +172,8 @@ describe("advanced Printer Features", () => {
         });
 
         it("handles parameters with values", async () => {
+            expect.hasAssertions();
+
             const input = String.raw`Get-ChildItem -Path C:\Windows -Filter *.log -Recurse -ErrorAction SilentlyContinue`;
             const result = await formatAndAssert(
                 input,
@@ -166,6 +190,8 @@ describe("advanced Printer Features", () => {
 
     describe("incremental Parsing Simulation", () => {
         it("handles very long scripts efficiently", async () => {
+            expect.hasAssertions();
+
             // Generate a large script
             const functions = [];
             for (let i = 0; i < 50; i++) {
@@ -186,6 +212,8 @@ describe("advanced Printer Features", () => {
         });
 
         it("handles deeply nested structures", async () => {
+            expect.hasAssertions();
+
             const input = `$data = @{
                 Level1 = @{
                     Level2 = @{

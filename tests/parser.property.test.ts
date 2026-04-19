@@ -1,7 +1,7 @@
 import type { Options, ParserOptions } from "prettier";
 
 import * as fc from "fast-check";
-import { describe, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import type { BaseNode, SourceLocation } from "../src/ast.js";
 
@@ -25,7 +25,7 @@ const prettierConfig: Options = {
 };
 
 const createParserOptions = (
-    overrides: Record<string, unknown> = {}
+    overrides: Readonly<Record<string, unknown>> = {}
 ): ParserOptions =>
     ({
         tabWidth: 2,
@@ -38,7 +38,10 @@ const isNode = (value: unknown): value is BaseNode =>
     "type" in (value as Record<string, unknown>) &&
     "loc" in (value as Record<string, unknown>);
 
-const assertTokenOrder = (tokens: Token[], sourceLength: number): void => {
+const assertTokenOrder = (
+    tokens: readonly Readonly<Token>[],
+    sourceLength: number
+): void => {
     let previousEnd = 0;
     for (const token of tokens) {
         if (token.start < 0) {
@@ -64,9 +67,9 @@ const assertTokenOrder = (tokens: Token[], sourceLength: number): void => {
 };
 
 const assertLocationIntegrity = (
-    node: BaseNode,
+    node: Readonly<BaseNode>,
     sourceLength: number,
-    parentLoc: null | SourceLocation = null
+    parentLoc: null | Readonly<SourceLocation> = null
 ): void => {
     const { loc } = node;
     if (loc.start < 0 || loc.end < loc.start || loc.end > sourceLength) {
@@ -103,9 +106,11 @@ const assertParserOutput = (script: string): void => {
     assertTokenOrder(tokenize(script), script.length);
 };
 
-describe("PowerShell parser property-based tests", () => {
-    it("parses generated scripts without throwing and maintains location invariants", () =>
-        withProgress("parser.location", PROPERTY_RUNS, (tracker) => {
+describe("powershell parser property-based tests", () => {
+    it("parses generated scripts without throwing and maintains location invariants", async () => {
+        expect.hasAssertions();
+
+        await withProgress("parser.location", PROPERTY_RUNS, (tracker) => {
             fc.assert(
                 fc.property(structuredScriptArbitrary, (script) => {
                     tracker.advance();
@@ -113,9 +118,14 @@ describe("PowerShell parser property-based tests", () => {
                 }),
                 { numRuns: PROPERTY_RUNS }
             );
-        }));
+        });
+
+        expect(true).toBeTruthy();
+    });
 
     it("formatting generated scripts remains idempotent and parseable", async () => {
+        expect.hasAssertions();
+
         const numRuns = Math.max(25, Math.floor(PROPERTY_RUNS / 2));
         await withProgress("parser.idempotence", numRuns, async (tracker) => {
             await fc.assert(

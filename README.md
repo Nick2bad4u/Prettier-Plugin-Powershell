@@ -10,7 +10,6 @@ A Prettier 3 plugin that formats PowerShell source files (`.ps1`, `.psm1`, `.psd
 
 - [Highlights](#highlights)
 - [Quick start](#quick-start)
-
   - [Install](#install)
   - [Prettier configuration](#prettier-configuration)
   - [Command line](#command-line)
@@ -76,33 +75,33 @@ npx prettier "**/*.ps1" --write
 ### Programmatic usage
 
 ```typescript
-import prettier from 'prettier';
-import plugin from 'prettier-plugin-powershell';
+import prettier from "prettier";
+import plugin from "prettier-plugin-powershell";
 
 const formatted = await prettier.format(source, {
-  filepath: 'script.ps1',
-  parser: 'powershell',
-  plugins: [plugin]
+ filepath: "script.ps1",
+ parser: "powershell",
+ plugins: [plugin],
 });
 ```
 
 ## Configuration reference
 
-Option                                 | Type          | Default             | Description
--------------------------------------- | ------------- | ------------------- | ------------------------------------------------------------------------------------------------
-`powershellIndentStyle`                | `"spaces" \   | "tabs"`             | `"spaces"`                                                                                       | Render indentation with spaces or tabs.
-`powershellIndentSize`                 | `number`      | `4`                 | Overrides Prettier's `tabWidth` specifically for PowerShell files (clamped between 1 and 8).
-`powershellTrailingComma`              | `"none" \     | "multiline" \       | "all"`                                                                                           | `"none"` | When to emit trailing semicolons between hashtable entries (PowerShell arrays do not support trailing commas).
-`powershellSortHashtableKeys`          | `boolean`     | `false`             | Sort hashtable keys alphabetically before printing.
-`powershellBlankLinesBetweenFunctions` | `number`      | `1`                 | Minimum blank lines preserved between function declarations (clamped between 0 and 3).
-`powershellBlankLineAfterParam`        | `boolean`     | `true`              | Insert a blank line after `param (...)` blocks within functions/script blocks.
-`powershellBraceStyle`                 | `"1tbs" \     | "allman"`           | `"1tbs"`                                                                                         | Choose inline braces or newline-aligned Allman style.
-`powershellLineWidth`                  | `number`      | `120`               | Maximum print width for wrapping pipelines, hashtables, and arrays (clamped between 40 and 200).
-`powershellPreferSingleQuote`          | `boolean`     | `false`             | Prefer single-quoted strings when interpolation is not required.
-`powershellKeywordCase`                | `"preserve" \ | "lower" \           | "upper" \                                                                                        | "pascal"` | `"lower"` | Normalise PowerShell keyword casing (defaults to lowercase to match PSScriptAnalyzer/Invoke-Formatter).
-`powershellRewriteAliases`             | `boolean`     | `false`             | Expand cmdlet aliases such as `ls`, `%`, `?`, `gci`.
-`powershellRewriteWriteHost`           | `boolean`     | `false`             | Rewrite `Write-Host` invocations to `Write-Output`.
-`powershellPreset`                     | `"none" \     | "invoke-formatter"` | `"none"`                                                                                         | Apply a bundle of defaults (e.g. `invoke-formatter` mirrors the settings PowerShell's built-in formatter uses).
+| Option                                 | Type           | Default             | Description                                                                                      |
+| -------------------------------------- | -------------- | ------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `powershellIndentStyle`                | `"spaces" \    | "tabs"`             | `"spaces"`                                                                                       | Render indentation with spaces or tabs.                                                                         |
+| `powershellIndentSize`                 | `number`       | `4`                 | Overrides Prettier's `tabWidth` specifically for PowerShell files (clamped between 1 and 8).     |
+| `powershellTrailingComma`              | `"none" \      | "multiline" \       | "all"`                                                                                           | `"none"`                                                                                                        | When to emit trailing semicolons between hashtable entries (PowerShell arrays do not support trailing commas). |
+| `powershellSortHashtableKeys`          | `boolean`      | `false`             | Sort hashtable keys alphabetically before printing.                                              |
+| `powershellBlankLinesBetweenFunctions` | `number`       | `1`                 | Minimum blank lines preserved between function declarations (clamped between 0 and 3).           |
+| `powershellBlankLineAfterParam`        | `boolean`      | `true`              | Insert a blank line after `param (...)` blocks within functions/script blocks.                   |
+| `powershellBraceStyle`                 | `"1tbs" \      | "allman"`           | `"1tbs"`                                                                                         | Choose inline braces or newline-aligned Allman style.                                                           |
+| `powershellLineWidth`                  | `number`       | `120`               | Maximum print width for wrapping pipelines, hashtables, and arrays (clamped between 40 and 200). |
+| `powershellPreferSingleQuote`          | `boolean`      | `false`             | Prefer single-quoted strings when interpolation is not required.                                 |
+| `powershellKeywordCase`                | `"preserve" \  | "lower" \           | "upper" \                                                                                        | "pascal"`                                                                                                       | `"lower"`                                                                                                      | Normalise PowerShell keyword casing (defaults to lowercase to match PSScriptAnalyzer/Invoke-Formatter). |
+| `powershellRewriteAliases`             | `boolean`      | `false`             | Expand cmdlet aliases such as `ls`, `%`, `?`, `gci`.                                             |
+| `powershellRewriteWriteHost`           | `boolean`      | `false`             | Rewrite `Write-Host` invocations to `Write-Output`.                                              |
+| `powershellPreset`                     | `"none" \      | "invoke-formatter"` | `"none"`                                                                                         | Apply a bundle of defaults (e.g. `invoke-formatter` mirrors the settings PowerShell's built-in formatter uses). |
 
 ### Invoke-Formatter parity preset
 
@@ -110,10 +109,10 @@ Set `"powershellPreset": "invoke-formatter"` to mirror the behavior of `Invoke-F
 
 ```jsonc
 {
-  "plugins": ["prettier-plugin-powershell"],
-  "powershellPreset": "invoke-formatter",
-  // overrides remain opt-in
-  "powershellRewriteAliases": true
+ "plugins": ["prettier-plugin-powershell"],
+ "powershellPreset": "invoke-formatter",
+ // overrides remain opt-in
+ "powershellRewriteAliases": true,
 }
 ```
 
@@ -123,16 +122,16 @@ Prettier supports [`overrides`](https://prettier.io/docs/en/options.html#overrid
 
 ```jsonc
 {
-  "plugins": ["prettier-plugin-powershell"],
-  "powershellPreset": "invoke-formatter",
-  "overrides": [
-    {
-      "files": "legacy/**/*.ps1",
-      "options": {
-        "powershellKeywordCase": "preserve"
-      }
-    }
-  ]
+ "plugins": ["prettier-plugin-powershell"],
+ "powershellPreset": "invoke-formatter",
+ "overrides": [
+  {
+   "files": "legacy/**/*.ps1",
+   "options": {
+    "powershellKeywordCase": "preserve",
+   },
+  },
+ ],
 }
 ```
 
@@ -175,12 +174,11 @@ function Get-Widget {
 
 - **CI** – GitHub Actions (see [`ci.yml`](.github/workflows/ci.yml)) installs dependencies, lint checks, type-checks, and runs the Vitest suite with coverage on every push and pull request.
 - **Codecov** – Coverage artefacts (`coverage/lcov.info`) are uploaded via the [Codecov action](https://github.com/codecov/codecov-action). The badge above reflects the latest metrics on `main`.
-- **npm publishing** – Every push to `main` triggers [`publish.yml`](.github/workflows/publish.yml), which bumps the version (patch by default, `feat` → minor, `BREAKING` → major), runs the quality bar, commits the build artifacts, tags the release, publishes to npm, and opens a GitHub release. The legacy manual workflow now just points back to this automated pipeline; you can still run it manually from the Actions tab when needed.
+- **npm publishing** – Every push to `main` triggers [`publish.yml`](.github/workflows/publish.yml), which bumps the version (patch by default, `feat` → minor, `BREAKING` → major), runs the quality bar, builds the package in workflow, tags the release, publishes to npm, and opens a GitHub release. Generated `dist/` artifacts are produced by CI for publishing rather than committed manually.
 
 ## Property-based testing
 
 - **Fast-check harness** – Property-based tests across multiple modules use [`fast-check`](https://github.com/dubzzz/fast-check) to validate behavior with randomly generated inputs:
-
   - `tests/parser.property.test.ts` – Exercises the parser and formatter with randomly generated PowerShell snippets, validating location metadata, token ordering, formatting stability, and re-parseability.
   - `tests/parser.edge-cases.property.test.ts` – Stress-tests the parser with edge cases: deep nesting, unbalanced delimiters, comment placement, string variations, whitespace handling, pipelines, operators, and location consistency.
   - `tests/tokenizer.property.test.ts` – Validates tokenizer correctness: token ordering, location ranges, determinism, and proper handling of keywords, variables, strings, comments, and edge cases.
@@ -198,7 +196,6 @@ function Get-Widget {
 - **Idempotence checks** – Most property tests and fixtures assert that formatting is idempotent; a small number of known edge-case fixtures are marked with `expectIdempotent: false` so they still validate parseability without requiring strict first/second-pass equality.
 - **Tuning** – Adjust the number of runs with the `POWERSHELL_PROPERTY_RUNS` environment variable (default `100` for most tests, `150` for parser tests). For a deeper local sweep: `POWERSHELL_PROPERTY_RUNS=500 npm test`.
 - **PowerShell syntax sampling** – By default, **every** formatted script is re-validated with PowerShell's built-in parser so regressions surface immediately. Use `POWERSHELL_MAX_SYNTAX_CHECKS` to cap the number of checks (set to a positive integer) or `0` to skip entirely, and toggle the feature wholesale with `POWERSHELL_VERIFY_SYNTAX` (`0` to disable).
-
   - Use `POWERSHELL_SYNTAX_TRACE=1` to emit per-invocation logs when diagnosing hangs or parser failures.
 
 - **Property progress & timeboxing** – Flip on run-by-run logging with `POWERSHELL_PROPERTY_PROGRESS=1` (default interval `50`, tweak via `POWERSHELL_PROPERTY_PROGRESS_INTERVAL`). Extend or shrink Vitest's overall timeout with `POWERSHELL_TEST_TIMEOUT_MS` when running extended fuzz sweeps, and control worker concurrency with `MAX_THREADS` (default `4`, or `1` on CI).
@@ -209,21 +206,21 @@ To fuzz against GitHub-hosted PowerShell, export `POWERSHELL_ENABLE_GITHUB_SAMPL
 
 ## Project scripts
 
-Script                                         | Description
----------------------------------------------- | ------------------------------------------------------------------------------------------
-`npm run build`                                | Bundle the plugin to `dist/` via `tsup`.
-`npm run build:watch`                          | Rebuild continuously while developing.
-`npm run clean`                                | Remove the `dist/` directory.
-`npm run lint` / `npm run lint:fix`            | Run ESLint (optionally with auto-fix).
-`npm run format`                               | Apply Prettier to TypeScript source and tests.
-`npm run test` / `npm run test:watch`          | Execute the Vitest suite.
-`npm run test:ci`                              | Run the Vitest suite with a summary reporter (used in CI workflows).
-`npm run test:debug`                           | Start Vitest under the Node inspector for interactive debugging.
-`npm run test:coverage`                        | Generate v8 coverage reports (consumed by Codecov).
-`npm run test:fuzz`                            | Run the Vitest suite with `POWERSHELL_PROPERTY_RUNS=2000` via PowerShell for deep fuzzing.
-`npm run benchmark`                            | Run the built-in benchmark against synthetic PowerShell functions.
-`npm run profile` / `npm run profile:enhanced` | Capture parser/formatter performance profiles for detailed analysis.
-`npm run typecheck`                            | Ensure the TypeScript project compiles without emitting files.
+| Script                                         | Description                                                                                |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `npm run build`                                | Bundle the plugin to `dist/` via `tsup`.                                                   |
+| `npm run build:watch`                          | Rebuild continuously while developing.                                                     |
+| `npm run clean`                                | Remove the `dist/` directory.                                                              |
+| `npm run lint` / `npm run lint:fix`            | Run ESLint (optionally with auto-fix).                                                     |
+| `npm run format`                               | Apply Prettier to TypeScript source and tests.                                             |
+| `npm run test` / `npm run test:watch`          | Execute the Vitest suite.                                                                  |
+| `npm run test:ci`                              | Run the Vitest suite with a summary reporter (used in CI workflows).                       |
+| `npm run test:debug`                           | Start Vitest under the Node inspector for interactive debugging.                           |
+| `npm run test:coverage`                        | Generate v8 coverage reports (consumed by Codecov).                                        |
+| `npm run test:fuzz`                            | Run the Vitest suite with `POWERSHELL_PROPERTY_RUNS=2000` via PowerShell for deep fuzzing. |
+| `npm run benchmark`                            | Run the built-in benchmark against synthetic PowerShell functions.                         |
+| `npm run profile` / `npm run profile:enhanced` | Capture parser/formatter performance profiles for detailed analysis.                       |
+| `npm run typecheck`                            | Ensure the TypeScript project compiles without emitting files.                             |
 
 ## Contributing
 
@@ -232,9 +229,9 @@ Script                                         | Description
 3. Use `npm run build:watch` during active development.
 4. Before opening a pull request, run:
 
-  - `npm run lint`
-  - `npm run typecheck`
-  - `npm run test:coverage`
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test:coverage`
 
 5. Contributions remain under the UnLicense license.
 

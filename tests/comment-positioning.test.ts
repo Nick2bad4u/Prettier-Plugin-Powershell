@@ -10,6 +10,8 @@ const baseConfig = {
 describe("comment Positioning Improvements", () => {
     describe("inline Comments", () => {
         it("preserves inline comments after statements", async () => {
+            expect.hasAssertions();
+
             const input = `$x = 1 # This is a comment`;
             const result = await formatAndAssert(
                 input,
@@ -22,6 +24,8 @@ describe("comment Positioning Improvements", () => {
         });
 
         it("preserves inline comments in pipelines", async () => {
+            expect.hasAssertions();
+
             const input = `Get-Process | # Get all processes\nWhere-Object CPU # Filter by CPU`;
             const result = await formatAndAssert(
                 input,
@@ -34,6 +38,8 @@ describe("comment Positioning Improvements", () => {
         });
 
         it("handles multiple inline comments", async () => {
+            expect.hasAssertions();
+
             const input = `$a = 1 # Comment 1\n$b = 2 # Comment 2\n$c = 3 # Comment 3`;
             const result = await formatAndAssert(
                 input,
@@ -49,6 +55,8 @@ describe("comment Positioning Improvements", () => {
 
     describe("block Comments", () => {
         it("preserves block comments in functions", async () => {
+            expect.hasAssertions();
+
             const input = `function Test {\n<# This is a block comment #>\nparam($x)\n}`;
             const result = await formatAndAssert(
                 input,
@@ -62,6 +70,8 @@ describe("comment Positioning Improvements", () => {
         });
 
         it("handles multi-line block comments", async () => {
+            expect.hasAssertions();
+
             const input = `<#\nLine 1\nLine 2\nLine 3\n#>\n$x = 1`;
             const result = await formatAndAssert(
                 input,
@@ -75,6 +85,8 @@ describe("comment Positioning Improvements", () => {
         });
 
         it("preserves comment-based help", async () => {
+            expect.hasAssertions();
+
             const input = `<#\n.SYNOPSIS\nTest function\n.DESCRIPTION\nLong description\n#>\nfunction Test { }`;
             const result = await formatAndAssert(
                 input,
@@ -89,6 +101,8 @@ describe("comment Positioning Improvements", () => {
 
     describe("comment Positioning in Complex Structures", () => {
         it("handles comments in hashtables", async () => {
+            expect.hasAssertions();
+
             const input = `@{ Key1 = "value1"; Key2 = "value2" } # Hashtable comment`;
             const result = await formatAndAssert(
                 input,
@@ -101,6 +115,8 @@ describe("comment Positioning Improvements", () => {
         });
 
         it("preserves comments within hashtable entries", async () => {
+            expect.hasAssertions();
+
             const input = `@{
                 # Leading comment for Key1
                 Key1 = "value1" # Inline comment for Key1
@@ -123,6 +139,8 @@ describe("comment Positioning Improvements", () => {
         });
 
         it("handles comments in arrays", async () => {
+            expect.hasAssertions();
+
             const input = `@(1, 2, 3) # Array comment`;
             const result = await formatAndAssert(
                 input,
@@ -135,6 +153,8 @@ describe("comment Positioning Improvements", () => {
         });
 
         it("handles comments in script blocks", async () => {
+            expect.hasAssertions();
+
             const input = `{\n# Start of block\n$x = 1\n# Middle comment\n$y = 2\n# End comment\n}`;
             const result = await formatAndAssert(
                 input,
@@ -150,6 +170,8 @@ describe("comment Positioning Improvements", () => {
 
     describe("edge Cases", () => {
         it("handles empty inline comments", async () => {
+            expect.hasAssertions();
+
             const input = `$x = 1 #`;
             const result = await formatAndAssert(
                 input,
@@ -161,6 +183,8 @@ describe("comment Positioning Improvements", () => {
         });
 
         it("handles comments with special characters", async () => {
+            expect.hasAssertions();
+
             const input = `$x = 1 # Comment with $special @chars & symbols!`;
             const result = await formatAndAssert(
                 input,
@@ -173,6 +197,8 @@ describe("comment Positioning Improvements", () => {
         });
 
         it("handles nested block comments (not standard but should not break)", async () => {
+            expect.hasAssertions();
+
             const input = `<# Outer <# Inner #> #>\n$x = 1`;
             const result = await formatAndAssert(
                 input,
@@ -185,6 +211,8 @@ describe("comment Positioning Improvements", () => {
         });
 
         it("preserves comment formatting in long pipelines", async () => {
+            expect.hasAssertions();
+
             const input = `Get-Process | # Step 1\nWhere-Object CPU | # Step 2\nSelect-Object Name # Final step`;
             const result = await formatAndAssert(
                 input,
@@ -200,6 +228,8 @@ describe("comment Positioning Improvements", () => {
 
     describe("comment Preservation During Formatting", () => {
         it("maintains comment position after function params", async () => {
+            expect.hasAssertions();
+
             const input = `function Test {\nparam([string]$Name)\n} # Function comment`;
             const result = await formatAndAssert(
                 input,
@@ -211,6 +241,8 @@ describe("comment Positioning Improvements", () => {
         });
 
         it("maintains comment position in if statements", async () => {
+            expect.hasAssertions();
+
             const input = `if ($true) { # Condition is always true\nWrite-Output "yes"\n}`;
             const result = await formatAndAssert(
                 input,
@@ -222,6 +254,8 @@ describe("comment Positioning Improvements", () => {
         });
 
         it("handles comments between pipeline segments", async () => {
+            expect.hasAssertions();
+
             const input = `Get-Process |\n# Filter step\nWhere-Object Name |\n# Sort step\nSort-Object CPU`;
             const result = await formatAndAssert(
                 input,
@@ -236,6 +270,8 @@ describe("comment Positioning Improvements", () => {
 
     describe("documentation Comments", () => {
         it("preserves region markers", async () => {
+            expect.hasAssertions();
+
             const input = `#region Main\n$x = 1\n#endregion`;
             const result = await formatAndAssert(
                 input,
@@ -248,6 +284,8 @@ describe("comment Positioning Improvements", () => {
         });
 
         it("preserves TODO comments", async () => {
+            expect.hasAssertions();
+
             const input = `# TODO: Fix this later\n$x = 1`;
             const result = await formatAndAssert(
                 input,
@@ -259,6 +297,8 @@ describe("comment Positioning Improvements", () => {
         });
 
         it("preserves FIXME and NOTE comments", async () => {
+            expect.hasAssertions();
+
             const input = `# FIXME: Bug here\n# NOTE: Important\n$x = 1`;
             const result = await formatAndAssert(
                 input,
@@ -273,6 +313,8 @@ describe("comment Positioning Improvements", () => {
 
     describe("mixed documentation styles (TSDoc/JSDoc-like)", () => {
         it("preserves TSDoc-style tags inside line comments", async () => {
+            expect.hasAssertions();
+
             const input = `# /** Summary of the function */\n# @param foo Description of foo\n# @returns Result description\nfunction Test-Doc { }`;
             const result = await formatAndAssert(
                 input,
@@ -286,6 +328,8 @@ describe("comment Positioning Improvements", () => {
         });
 
         it("preserves TSDoc-style content inside block comments", async () => {
+            expect.hasAssertions();
+
             const input = `<#\n/**\n * Summary of the function\n * @param bar Description of bar\n * @returns Result description\n */\n#>\nfunction Test-BlockDoc { }`;
             const result = await formatAndAssert(
                 input,
@@ -300,6 +344,8 @@ describe("comment Positioning Improvements", () => {
         });
 
         it("preserves JSDoc-style content inside here-strings", async () => {
+            expect.hasAssertions();
+
             const input = `$doc = @'\n/**\n * Some docs\n * @param baz Description of baz\n * @returns Something interesting\n */\n'@\nWrite-Host $doc`;
             const result = await formatAndAssert(
                 input,

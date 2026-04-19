@@ -43,6 +43,8 @@ describe("ps-color-scripts regressions", () => {
     }
 
     it("normalizes Invoke-ColorScriptCacheOperation indentation and semicolons", async () => {
+        expect.hasAssertions();
+
         await assertFormatting(
             "./test_files/Test-File-11.unformatted.ps1",
             "./test_files/Test-File-11.ps1",
@@ -51,6 +53,8 @@ describe("ps-color-scripts regressions", () => {
     });
 
     it("ensures Test-File-11.ps1 remains idempotent", async () => {
+        expect.hasAssertions();
+
         const expected = await readFixture("./test_files/Test-File-11.ps1");
         const result = await formatAndAssert(
             expected,
@@ -65,6 +69,8 @@ describe("ps-color-scripts regressions", () => {
     });
 
     it("reformats the Galaxy Panel sample with 4-space indentation", async () => {
+        expect.hasAssertions();
+
         await assertFormatting(
             "./test_files/Test-File-10.unformatted.ps1",
             "./test_files/Test-File-10.ps1",
@@ -73,6 +79,8 @@ describe("ps-color-scripts regressions", () => {
     });
 
     it("preserves static method invocations used for synchronization", async () => {
+        expect.hasAssertions();
+
         await assertFormatting(
             "./test_files/Test-File-12.unformatted.ps1",
             "./test_files/Test-File-12.ps1",
@@ -81,6 +89,8 @@ describe("ps-color-scripts regressions", () => {
     });
 
     it("normalizes additional monitor helper variations", async () => {
+        expect.hasAssertions();
+
         await assertFormatting(
             "./test_files/Test-File-13.unformatted.ps1",
             "./test_files/Test-File-13.ps1",
@@ -89,6 +99,8 @@ describe("ps-color-scripts regressions", () => {
     });
 
     it("keeps batched static calls stable", async () => {
+        expect.hasAssertions();
+
         await assertFormatting(
             "./test_files/Test-File-14.unformatted.ps1",
             "./test_files/Test-File-14.ps1",
@@ -97,6 +109,8 @@ describe("ps-color-scripts regressions", () => {
     });
 
     it("handles keyword-like static method names without misformatting", async () => {
+        expect.hasAssertions();
+
         await assertFormatting(
             "./test_files/Test-File-15.unformatted.ps1",
             "./test_files/Test-File-15.ps1",
@@ -105,6 +119,8 @@ describe("ps-color-scripts regressions", () => {
     });
 
     it("handles static calls inside pipelines and chained expressions", async () => {
+        expect.hasAssertions();
+
         await assertFormatting(
             "./test_files/Test-File-16.unformatted.ps1",
             "./test_files/Test-File-16.ps1",
@@ -113,6 +129,8 @@ describe("ps-color-scripts regressions", () => {
     });
 
     it("preserves inline color comments in ANSI palette loop script (Test-File-17)", async () => {
+        expect.hasAssertions();
+
         await assertFormatting(
             "./test_files/Test-File-17.unformatted.ps1",
             "./test_files/Test-File-17..ps1",
@@ -121,6 +139,8 @@ describe("ps-color-scripts regressions", () => {
     });
 
     it("preserves inline color comments in ANSI palette header script (Test-File-18)", async () => {
+        expect.hasAssertions();
+
         await assertFormatting(
             "./test_files/Test-File-18.unformatted.ps1",
             "./test_files/Test-File-18..ps1",
@@ -129,6 +149,8 @@ describe("ps-color-scripts regressions", () => {
     });
 
     it("never corrupts escaped apostrophes in PSD1 metadata", async () => {
+        expect.hasAssertions();
+
         const expected = await readFixture("./test_files/Test-File-9.psd1");
         const result = await formatAndAssert(
             expected,

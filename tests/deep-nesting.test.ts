@@ -10,6 +10,8 @@ const baseConfig = {
 describe("deep Nesting and Complex Structure Handling", () => {
     describe("dSC Configuration Support", () => {
         it("handles basic DSC configuration", async () => {
+            expect.hasAssertions();
+
             const input = String.raw`Configuration MyConfig { Node localhost { File MyFile { DestinationPath = "C:\test.txt"; Contents = "test" } } }`;
             const result = await formatAndAssert(
                 input,
@@ -23,6 +25,8 @@ describe("deep Nesting and Complex Structure Handling", () => {
         });
 
         it("handles nested DSC resources", async () => {
+            expect.hasAssertions();
+
             const input = `Configuration WebServer {
                 Node "Server01" {
                     WindowsFeature IIS {
@@ -48,6 +52,8 @@ describe("deep Nesting and Complex Structure Handling", () => {
         });
 
         it("handles deeply nested DSC (5+ levels)", async () => {
+            expect.hasAssertions();
+
             const input = String.raw`Configuration Complex {
                 Node Server {
                     Registry RegKey {
@@ -72,6 +78,8 @@ describe("deep Nesting and Complex Structure Handling", () => {
         });
 
         it("handles multiple nodes in DSC", async () => {
+            expect.hasAssertions();
+
             const input = String.raw`Configuration MultiNode {
                 Node "Server01", "Server02", "Server03" {
                     File TestFile {
@@ -93,6 +101,8 @@ describe("deep Nesting and Complex Structure Handling", () => {
 
     describe("deep Hashtable Nesting", () => {
         it("handles 5-level nested hashtables", async () => {
+            expect.hasAssertions();
+
             const input = `$config = @{
                 Level1 = @{
                     Level2 = @{
@@ -115,6 +125,8 @@ describe("deep Nesting and Complex Structure Handling", () => {
         });
 
         it("handles mixed deep nesting", async () => {
+            expect.hasAssertions();
+
             const input = `$data = @{
                 Users = @(
                     @{ Name = "Alice"; Settings = @{ Theme = "dark"; Font = @{ Size = 12 } } },
@@ -133,6 +145,8 @@ describe("deep Nesting and Complex Structure Handling", () => {
         });
 
         it("handles 10-level deep nesting", async () => {
+            expect.hasAssertions();
+
             const input = `$deep = @{ L1 = @{ L2 = @{ L3 = @{ L4 = @{ L5 = @{ L6 = @{ L7 = @{ L8 = @{ L9 = @{ L10 = "bottom" } } } } } } } } } }`;
             const result = await formatAndAssert(
                 input,
@@ -147,6 +161,8 @@ describe("deep Nesting and Complex Structure Handling", () => {
 
     describe("deep Array Nesting", () => {
         it("handles nested arrays", async () => {
+            expect.hasAssertions();
+
             const input = `$matrix = @(@(1, 2, 3), @(4, 5, 6), @(7, 8, 9))`;
             const result = await formatAndAssert(
                 input,
@@ -160,6 +176,8 @@ describe("deep Nesting and Complex Structure Handling", () => {
         });
 
         it("handles deeply nested arrays", async () => {
+            expect.hasAssertions();
+
             const input = `$nested = @(@(@(@(@(1)))))`;
             const result = await formatAndAssert(
                 input,
@@ -174,6 +192,8 @@ describe("deep Nesting and Complex Structure Handling", () => {
 
     describe("deep Function Nesting", () => {
         it("handles nested script blocks", async () => {
+            expect.hasAssertions();
+
             const input = `$script = { $inner1 = { $inner2 = { $inner3 = { Write-Output "deep" } } } }`;
             const result = await formatAndAssert(
                 input,
@@ -186,6 +206,8 @@ describe("deep Nesting and Complex Structure Handling", () => {
         });
 
         it("handles nested if statements", async () => {
+            expect.hasAssertions();
+
             const input = `if ($a) { if ($b) { if ($c) { if ($d) { if ($e) { Write-Output "nested" } } } } }`;
             const result = await formatAndAssert(
                 input,
@@ -198,6 +220,8 @@ describe("deep Nesting and Complex Structure Handling", () => {
         });
 
         it("handles nested foreach loops", async () => {
+            expect.hasAssertions();
+
             const input = `foreach ($i in 1..3) { foreach ($j in 1..3) { foreach ($k in 1..3) { Write-Output "$i,$j,$k" } } }`;
             const result = await formatAndAssert(
                 input,
@@ -212,6 +236,8 @@ describe("deep Nesting and Complex Structure Handling", () => {
 
     describe("complex Mixed Nesting", () => {
         it("handles function with nested structures", async () => {
+            expect.hasAssertions();
+
             const input = `function Get-Config {
                 param($Path)
                 $config = @{
@@ -237,6 +263,8 @@ describe("deep Nesting and Complex Structure Handling", () => {
         });
 
         it("handles switch with nested cases", async () => {
+            expect.hasAssertions();
+
             const input = `switch ($value) {
                 1 { if ($sub) { Write-Output "1-sub" } else { Write-Output "1" } }
                 2 { switch ($sub) { "a" { "2-a" } "b" { "2-b" } } }
@@ -255,6 +283,8 @@ describe("deep Nesting and Complex Structure Handling", () => {
 
     describe("performance with Deep Nesting", () => {
         it("handles deep nesting without stack overflow", async () => {
+            expect.hasAssertions();
+
             // Create 20 levels of nesting
             let deep = "1";
             for (let i = 0; i < 20; i++) {
@@ -272,6 +302,8 @@ describe("deep Nesting and Complex Structure Handling", () => {
         });
 
         it("formats deeply nested structure in reasonable time", async () => {
+            expect.hasAssertions();
+
             const input = `$complex = @{
                 A = @{ B = @{ C = @{ D = @{ E = @{ F = @{ G = @{ H = "end" } } } } } } }
             }`;
@@ -291,6 +323,8 @@ describe("deep Nesting and Complex Structure Handling", () => {
 
     describe("edge Cases in Deep Structures", () => {
         it("handles empty nested structures", async () => {
+            expect.hasAssertions();
+
             const input = `$empty = @{ A = @{ B = @{ C = @{} } } }`;
             const result = await formatAndAssert(
                 input,
@@ -302,6 +336,8 @@ describe("deep Nesting and Complex Structure Handling", () => {
         });
 
         it("handles mixed empty and filled structures", async () => {
+            expect.hasAssertions();
+
             const input = `$mixed = @{ A = @{}; B = @{ C = "value" }; D = @{} }`;
             const result = await formatAndAssert(
                 input,

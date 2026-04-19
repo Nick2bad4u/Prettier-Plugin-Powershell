@@ -71,7 +71,7 @@ const simpleCommandArb = fc
             nil: undefined,
         })
     )
-    .map(([cmd, arg]) => (arg ? `${cmd} ${arg}` : cmd));
+    .map(([cmd, arg]) => (arg === undefined ? cmd : `${cmd} ${arg}`));
 
 const simpleStatementArb = fc.oneof(
     assignmentArb,
@@ -269,7 +269,7 @@ describe("printer property-based tests", () => {
                                     line.trim().length > 0
                             );
 
-                            if (indentedLine) {
+                            if (indentedLine !== undefined) {
                                 const leadingSpaces =
                                     /^ */v.exec(indentedLine)?.[0].length ?? 0;
                                 if (leadingSpaces !== indentSize) {
@@ -316,32 +316,27 @@ describe("printer property-based tests", () => {
                                 "printer.property.braceStyle"
                             );
 
-                            if (braceStyle === "1tbs") {
-                                if (
-                                    !formatted.includes("function Test-Func {")
-                                ) {
-                                    throw new Error(
-                                        `Expected 1tbs style (brace on same line)\nFormatted:\n${formatted}`
-                                    );
-                                }
-                            } else {
-                                const lines = formatted.split(/\r?\n/v);
-                                const functionLineIndex = lines.findIndex(
-                                    (line) =>
-                                        line.includes("function Test-Func")
-                                );
-                                const nextNonEmptyLine = lines
-                                    .slice(functionLineIndex + 1)
-                                    .find((line) => line.trim().length > 0);
-                                if (
-                                    functionLineIndex === -1 ||
-                                    nextNonEmptyLine?.trim() !== "{"
-                                ) {
-                                    throw new Error(
-                                        `Expected allman style (brace on next line)\nFormatted:\n${formatted}`
-                                    );
-                                }
-                            }
+                            const lines = formatted.split(/\r?\n/v);
+                            const functionLineIndex = lines.findIndex((line) =>
+                                line.includes("function Test-Func")
+                            );
+                            const nextNonEmptyLine = lines
+                                .slice(functionLineIndex + 1)
+                                .find((line) => line.trim().length > 0);
+                            const isExpected1tbs = formatted.includes(
+                                "function Test-Func {"
+                            );
+                            const isExpectedAllman =
+                                functionLineIndex !== -1 &&
+                                nextNonEmptyLine?.trim() === "{";
+                            const styleExpectationMet =
+                                (braceStyle === "1tbs" && isExpected1tbs) ||
+                                (braceStyle === "allman" && isExpectedAllman);
+
+                            expect(
+                                styleExpectationMet,
+                                `Unexpected brace style output for ${braceStyle}.\nFormatted:\n${formatted}`
+                            ).toBeTruthy();
                         }
                     ),
                     { numRuns: PROPERTY_RUNS }
@@ -378,27 +373,26 @@ describe("printer property-based tests", () => {
                                 formatted,
                                 "printer.property.keywordCase"
                             );
+                            const regexByCase: Readonly<
+                                Record<
+                                    "lower" | "pascal" | "preserve" | "upper",
+                                    RegExp | undefined
+                                >
+                            > = {
+                                lower: /\bif\b/v,
+                                pascal: /\bIf\b/v,
+                                preserve: undefined,
+                                upper: /\bIF\b/v,
+                            };
+                            const expectedRegex = regexByCase[keywordCase];
+                            const caseExpectationMet =
+                                expectedRegex === undefined ||
+                                expectedRegex.test(formatted);
 
-                            if (keywordCase === "lower") {
-                                if (!/\bif\b/v.test(formatted)) {
-                                    throw new Error(
-                                        `Expected lowercase 'if'\nFormatted:\n${formatted}`
-                                    );
-                                }
-                            } else if (keywordCase === "upper") {
-                                if (!/\bIF\b/v.test(formatted)) {
-                                    throw new Error(
-                                        `Expected uppercase 'IF'\nFormatted:\n${formatted}`
-                                    );
-                                }
-                            } else if (
-                                keywordCase === "pascal" &&
-                                !/\bIf\b/v.test(formatted)
-                            ) {
-                                throw new Error(
-                                    `Expected PascalCase 'If'\nFormatted:\n${formatted}`
-                                );
-                            }
+                            expect(
+                                caseExpectationMet,
+                                `Expected ${keywordCase} keyword formatting.\nFormatted:\n${formatted}`
+                            ).toBeTruthy();
                         }
                     ),
                     { numRuns: PROPERTY_RUNS }

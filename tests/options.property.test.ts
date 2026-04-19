@@ -61,7 +61,7 @@ const parserOptionsArb = fc.record({
 }) as unknown as fc.Arbitrary<ParserOptions>;
 
 const assertResolvedOptionBooleans = (
-    resolved: ReturnType<typeof resolveOptions>
+    resolved: Readonly<ReturnType<typeof resolveOptions>>
 ): void => {
     if (typeof resolved.sortHashtableKeys !== "boolean") {
         throw new TypeError("sortHashtableKeys must be boolean");
@@ -81,7 +81,7 @@ const assertResolvedOptionBooleans = (
 };
 
 const assertResolvedOptionEnumsAndRanges = (
-    resolved: ReturnType<typeof resolveOptions>
+    resolved: Readonly<ReturnType<typeof resolveOptions>>
 ): void => {
     if (resolved.indentStyle !== "spaces" && resolved.indentStyle !== "tabs") {
         throw new Error(`Invalid indentStyle: ${String(resolved.indentStyle)}`);
@@ -129,7 +129,7 @@ const assertResolvedOptionEnumsAndRanges = (
 };
 
 const assertResolvedOptionsAreValid = (
-    resolved: ReturnType<typeof resolveOptions>
+    resolved: Readonly<ReturnType<typeof resolveOptions>>
 ): void => {
     assertResolvedOptionEnumsAndRanges(resolved);
     assertResolvedOptionBooleans(resolved);
@@ -262,21 +262,11 @@ describe("options property-based tests", () => {
             powershellPreset: "invoke-formatter",
         } as unknown as ParserOptions);
 
-        if (resolved.indentStyle !== "spaces") {
-            throw new Error("Preset should force spaces indentation");
-        }
-        if (resolved.indentSize !== 4) {
-            throw new Error("Preset should default to 4-space indentation");
-        }
-        if (resolved.trailingComma !== "none") {
-            throw new Error("Preset should default trailingComma to none");
-        }
-        if (resolved.braceStyle !== "1tbs") {
-            throw new Error("Preset should default braceStyle to 1tbs");
-        }
-        if (resolved.keywordCase !== "lower") {
-            throw new Error("Preset should default keywordCase to lower");
-        }
+        expect(resolved.indentStyle).toBe("spaces");
+        expect(resolved.indentSize).toBe(4);
+        expect(resolved.trailingComma).toBe("none");
+        expect(resolved.braceStyle).toBe("1tbs");
+        expect(resolved.keywordCase).toBe("lower");
     });
 
     it("lets explicit options override preset defaults", () => {
@@ -288,16 +278,8 @@ describe("options property-based tests", () => {
             powershellPreset: "invoke-formatter",
         } as unknown as ParserOptions);
 
-        if (resolved.keywordCase !== "upper") {
-            throw new Error(
-                `Explicit keywordCase should override preset; got ${resolved.keywordCase}`
-            );
-        }
-        if (resolved.indentSize !== 2) {
-            throw new Error(
-                `Explicit indentSize should override preset; got ${resolved.indentSize}`
-            );
-        }
+        expect(resolved.keywordCase).toBe("upper");
+        expect(resolved.indentSize).toBe(2);
     });
 
     it("resolveOptions clamps invalid numeric values", () => {
@@ -316,12 +298,13 @@ describe("options property-based tests", () => {
 
                     const resolved = resolveOptions(options);
 
-                    // Should clamp or use default
-                    if (invalidIndentSize < 1 && resolved.indentSize !== 4) {
-                        throw new TypeError(
-                            `Expected default indent size for negative value, got ${resolved.indentSize}`
-                        );
-                    }
+                    const shouldUseDefault = invalidIndentSize < 1;
+                    const expectedIndentSize = shouldUseDefault
+                        ? 4
+                        : invalidIndentSize;
+
+                    expect(resolved.indentSize).toBe(expectedIndentSize);
+
                     // Values > 8 should still work (no upper clamp on indent size)
                 }
             ),
@@ -340,22 +323,17 @@ describe("options property-based tests", () => {
 
                 const resolved = resolveOptions(options);
 
-                if (
-                    resolved.blankLinesBetweenFunctions < 0 ||
-                    resolved.blankLinesBetweenFunctions > 3
-                ) {
-                    throw new Error(
-                        `blankLinesBetweenFunctions not clamped: ${resolved.blankLinesBetweenFunctions}`
-                    );
-                }
+                expect(
+                    resolved.blankLinesBetweenFunctions
+                ).toBeGreaterThanOrEqual(0);
+                expect(resolved.blankLinesBetweenFunctions).toBeLessThanOrEqual(
+                    3
+                );
 
                 // Check it's clamped to the expected range
                 const expected = Math.max(0, Math.min(3, Math.floor(value)));
-                if (resolved.blankLinesBetweenFunctions !== expected) {
-                    throw new Error(
-                        `Expected ${expected}, got ${resolved.blankLinesBetweenFunctions} for input ${value}`
-                    );
-                }
+
+                expect(resolved.blankLinesBetweenFunctions).toBe(expected);
             }),
             { numRuns: PROPERTY_RUNS }
         );
@@ -372,19 +350,13 @@ describe("options property-based tests", () => {
 
                 const resolved = resolveOptions(options);
 
-                if (resolved.lineWidth < 40 || resolved.lineWidth > 200) {
-                    throw new Error(
-                        `lineWidth not clamped: ${resolved.lineWidth}`
-                    );
-                }
+                expect(resolved.lineWidth).toBeGreaterThanOrEqual(40);
+                expect(resolved.lineWidth).toBeLessThanOrEqual(200);
 
                 // Check it's clamped to the expected range
                 const expected = Math.max(40, Math.min(200, value));
-                if (resolved.lineWidth !== expected) {
-                    throw new Error(
-                        `Expected ${expected}, got ${resolved.lineWidth} for input ${value}`
-                    );
-                }
+
+                expect(resolved.lineWidth).toBe(expected);
             }),
             { numRuns: PROPERTY_RUNS }
         );
@@ -401,17 +373,9 @@ describe("options property-based tests", () => {
 
                 resolveOptions(options);
 
-                if (indentStyle === "tabs") {
-                    if (options.useTabs !== true) {
-                        throw new Error(
-                            "useTabs should be true when indentStyle is tabs"
-                        );
-                    }
-                } else if (options.useTabs !== false) {
-                    throw new Error(
-                        "useTabs should be false when indentStyle is spaces"
-                    );
-                }
+                const expectedUseTabs = indentStyle === "tabs";
+
+                expect(options.useTabs).toBe(expectedUseTabs);
             }),
             { numRuns: PROPERTY_RUNS }
         );
@@ -443,20 +407,8 @@ describe("options property-based tests", () => {
 
         const resolved = resolveOptions(options);
 
-        if (resolved.indentStyle !== "spaces") {
-            throw new Error(
-                `Unknown preset should not change default indentStyle; got ${resolved.indentStyle}`
-            );
-        }
-        if (resolved.indentSize !== 4) {
-            throw new Error(
-                `Unknown preset should not change default indentSize; got ${resolved.indentSize}`
-            );
-        }
-        if (resolved.keywordCase !== "lower") {
-            throw new Error(
-                `Unknown preset should not change default keywordCase; got ${resolved.keywordCase}`
-            );
-        }
+        expect(resolved.indentStyle).toBe("spaces");
+        expect(resolved.indentSize).toBe(4);
+        expect(resolved.keywordCase).toBe("lower");
     });
 });

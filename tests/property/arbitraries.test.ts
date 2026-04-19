@@ -7,6 +7,8 @@ import { parsePowerShell } from "../../src/parser.js";
 // We'll test the arbitraries by generating samples and verifying they're valid
 describe("property test arbitraries", () => {
     it("generates valid hashtable literals", () => {
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(
                 fc.array(
@@ -21,60 +23,56 @@ describe("property test arbitraries", () => {
                     { maxLength: 3 }
                 ),
                 (entries) => {
-                    // Test empty hashtable
-                    if (entries.length === 0) {
-                        const script = "@{}";
-                        const ast = parsePowerShell(script, {} as never);
+                    const script = (() => {
+                        // Test empty hashtable
+                        if (entries.length === 0) {
+                            return "@{}";
+                        }
 
-                        expect(ast.type).toBe("Script");
+                        // Test inline hashtable
+                        const hasMultiline = entries.some(({ value }) =>
+                            value.includes("\n")
+                        );
 
-                        return;
-                    }
+                        if (hasMultiline) {
+                            // Test multiline hashtable
+                            const blockEntries = entries
+                                .map(({ key, value }) => {
+                                    if (!value.includes("\n")) {
+                                        return `  ${key} = ${value}`;
+                                    }
+                                    const valueLines = value.split("\n");
+                                    const indentedValue = valueLines
+                                        .map((line) => {
+                                            if (line.length === 0) {
+                                                return "";
+                                            }
+                                            const trimmed = line.trim();
+                                            if (
+                                                trimmed === "'@" ||
+                                                trimmed === '"@'
+                                            ) {
+                                                return trimmed;
+                                            }
+                                            return `  ${line}`;
+                                        })
+                                        .join("\n");
+                                    return `  ${key} =\n${indentedValue}`;
+                                })
+                                .join("\n");
+                            return `@{\n${blockEntries}\n}`;
+                        }
 
-                    // Test inline hashtable
-                    const hasMultiline = entries.some(({ value }) =>
-                        value.includes("\n")
-                    );
-
-                    if (hasMultiline) {
-                        // Test multiline hashtable
-                        const blockEntries = entries
-                            .map(({ key, value }) => {
-                                if (!value.includes("\n")) {
-                                    return `  ${key} = ${value}`;
-                                }
-                                const valueLines = value.split("\n");
-                                const indentedValue = valueLines
-                                    .map((line) => {
-                                        if (line.length === 0) {
-                                            return "";
-                                        }
-                                        const trimmed = line.trim();
-                                        if (
-                                            trimmed === "'@" ||
-                                            trimmed === '"@'
-                                        ) {
-                                            return trimmed;
-                                        }
-                                        return `  ${line}`;
-                                    })
-                                    .join("\n");
-                                return `  ${key} =\n${indentedValue}`;
-                            })
-                            .join("\n");
-                        const script = `@{\n${blockEntries}\n}`;
-                        const ast = parsePowerShell(script, {} as never);
-
-                        expect(ast.type).toBe("Script");
-                    } else {
                         const inlineEntries = entries
                             .map(({ key, value }) => `${key} = ${value}`)
                             .join("; ");
-                        const script = `@{ ${inlineEntries} }`;
-                        const ast = parsePowerShell(script, {} as never);
 
-                        expect(ast.type).toBe("Script");
-                    }
+                        return `@{ ${inlineEntries} }`;
+                    })();
+
+                    const ast = parsePowerShell(script, {} as never);
+
+                    expect(ast.type).toBe("Script");
                 }
             ),
             { numRuns: 20 }
@@ -82,6 +80,8 @@ describe("property test arbitraries", () => {
     });
 
     it("handles hashtable entries with empty lines in multiline values", () => {
+        expect.hasAssertions();
+
         // Test the case where value has empty lines
         const script = `@{
   Key = @'
@@ -96,6 +96,8 @@ line3
     });
 
     it("handles hashtable entries with heredoc closers", () => {
+        expect.hasAssertions();
+
         // Test the HEREDOC_CLOSERS path
         const script = `@{
   Key = @'
@@ -108,6 +110,8 @@ content
     });
 
     it("formats hashtable with trimmed heredoc closer", () => {
+        expect.hasAssertions();
+
         // Another variation with double quote heredoc
         const script = `@{
   Key = @"
@@ -120,6 +124,8 @@ content
     });
 
     it("handles nested structures in arbitraries", () => {
+        expect.hasAssertions();
+
         // Test deeply nested structures that exercise the formatHashtableEntry function
         const script = `@{
   Outer = @{
@@ -132,23 +138,19 @@ content
     });
 
     it("generates valid array literals", () => {
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(
                 fc.array(fc.constantFrom("1", "'test'", "$true"), {
                     maxLength: 5,
                 }),
                 (elements) => {
-                    if (elements.length === 0) {
-                        const script = "@()";
-                        const ast = parsePowerShell(script, {} as never);
+                    const script =
+                        elements.length === 0 ? "@()" : elements.join(", ");
+                    const ast = parsePowerShell(script, {} as never);
 
-                        expect(ast.type).toBe("Script");
-                    } else {
-                        const script = elements.join(", ");
-                        const ast = parsePowerShell(script, {} as never);
-
-                        expect(ast.type).toBe("Script");
-                    }
+                    expect(ast.type).toBe("Script");
                 }
             ),
             { numRuns: 20 }
@@ -156,6 +158,8 @@ content
     });
 
     it("generates valid pipeline expressions", () => {
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(
                 fc.array(
@@ -181,6 +185,8 @@ content
     });
 
     it("generates valid string literals with special chars", () => {
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(
                 fc.oneof(
@@ -200,6 +206,8 @@ content
     });
 
     it("generates valid variable references", () => {
+        expect.hasAssertions();
+
         fc.assert(
             fc.property(
                 fc.constantFrom("$x", "$test", "$_", "$args"),

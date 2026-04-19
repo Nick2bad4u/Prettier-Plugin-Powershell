@@ -7,10 +7,12 @@ const baseConfig = {
     plugins: ["./dist/index.cjs"],
 };
 
-const joinLines = (...values: string[]): string => values.join("\n");
+const joinLines = (...values: readonly string[]): string => values.join("\n");
 
 describe("statement terminator handling", () => {
     it("formats semicolon-separated script blocks and commands", async () => {
+        expect.hasAssertions();
+
         const input = joinLines(
             "$scriptBlock = {",
             '    Write-Output "Hello"',
@@ -34,6 +36,8 @@ describe("statement terminator handling", () => {
     });
 
     it("preserves inline comments following semicolons", async () => {
+        expect.hasAssertions();
+
         const input = joinLines(
             "$scriptBlock = {",
             '    Write-Output "Hello"',
@@ -61,6 +65,8 @@ describe("statement terminator handling", () => {
     });
 
     it("normalizes inline semicolon-separated commands", async () => {
+        expect.hasAssertions();
+
         const input =
             'Write-Output "one"; Write-Output "two"; Write-Output "three"';
         const result = await formatAndAssert(input, baseConfig, {

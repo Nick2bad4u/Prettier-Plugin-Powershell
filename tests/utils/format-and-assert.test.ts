@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import * as formatUtils from "./format-and-assert.js";
-
-const { formatAndAssert, formatAndAssertRoundTrip } = formatUtils;
+import {
+    formatAndAssert,
+    formatAndAssertRoundTrip,
+} from "./format-and-assert.js";
 
 const baseConfig = {
     parser: "powershell" as const,
@@ -11,6 +12,8 @@ const baseConfig = {
 
 describe("formatAndAssert helper", () => {
     it("formats and asserts parse for valid input", async () => {
+        expect.hasAssertions();
+
         const input = 'Write-Host "hi"';
         const result = await formatAndAssert(input, baseConfig, {
             id: "utils.formatOk",
@@ -20,6 +23,8 @@ describe("formatAndAssert helper", () => {
     });
 
     it("formats with skipParse for valid input", async () => {
+        expect.hasAssertions();
+
         const input = 'Write-Host "hi"';
         const result = await formatAndAssert(input, baseConfig, {
             id: "utils.skipParse",
@@ -30,6 +35,8 @@ describe("formatAndAssert helper", () => {
     });
 
     it("supports string shorthand options with id", async () => {
+        expect.hasAssertions();
+
         const input = 'Write-Host "hi"';
         const result = await formatAndAssert(
             input,
@@ -41,6 +48,8 @@ describe("formatAndAssert helper", () => {
     });
 
     it("respects skipParse flag in string shorthand", async () => {
+        expect.hasAssertions();
+
         const input = 'Write-Host "hi"';
         const result = await formatAndAssert(
             input,
@@ -52,6 +61,8 @@ describe("formatAndAssert helper", () => {
     });
 
     it("roundtrip asserts idempotence", async () => {
+        expect.hasAssertions();
+
         const input = 'Write-Host "hi"';
         const result = await formatAndAssertRoundTrip(input, baseConfig, {
             id: "utils.roundtrip",
@@ -61,6 +72,8 @@ describe("formatAndAssert helper", () => {
     });
 
     it("roundtrip supports string shorthand ids", async () => {
+        expect.hasAssertions();
+
         const input = 'Write-Host "hi"';
         const result = await formatAndAssertRoundTrip(
             input,
@@ -72,6 +85,8 @@ describe("formatAndAssert helper", () => {
     });
 
     it("can skip idempotence assertion when expectIdempotent is false", async () => {
+        expect.hasAssertions();
+
         const input = 'Write-Host "hi"';
         const result = await formatAndAssertRoundTrip(input, baseConfig, {
             expectIdempotent: false,
@@ -82,12 +97,14 @@ describe("formatAndAssert helper", () => {
     });
 
     it("throws when a roundtrip is not idempotent", async () => {
+        expect.hasAssertions();
+
         vi.resetModules();
 
-        vi.doMock(import('prettier'), () => ({
+        vi.doMock(import("prettier"), () => ({
             default: {
                 format: vi
-                    .fn()
+                    .fn<() => Promise<string>>()
                     .mockResolvedValueOnce("First run output")
                     .mockResolvedValueOnce("Second run output"),
             },

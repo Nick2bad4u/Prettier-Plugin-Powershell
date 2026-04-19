@@ -172,6 +172,8 @@ const runtimeHelperBundle = runtimeExports as {
 
 describe("ast runtime helpers", () => {
     it("createLocation normalizes coordinates and prevents negative spans", () => {
+        expect.hasAssertions();
+
         expect(createLocation(-4, 6)).toEqual({ end: 6, start: 0 });
         expect(createLocation(10, 3)).toEqual({ end: 10, start: 10 });
         expect(createLocation(5.9, Number.NaN)).toEqual({ end: 5, start: 5 });
@@ -182,6 +184,8 @@ describe("ast runtime helpers", () => {
     });
 
     it("isNodeType performs narrow checks reliably", () => {
+        expect.hasAssertions();
+
         const textNode: TextNode = {
             loc: createLocation(0, 6),
             role: "word",
@@ -195,6 +199,8 @@ describe("ast runtime helpers", () => {
     });
 
     it("cloneNode returns a structural clone with isolated location object", () => {
+        expect.hasAssertions();
+
         const original: CommentNode = {
             inline: true,
             loc: createLocation(1, 5),
@@ -210,6 +216,8 @@ describe("ast runtime helpers", () => {
     });
 
     it("runtimeExports exposes frozen helper references", () => {
+        expect.hasAssertions();
+
         expect(Object.isFrozen(runtimeHelperBundle)).toBeTruthy();
         expect(runtimeHelperBundle.createLocation).toBe(createLocation);
         expect(runtimeHelperBundle.isNodeType).toBe(isNodeType);
@@ -229,6 +237,8 @@ describe("ast runtime helpers", () => {
 
 describe("resolveOptions advanced coverage", () => {
     it("clamps indentation, enables tabs, and enforces minimum line width", () => {
+        expect.hasAssertions();
+
         const options = createOptions({
             powershellIndentSize: 6,
             powershellIndentStyle: "tabs",
@@ -246,6 +256,8 @@ describe("resolveOptions advanced coverage", () => {
     });
 
     it("respects existing printWidth and clamps maximum line width", () => {
+        expect.hasAssertions();
+
         const options = createOptions({
             powershellBlankLineAfterParam: false,
             powershellLineWidth: 400,
@@ -266,6 +278,8 @@ describe("resolveOptions advanced coverage", () => {
     });
 
     it("clamps blank lines between functions within the allowed range", () => {
+        expect.hasAssertions();
+
         const options = createOptions({
             powershellBlankLinesBetweenFunctions: 10,
         });
@@ -275,6 +289,8 @@ describe("resolveOptions advanced coverage", () => {
     });
 
     it("clamps printWidth when exceeding resolved line width and handles negative blank lines", () => {
+        expect.hasAssertions();
+
         const options = createOptions({
             powershellBlankLinesBetweenFunctions: -5,
             powershellIndentStyle: "spaces",
@@ -290,6 +306,8 @@ describe("resolveOptions advanced coverage", () => {
     });
 
     it("respects explicit blankLineAfterParam true configuration", () => {
+        expect.hasAssertions();
+
         const options = createOptions({ powershellBlankLineAfterParam: true });
         const resolved = resolveOptions(options);
 
@@ -297,6 +315,8 @@ describe("resolveOptions advanced coverage", () => {
     });
 
     it("cascades indent fallbacks and ignores invalid blank-line input", () => {
+        expect.hasAssertions();
+
         const options = createOptions({ tabWidth: 6 });
         Reflect.deleteProperty(options, "powershellIndentSize");
 
@@ -318,6 +338,8 @@ describe("resolveOptions advanced coverage", () => {
 
     // Do not rewrite regex-like patterns containing nested quotes/brackets
     it("does not rewrite regex-like pattern strings", () => {
+        expect.hasAssertions();
+
         const opts = resolveOptions(
             createOptions({ powershellPreferSingleQuote: true })
         );
@@ -329,6 +351,8 @@ describe("resolveOptions advanced coverage", () => {
 
 describe("tokenizer advanced coverage", () => {
     it("tokenizes CRLF newlines distinctly", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("first\r\nsecond");
 
         expect(tokens[0]?.type).toBe("identifier");
@@ -339,6 +363,8 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("tokenizes variables with brace and colon syntax", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize(String.raw`\${env:PATH}`);
         const variable = tokens.find((token) => token.type === "variable");
 
@@ -346,6 +372,8 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("tokenizes comments while trimming trailing whitespace", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("# comment   ");
 
         expect(tokens[0]?.type).toBe("comment");
@@ -354,6 +382,8 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("supports complex variable characters inside braces", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize(String.raw`\${user-name_with:parts}`);
         const variable = tokens.find((token) => token.type === "variable");
 
@@ -361,6 +391,8 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("tokenizes double colon as a single operator", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("Namespace::Member");
         const operatorToken = tokens.find(
             (token) => token.type === "operator" && token.value === "::"
@@ -370,6 +402,8 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("tokenizes repeated operators as combined tokens", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("|| == |");
 
         expect(
@@ -390,6 +424,8 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("tokenizes implicit and explicit array openings distinctly", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("@(1, 2) [3,4]");
 
         expect(
@@ -405,6 +441,8 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("tokenizes hashtable opening operator distinctly", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("@{ a = 1 }");
 
         expect(
@@ -415,6 +453,8 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("tokenizes line continuation backtick as an unknown token", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("`");
 
         expect(tokens[0]?.type).toBe("unknown");
@@ -422,6 +462,8 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("tokenizes simple variables without braces", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("$env:PATH");
         const variable = tokens.find((token) => token.type === "variable");
 
@@ -429,6 +471,8 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("emits unknown tokens when no rules match", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("§");
 
         expect(tokens[0]?.type).toBe("unknown");
@@ -436,6 +480,8 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("normalizes here-strings while preserving quote metadata", () => {
+        expect.hasAssertions();
+
         const script = `@"\nAlpha\n"@\n@'\nBeta\n'@`;
         const tokens = tokenize(script);
         const doubleToken = tokens.find(
@@ -474,6 +520,8 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("tokenizes unterminated here-strings by consuming remaining source", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize('@"\nmissing terminator');
         const heredoc = tokens[0];
 
@@ -482,6 +530,8 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("tokenizes decimal numbers with fractional components", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("3.14");
 
         expect(tokens[0]?.type).toBe("number");
@@ -489,6 +539,8 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("tokenizes immediate-closing here-strings", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize('@""@');
         const heredoc = tokens.find((token) => token.type === "heredoc");
 
@@ -496,6 +548,8 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("tokenizes here-strings closing after unix newline", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize('@"\nUnix\n"@');
         const heredoc = tokens.find((token) => token.type === "heredoc");
 
@@ -503,6 +557,8 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("tokenizes here-strings closing after windows newline", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize('@"\r\nWindows\r\n"@');
         const heredoc = tokens.find((token) => token.type === "heredoc");
 
@@ -510,6 +566,8 @@ describe("tokenizer advanced coverage", () => {
     });
 
     it("tokenizes here-strings closing after mixed newline order", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize('@"\n\rMixed\n\r"@');
         const heredoc = tokens.find((token) => token.type === "heredoc");
 
@@ -524,6 +582,8 @@ describe("parser advanced coverage", () => {
     ) => parsePowerShell(source, createOptions(overrides));
 
     it("parses pipeline with line continuation and trailing comment", () => {
+        expect.hasAssertions();
+
         const script =
             "Get-Process `\n| Where-Object { $_.Name } # trailing comment";
         const ast = parse(script);
@@ -537,6 +597,8 @@ describe("parser advanced coverage", () => {
     });
 
     it("parseStatementForTest captures newlines within structured segments", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize('Write-Output (Get-Item\n  "C:")');
         const statement = parserUtils.parseStatementForTest(tokens);
         const parenthesis = statement?.segments[0]?.parts.find(
@@ -547,6 +609,8 @@ describe("parser advanced coverage", () => {
     });
 
     it("parseStatementForTest honors line continuation tokens", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("Get-Process `\n| Where-Object { $_.Name }");
         const statement = parserUtils.parseStatementForTest(tokens);
 
@@ -554,6 +618,8 @@ describe("parser advanced coverage", () => {
     });
 
     it("treats newline inside parentheses as part of expression", () => {
+        expect.hasAssertions();
+
         const script = 'Write-Output (Get-Item\n  "C:")';
         const ast = parse(script);
         const pipeline = ast.body[0];
@@ -571,6 +637,8 @@ describe("parser advanced coverage", () => {
     });
 
     it("breaks pipeline when newline comment prevents continuation", () => {
+        expect.hasAssertions();
+
         const script =
             "Get-Process\n# stop continuation\n| Where-Object { $_ }";
         const ast = parse(script);
@@ -603,6 +671,8 @@ describe("parser advanced coverage", () => {
     });
 
     it("splits statements on semicolons and collects blank lines", () => {
+        expect.hasAssertions();
+
         const script =
             'Write-Host "One"; Write-Host "Two"\n\n\nWrite-Host "Three"';
         const ast = parse(script);
@@ -619,6 +689,8 @@ describe("parser advanced coverage", () => {
     });
 
     it("handles unterminated script blocks gracefully", () => {
+        expect.hasAssertions();
+
         const script = 'function Missing {\n  Write-Host "x"';
         const ast = parse(script);
         const fn = ast.body.find((node) => node.type === "FunctionDeclaration");
@@ -630,6 +702,8 @@ describe("parser advanced coverage", () => {
     });
 
     it("parses function header without opening brace", () => {
+        expect.hasAssertions();
+
         const script = "function HeaderOnly\nparam([string]$Name)";
         const ast = parse(script);
         const fn = ast.body.find((node) => node.type === "FunctionDeclaration");
@@ -641,6 +715,8 @@ describe("parser advanced coverage", () => {
     });
 
     it("parses complex hashtable entries and nested structures", () => {
+        expect.hasAssertions();
+
         const script =
             '@{ "quoted" = 1; flag; single = @{ nested = @(1, 2) } }';
         const ast = parse(script);
@@ -670,6 +746,8 @@ describe("parser advanced coverage", () => {
     });
 
     it("parses explicit arrays and records explicit kind metadata", () => {
+        expect.hasAssertions();
+
         const ast = parse("[1, 2, 3]");
         const pipeline = ast.body[0];
         if (pipeline?.type !== "Pipeline") {
@@ -683,6 +761,8 @@ describe("parser advanced coverage", () => {
     });
 
     it("captures here-strings as expression parts", () => {
+        expect.hasAssertions();
+
         const script = '@"\nAlpha\n"@';
         const ast = parse(script);
         const pipeline = ast.body[0];
@@ -698,6 +778,8 @@ describe("parser advanced coverage", () => {
     });
 
     it("parses standalone unknown tokens as text nodes", () => {
+        expect.hasAssertions();
+
         const ast = parse("§");
         const pipeline = ast.body[0];
         if (pipeline?.type !== "Pipeline") {
@@ -710,6 +792,8 @@ describe("parser advanced coverage", () => {
     });
 
     it("stops function header scanning when encountering inline comments", () => {
+        expect.hasAssertions();
+
         const script =
             'function HeaderComment # comment here\n{ Write-Host "inside" }';
         const ast = parse(script);
@@ -731,6 +815,8 @@ describe("parser advanced coverage", () => {
     });
 
     it("continues pipelines across bare newline followed by pipe", () => {
+        expect.hasAssertions();
+
         const script = "Get-Process\n| Sort-Object Name";
         const ast = parse(script);
         const pipeline = ast.body[0];
@@ -742,6 +828,8 @@ describe("parser advanced coverage", () => {
     });
 
     it("keeps nested pipeline segments inside script blocks intact", () => {
+        expect.hasAssertions();
+
         const script = `InModuleScope ColorScripts-Enhanced {
   New-Item -ItemType Directory -Path $cacheRoot -Force | Out-Null
   $script:CacheDir = $cacheRoot
@@ -798,6 +886,8 @@ describe("parser advanced coverage", () => {
     });
 
     it("terminates statements when encountering a closing brace at top level", () => {
+        expect.hasAssertions();
+
         const script = 'if ($true) {\n  Write-Host "in"\n}\nWrite-Host "out"';
         const ast = parse(script);
         const pipelines = ast.body.filter((node) => node.type === "Pipeline");
@@ -806,6 +896,8 @@ describe("parser advanced coverage", () => {
     });
 
     it("handles unterminated hashtables by capturing available tokens", () => {
+        expect.hasAssertions();
+
         const script = "@{ key = 1";
         const ast = parse(script);
         const pipeline = ast.body[0];
@@ -823,6 +915,8 @@ describe("parser advanced coverage", () => {
     });
 
     it("uses hashtable start token end when no content or closing brace exists", () => {
+        expect.hasAssertions();
+
         const script = "@{";
         const ast = parse(script);
         const pipeline = ast.body[0];
@@ -843,6 +937,8 @@ describe("parser advanced coverage", () => {
 
 describe("printer advanced coverage", () => {
     it("formats multiple functions with custom spacing options", async () => {
+        expect.hasAssertions();
+
         const script =
             'function A {\n  param([string]$Name)\n  Write-Host $Name\n}\nfunction B {\n  Write-Host "B"\n}\n';
         const result = await formatAndAssert(
@@ -865,6 +961,8 @@ describe("printer advanced coverage", () => {
     });
 
     it("honors allman brace style and tab indentation", async () => {
+        expect.hasAssertions();
+
         const script = 'function Tabs { if ($true) { Write-Host "tab" } }';
         const result = await formatAndAssert(
             script,
@@ -883,6 +981,8 @@ describe("printer advanced coverage", () => {
     });
 
     it("prints pipelines with multiple segments and trailing comments", async () => {
+        expect.hasAssertions();
+
         const script =
             "Get-Process | Where-Object { $_.Name } | Select-Object Name # in pipeline";
         const result = await formatAndAssert(
@@ -896,6 +996,8 @@ describe("printer advanced coverage", () => {
     });
 
     it("preserves nested pipeline segments when formatting script blocks", async () => {
+        expect.hasAssertions();
+
         const script = `InModuleScope ColorScripts-Enhanced {
   New-Item -ItemType Directory -Path $cacheRoot -Force | Out-Null
   $script:CacheDir = $cacheRoot
@@ -913,6 +1015,8 @@ describe("printer advanced coverage", () => {
     });
 
     it("keeps increment operators and indexers intact", async () => {
+        expect.hasAssertions();
+
         const script = `
 for ($i = 0; $i -lt $lines.Count; $i++) {
   $values[$i] += 1
@@ -933,6 +1037,8 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
     });
 
     it("handles param keyword parenthesis spacing", async () => {
+        expect.hasAssertions();
+
         const script = "param([string]$Name, [int]$Age)";
         const result = await formatAndAssert(
             script,
@@ -951,6 +1057,8 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
     });
 
     it("preserves spacing around hashtables and property access", async () => {
+        expect.hasAssertions();
+
         const script = "$obj.Property::Method(@{ a = 1 })";
         const result = await formatAndAssert(
             script,
@@ -963,6 +1071,8 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
     });
 
     it("formats diverse spacing scenarios to exercise gap rules", async () => {
+        expect.hasAssertions();
+
         const script = `
 function Sample {
   param(
@@ -1002,6 +1112,8 @@ Sample
     });
 
     it("sorts hashtable keys when option enabled", async () => {
+        expect.hasAssertions();
+
         const script = "@{ b = 1; a = 2 }";
         const result = await formatAndAssert(
             script,
@@ -1016,6 +1128,8 @@ Sample
     });
 
     it("rewrites aliases and Write-Host invocations when configured", async () => {
+        expect.hasAssertions();
+
         const script = 'ls\nWrite-Host "hi"';
         const result = await formatAndAssert(
             script,
@@ -1036,6 +1150,8 @@ describe("printer internal helpers", () => {
     const resolvedOptions = resolveOptions(createOptions());
 
     it("gapBetween handles spacing combinations", () => {
+        expect.hasAssertions();
+
         const paramKeyword = makeTextNode("param", "keyword");
         const emptyParen = makeParenthesisNode([]);
 
@@ -1115,16 +1231,22 @@ describe("printer internal helpers", () => {
     });
 
     it("getSymbol handles null input gracefully", () => {
+        expect.hasAssertions();
+
         expect(getSymbol(null)).toBeNull();
     });
 
     it("shouldSkipPart ignores isolated backticks", () => {
+        expect.hasAssertions();
+
         const part = makeTextNode("   `   ", "operator");
 
         expect(shouldSkipPart(part)).toBeTruthy();
     });
 
     it("normalizeStringLiteral respects quoting preferences", () => {
+        expect.hasAssertions();
+
         const preferSingle = resolveOptions(
             createOptions({ powershellPreferSingleQuote: true })
         );
@@ -1148,6 +1270,8 @@ describe("printer internal helpers", () => {
     });
 
     it("printParamParenthesis handles empty element lists", () => {
+        expect.hasAssertions();
+
         const doc = printParamParenthesis(
             makeParenthesisNode([]),
             resolvedOptions
@@ -1157,6 +1281,8 @@ describe("printer internal helpers", () => {
     });
 
     it("printParamParenthesis attaches inline comments from explicit comment expressions", () => {
+        expect.hasAssertions();
+
         const paramExpression = makeExpressionNode([
             makeTextNode("[string]$Name", "word"),
         ]);
@@ -1172,6 +1298,8 @@ describe("printer internal helpers", () => {
     });
 
     it("printParamParenthesis synthesizes comment markers for prose-like comment expressions", () => {
+        expect.hasAssertions();
+
         const paramExpression = makeExpressionNode([
             makeTextNode("[int]$Count", "word"),
         ]);
@@ -1188,6 +1316,8 @@ describe("printer internal helpers", () => {
     });
 
     it("printParenthesis forces multiline output when newline metadata is present", () => {
+        expect.hasAssertions();
+
         const node = makeParenthesisNode(
             [
                 makeExpressionNode([makeTextNode("first", "word")]),
@@ -1201,6 +1331,8 @@ describe("printer internal helpers", () => {
     });
 
     it("printParenthesis forces multiline when multiple elements lack commas", () => {
+        expect.hasAssertions();
+
         const node = makeParenthesisNode(
             [
                 makeExpressionNode([makeTextNode("alpha", "word")]),
@@ -1214,6 +1346,8 @@ describe("printer internal helpers", () => {
     });
 
     it("printParenthesis uses inline separators when comma metadata is present", () => {
+        expect.hasAssertions();
+
         const node = makeParenthesisNode(
             [
                 makeExpressionNode([makeTextNode("one", "word")]),
@@ -1228,6 +1362,8 @@ describe("printer internal helpers", () => {
     });
 
     it("printParenthesis combines commas with hardline separators when multiline", () => {
+        expect.hasAssertions();
+
         const node = makeParenthesisNode(
             [
                 makeExpressionNode([makeTextNode("first", "word")]),
@@ -1241,6 +1377,8 @@ describe("printer internal helpers", () => {
     });
 
     it("trailingCommaDoc respects trailing comma settings", () => {
+        expect.hasAssertions();
+
         const allComma = resolveOptions(
             createOptions({ powershellTrailingComma: "all" })
         );
@@ -1257,6 +1395,8 @@ describe("printer internal helpers", () => {
     });
 
     it("printHashtable consults simple-expression heuristic for separator choice", () => {
+        expect.hasAssertions();
+
         const loc = { end: 0, start: 0 };
 
         const simpleValue = makeExpressionNode([makeTextNode("42", "number")]);
@@ -1314,6 +1454,8 @@ describe("printer internal helpers", () => {
     });
 
     it("printPipeline handles empty and populated pipelines", () => {
+        expect.hasAssertions();
+
         const emptyPipeline: PipelineNode = {
             loc: { end: 0, start: 0 },
             segments: [],
@@ -1335,6 +1477,8 @@ describe("printer internal helpers", () => {
     });
 
     it("isParamStatement checks pipelines safely", () => {
+        expect.hasAssertions();
+
         expect(isParamStatement(null as unknown as ScriptBodyNode)).toBeFalsy();
 
         const emptySegments: PipelineNode = {
@@ -1371,6 +1515,8 @@ describe("printer internal helpers", () => {
     });
 
     it("printScript returns empty doc when body is empty", () => {
+        expect.hasAssertions();
+
         const scriptNode: ScriptNode = {
             body: [],
             loc: { end: 0, start: 0 },
@@ -1383,6 +1529,8 @@ describe("printer internal helpers", () => {
     });
 
     it("concatDocs handles empty arrays and concatenation", () => {
+        expect.hasAssertions();
+
         expect(__printerTestUtils.concatDocs([])).toBe("");
 
         const combined = __printerTestUtils.concatDocs(["a", "b"]);
@@ -1391,6 +1539,8 @@ describe("printer internal helpers", () => {
     });
 
     it("indentStatement honors tab indentation style", () => {
+        expect.hasAssertions();
+
         const tabOptions = resolveOptions(
             createOptions({
                 powershellIndentSize: 3,
@@ -1404,6 +1554,8 @@ describe("printer internal helpers", () => {
     });
 
     it("printNode falls back to empty doc for unknown nodes", () => {
+        expect.hasAssertions();
+
         const unknownNode = {
             loc: { end: 0, start: 0 },
             type: "Unknown",
@@ -1415,6 +1567,8 @@ describe("printer internal helpers", () => {
     });
 
     it("printText preserves keywords for unknown case transforms", () => {
+        expect.hasAssertions();
+
         const mutatedOptions = {
             ...resolvedOptions,
         } as typeof resolvedOptions & {
@@ -1429,6 +1583,8 @@ describe("printer internal helpers", () => {
     });
 
     it("printText applies pascal keyword transformations", () => {
+        expect.hasAssertions();
+
         const pascalOptions = resolveOptions(
             createOptions({ powershellKeywordCase: "pascal" })
         );
@@ -1440,6 +1596,8 @@ describe("printer internal helpers", () => {
     });
 
     it("printText leaves empty keywords untouched in pascal mode", () => {
+        expect.hasAssertions();
+
         const pascalOptions = resolveOptions(
             createOptions({ powershellKeywordCase: "pascal" })
         );
@@ -1451,6 +1609,8 @@ describe("printer internal helpers", () => {
     });
 
     it("printText rewrites generic aliases when enabled", () => {
+        expect.hasAssertions();
+
         const aliasOptions = resolveOptions(
             createOptions({ powershellRewriteAliases: true })
         );
@@ -1462,6 +1622,8 @@ describe("printer internal helpers", () => {
     });
 
     it("printStatementList applies pending blank lines and indentation", () => {
+        expect.hasAssertions();
+
         const pipeline: PipelineNode = {
             loc: { end: 0, start: 0 },
             segments: [
@@ -1484,6 +1646,8 @@ describe("printer internal helpers", () => {
     });
 
     it("printStatementList enforces function declaration spacing", () => {
+        expect.hasAssertions();
+
         const script = parsePowerShell(
             `function Alpha {}
 function Beta {}`,
@@ -1499,6 +1663,8 @@ function Beta {}`,
     });
 
     it("printStatementList handles function followed by pipeline spacing", () => {
+        expect.hasAssertions();
+
         const script = parsePowerShell(
             `function Gamma {}
 Write-Host "hi"`,
@@ -1514,6 +1680,8 @@ Write-Host "hi"`,
     });
 
     it("printStatementList handles pipeline preceding function spacing", () => {
+        expect.hasAssertions();
+
         const script = parsePowerShell(
             `Write-Host "hi"
 function Delta {}`,
@@ -1529,6 +1697,8 @@ function Delta {}`,
     });
 
     it("printStatementList honours pending blank lines between entries", () => {
+        expect.hasAssertions();
+
         const firstPipeline: PipelineNode = {
             loc: { end: 0, start: 0 },
             segments: [makeExpressionNode([makeTextNode("First", "word")])],
@@ -1558,6 +1728,8 @@ function Delta {}`,
     });
 
     it("printStatementList handles consecutive pipelines without blank lines", () => {
+        expect.hasAssertions();
+
         const firstPipeline: PipelineNode = {
             loc: { end: 0, start: 0 },
             segments: [makeExpressionNode([makeTextNode("Alpha", "word")])],
@@ -1578,6 +1750,8 @@ function Delta {}`,
     });
 
     it("powerShellPrinter returns empty doc for undefined nodes", () => {
+        expect.hasAssertions();
+
         const path = {
             getValue: () => undefined,
         } as unknown as AstPath<ScriptNode>;
@@ -1592,10 +1766,14 @@ function Delta {}`,
     });
 
     it("createPrinter exposes the shared printer instance", () => {
+        expect.hasAssertions();
+
         expect(createPrinter()).toBe(powerShellPrinter);
     });
 
     it("printNode routes to specialized handlers", () => {
+        expect.hasAssertions();
+
         const loc = { end: 0, start: 0 };
         const expressionNode: ExpressionNode = makeExpressionNode([
             makeTextNode("value", "word"),
@@ -1684,6 +1862,8 @@ describe("parser internal helpers", () => {
         );
 
     it("identifies opening and closing tokens", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("{} () []");
 
         expect(parserUtils.isOpeningToken(tokens[0])).toBeTruthy();
@@ -1696,6 +1876,8 @@ describe("parser internal helpers", () => {
     });
 
     it("collects structure tokens and handles missing closings", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("{ @(1, 2) }");
         const result = parserUtils.collectStructureTokens(tokens, 0);
 
@@ -1710,6 +1892,8 @@ describe("parser internal helpers", () => {
     });
 
     it("splits hashtable entries across semicolons and newlines", () => {
+        expect.hasAssertions();
+
         const tokens = tokensFrom("key = 1; other = @{ nested = 2 }");
         const entries = parserUtils.splitHashtableEntries(tokens);
 
@@ -1720,6 +1904,8 @@ describe("parser internal helpers", () => {
     });
 
     it("attaches dangling trailing comments to the previous hashtable entry", () => {
+        expect.hasAssertions();
+
         const tokens = tokensFrom("Key = 1; # trailing comment");
         const entries = parserUtils.splitHashtableEntries(tokens);
 
@@ -1734,6 +1920,8 @@ describe("parser internal helpers", () => {
     });
 
     it("splitHashtableEntries maintains stack across nested hashtables", () => {
+        expect.hasAssertions();
+
         const tokens = tokenize("@{ outer = @{ inner = @(1, 2) } ; tail = 3 }");
         const { contentTokens } = parserUtils.collectStructureTokens(tokens, 0);
         const entries = parserUtils.splitHashtableEntries(contentTokens);
@@ -1743,6 +1931,8 @@ describe("parser internal helpers", () => {
     });
 
     it("finds top-level equals while ignoring nested structures", () => {
+        expect.hasAssertions();
+
         const tokens = tokensFrom("key = @{ nested = 1 }");
         const index = parserUtils.findTopLevelEquals(tokens);
 
@@ -1763,6 +1953,8 @@ describe("parser internal helpers", () => {
     });
 
     it("respects configured terminators while parsing", () => {
+        expect.hasAssertions();
+
         const script = parserUtils.parseScriptWithTerminators(
             'Write-Host "Hello" } Write-Host "Ignored"',
             new Set(["}"])
@@ -1772,6 +1964,8 @@ describe("parser internal helpers", () => {
     });
 
     it("extracts key text from quoted and unquoted tokens", () => {
+        expect.hasAssertions();
+
         const doubleQuoted = tokensFrom('"quoted"');
 
         expect(parserUtils.extractKeyText(doubleQuoted)).toBe("quoted");
@@ -1786,6 +1980,8 @@ describe("parser internal helpers", () => {
     });
 
     it("splits array elements with commas and respects nesting", () => {
+        expect.hasAssertions();
+
         const tokens = tokensFrom("1, @(2, 3), 4");
         const elements = parserUtils.splitArrayElements(tokens);
 
@@ -1794,6 +1990,8 @@ describe("parser internal helpers", () => {
     });
 
     it("splitArrayElements ignores separators inside nested parentheses", () => {
+        expect.hasAssertions();
+
         const arrayTokens = tokenize("@( @(1,2), 3 )");
         const { contentTokens } = parserUtils.collectStructureTokens(
             arrayTokens,
@@ -1806,6 +2004,8 @@ describe("parser internal helpers", () => {
     });
 
     it("detects top-level commas within parenthesis tokens", () => {
+        expect.hasAssertions();
+
         const commaTokens = parserUtils.collectStructureTokens(
             tokensFrom("($a,$b)"),
             0
@@ -1822,6 +2022,8 @@ describe("parser internal helpers", () => {
     });
 
     it("buildExpressionFromTokens classifies array kinds and script blocks", () => {
+        expect.hasAssertions();
+
         const implicitExpression = parserUtils.buildExpressionFromTokens(
             tokenize("@(1,2)")
         );
@@ -1850,6 +2052,8 @@ describe("parser internal helpers", () => {
     });
 
     it("createHereStringNode defaults missing quote metadata to double", () => {
+        expect.hasAssertions();
+
         const baseToken: Token = {
             end: 11,
             start: 0,
@@ -1872,6 +2076,8 @@ describe("parser internal helpers", () => {
     });
 
     it("createTextNode maps token roles comprehensively", () => {
+        expect.hasAssertions();
+
         const tokens: Token[] = [
             { end: 4, start: 0, type: "identifier", value: "Name" },
             { end: 8, start: 0, type: "keyword", value: "function" },
@@ -1906,6 +2112,8 @@ describe("parser internal helpers", () => {
     });
 
     it("parseArrayPart falls back to appropriate end positions when unterminated", () => {
+        expect.hasAssertions();
+
         const withContentTokens = tokensFrom("@(1, 2");
         const withContentExpression =
             parserUtils.buildExpressionFromTokens(withContentTokens);
@@ -1926,6 +2134,8 @@ describe("parser internal helpers", () => {
     });
 
     it("parseScriptBlockPart handles missing closing braces gracefully", () => {
+        expect.hasAssertions();
+
         const blockTokens = tokensFrom("{ Write-Host");
         const blockExpression =
             parserUtils.buildExpressionFromTokens(blockTokens);
@@ -1947,6 +2157,8 @@ describe("parser internal helpers", () => {
     });
 
     it("parseParenthesisPart determines end positions when closures are missing", () => {
+        expect.hasAssertions();
+
         const withContentTokens = tokensFrom("(value");
         const withContentExpression =
             parserUtils.buildExpressionFromTokens(withContentTokens);
@@ -1969,6 +2181,8 @@ describe("parser internal helpers", () => {
     });
 
     it("buildHashtableEntry infers locations from keys, values, or defaults", () => {
+        expect.hasAssertions();
+
         const keyTokens = tokensFrom("key");
         const keyOnlyEntry = parserUtils.buildHashtableEntry(keyTokens);
 
@@ -1989,6 +2203,8 @@ describe("parser internal helpers", () => {
     });
 
     it("treats trailing comments with missing coordinates as non-inline", () => {
+        expect.hasAssertions();
+
         const tokens: Token[] = [
             { end: 3, start: 0, type: "identifier", value: "Key" },
             { end: 5, start: 4, type: "operator", value: "=" },
@@ -2016,6 +2232,8 @@ describe("parser internal helpers", () => {
     });
 
     it("resolveStructureEnd respects closing, content, and fallback positions", () => {
+        expect.hasAssertions();
+
         const startToken: Token = {
             end: 1,
             start: 0,
@@ -2051,6 +2269,8 @@ describe("parser internal helpers", () => {
     });
 
     it("splitHashtableEntries pops nested closing tokens safely", () => {
+        expect.hasAssertions();
+
         const tokens: Token[] = [
             { end: 1, start: 0, type: "punctuation", value: "{" },
             { end: 2, start: 1, type: "punctuation", value: "{" },
@@ -2066,6 +2286,8 @@ describe("parser internal helpers", () => {
     });
 
     it("splitHashtableEntries emits entries for semicolon separators", () => {
+        expect.hasAssertions();
+
         const tokens: Token[] = [
             { end: 1, start: 0, type: "identifier", value: "a" },
             { end: 2, start: 1, type: "punctuation", value: ";" },
@@ -2078,6 +2300,8 @@ describe("parser internal helpers", () => {
     });
 
     it("splitHashtableEntries skips empty segments for consecutive separators", () => {
+        expect.hasAssertions();
+
         const tokens: Token[] = [
             { end: 1, start: 0, type: "punctuation", value: ";" },
             { end: 2, start: 1, type: "punctuation", value: ";" },
@@ -2088,6 +2312,8 @@ describe("parser internal helpers", () => {
     });
 
     it("splitArrayElements pops nested closing tokens while grouping", () => {
+        expect.hasAssertions();
+
         const tokens: Token[] = [
             { end: 1, start: 0, type: "punctuation", value: "(" },
             { end: 2, start: 1, type: "punctuation", value: ")" },
@@ -2102,6 +2328,8 @@ describe("parser internal helpers", () => {
     });
 
     it("hasTopLevelComma ignores commas nested inside structures", () => {
+        expect.hasAssertions();
+
         const tokens: Token[] = [
             { end: 1, start: 0, type: "punctuation", value: "(" },
             { end: 2, start: 1, type: "punctuation", value: "(" },
@@ -2114,6 +2342,8 @@ describe("parser internal helpers", () => {
     });
 
     it("exposes locStart and locEnd helpers", () => {
+        expect.hasAssertions();
+
         const node = { loc: { end: 9, start: 4 } };
 
         expect(locStart(node)).toBe(4);

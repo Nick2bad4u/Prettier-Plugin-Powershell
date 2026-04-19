@@ -4,6 +4,8 @@ import { tokenize } from "../src/tokenizer.js";
 
 describe("tokenizer edge cases", () => {
     it("handles block comment at end of file", () => {
+        expect.hasAssertions();
+
         const script = "test <#comment#>";
         const tokens = tokenize(script);
         const blockComment = tokens.find((t) => t.type === "block-comment");
@@ -13,6 +15,8 @@ describe("tokenizer edge cases", () => {
     });
 
     it("handles unclosed block comment at end of file", () => {
+        expect.hasAssertions();
+
         const script = "test <#unclosed";
         const tokens = tokenize(script);
         const blockComment = tokens.find((t) => t.type === "block-comment");
@@ -22,6 +26,8 @@ describe("tokenizer edge cases", () => {
     });
 
     it("handles backtick at end of string", () => {
+        expect.hasAssertions();
+
         const script = '$a = "test`"';
         const tokens = tokenize(script);
         const stringToken = tokens.find((t) => t.type === "string");
@@ -31,6 +37,8 @@ describe("tokenizer edge cases", () => {
     });
 
     it("handles backtick at end of file in attribute", () => {
+        expect.hasAssertions();
+
         const script = '[ValidateScript({"test`"})]';
         const tokens = tokenize(script);
         const attrToken = tokens.find((t) => t.type === "attribute");
@@ -39,6 +47,8 @@ describe("tokenizer edge cases", () => {
     });
 
     it("handles Windows line endings in here-strings correctly", () => {
+        expect.hasAssertions();
+
         const script = '@"\r\nLine 1\r\nLine 2\r\n"@';
         const tokens = tokenize(script);
         const heredoc = tokens.find((t) => t.type === "heredoc");
@@ -48,6 +58,8 @@ describe("tokenizer edge cases", () => {
     });
 
     it("handles UNIX line endings in here-strings correctly", () => {
+        expect.hasAssertions();
+
         const script = '@"\nLine 1\nLine 2\n"@';
         const tokens = tokenize(script);
         const heredoc = tokens.find((t) => t.type === "heredoc");
@@ -57,6 +69,8 @@ describe("tokenizer edge cases", () => {
     });
 
     it("handles decimal point at end of file", () => {
+        expect.hasAssertions();
+
         const script = "$a = 1.";
         const tokens = tokenize(script);
         const numbers = tokens.filter((t) => t.type === "number");
@@ -66,6 +80,8 @@ describe("tokenizer edge cases", () => {
     });
 
     it("handles decimal number with proper bounds checking", () => {
+        expect.hasAssertions();
+
         const script = "$a = 1.5";
         const tokens = tokenize(script);
         const number = tokens.find((t) => t.type === "number");
@@ -75,6 +91,8 @@ describe("tokenizer edge cases", () => {
     });
 
     it("handles here-string closing at exact position", () => {
+        expect.hasAssertions();
+
         const script = '@"\ntest\n"@';
         const tokens = tokenize(script);
         const heredoc = tokens.find((t) => t.type === "heredoc");
@@ -84,6 +102,8 @@ describe("tokenizer edge cases", () => {
     });
 
     it("handles block comment closing at exact last position", () => {
+        expect.hasAssertions();
+
         const script = "<#test#>";
         const tokens = tokenize(script);
         const blockComment = tokens.find((t) => t.type === "block-comment");
@@ -93,6 +113,8 @@ describe("tokenizer edge cases", () => {
     });
 
     it("treats zero-width and NBSP characters as whitespace", () => {
+        expect.hasAssertions();
+
         const script = `function\u200BFoo { $x\u00A0= 1\u200B}\uFEFF`;
         const tokens = tokenize(script);
 
@@ -111,6 +133,8 @@ describe("tokenizer edge cases", () => {
     });
 
     it("tokenizes the call operator", () => {
+        expect.hasAssertions();
+
         const script = `& $scriptBlock`;
         const tokens = tokenize(script);
 
@@ -127,6 +151,8 @@ describe("tokenizer edge cases", () => {
     });
 
     it("tokenizes splatted commands as identifiers", () => {
+        expect.hasAssertions();
+
         const script = `& @commandArgs`;
         const tokens = tokenize(script);
 
@@ -139,6 +165,8 @@ describe("tokenizer edge cases", () => {
     });
 
     it("recognizes numeric suffixes and multipliers", () => {
+        expect.hasAssertions();
+
         const script = `$values = @(123u, 0xFFu, 42KB, 1.5e3f, 99l, 5mb)`;
         const tokens = tokenize(script);
 
@@ -155,6 +183,8 @@ describe("tokenizer edge cases", () => {
     });
 
     it("tokenizes merging redirection without explicit stream number", () => {
+        expect.hasAssertions();
+
         const script = `Write-Output hi >&3`;
         const tokens = tokenize(script);
 
@@ -166,6 +196,8 @@ describe("tokenizer edge cases", () => {
     });
 
     it("treats bare $_ at end of input as the special pipeline variable", () => {
+        expect.hasAssertions();
+
         const script = `$_`;
         const tokens = tokenize(script);
 
@@ -176,6 +208,8 @@ describe("tokenizer edge cases", () => {
     });
 
     it("treats $_ followed by identifier characters as a regular variable name", () => {
+        expect.hasAssertions();
+
         const script = `$_foo`;
         const tokens = tokenize(script);
 

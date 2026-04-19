@@ -1,19 +1,19 @@
 import type { ChildProcess } from "node:child_process";
 
 import { PassThrough } from "node:stream";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 interface MockProcessHooks {
     onMessage?: (
-        proc: MockProcess,
-        respond: (response: MockResponse) => void
+        proc: Readonly<MockProcess>,
+        respond: (response: Readonly<MockResponse>) => void
     ) => void;
 }
 
 type MockResponse = { message: string; type: "ERROR" } | { type: "OK" };
 
 class MockProcess extends EventTarget {
-    public readonly kill = vi.fn();
+    public readonly kill = vi.fn<() => boolean>();
     public readonly stderr: PassThrough;
     public readonly stdin: PassThrough;
     public readonly stdout: PassThrough;
@@ -25,7 +25,10 @@ class MockProcess extends EventTarget {
     private readonly responses: MockResponse[];
     private totalLength = 0;
 
-    constructor(responses: MockResponse[], hooks?: MockProcessHooks) {
+    public constructor(
+        responses: readonly Readonly<MockResponse>[],
+        hooks?: Readonly<MockProcessHooks>
+    ) {
         super();
         this.responses = [...responses];
         this.hooks = hooks;
@@ -34,8 +37,10 @@ class MockProcess extends EventTarget {
         this.stderr = new PassThrough();
     }
 
-    public emit(eventName: string, ...detail: unknown[]): boolean {
-        const event = new Event(eventName) as Event & { detail: unknown[] };
+    public emit(eventName: string, ...detail: readonly unknown[]): boolean {
+        const event = new Event(eventName) as Event & {
+            detail: readonly unknown[];
+        };
         Object.defineProperty(event, "detail", {
             configurable: false,
             enumerable: false,
@@ -48,10 +53,10 @@ class MockProcess extends EventTarget {
 
     public on(
         eventName: string,
-        listener: (...detail: unknown[]) => void
+        listener: (...detail: readonly unknown[]) => void
     ): this {
-        this.addEventListener(eventName, (event) => {
-            const customEvent = event as Event & { detail: unknown[] };
+        this.addEventListener(eventName, (event: Readonly<Event>) => {
+            const customEvent = event as Event & { detail: readonly unknown[] };
             listener(...customEvent.detail);
         });
 
@@ -78,7 +83,7 @@ class MockProcess extends EventTarget {
         this.dataCollected = 0;
 
         if (this.hooks?.onMessage) {
-            const respond = (response: MockResponse): void => {
+            const respond = (response: Readonly<MockResponse>): void => {
                 this.scheduleResponse(response);
             };
             this.hooks.onMessage(this, respond);
@@ -123,7 +128,7 @@ class MockProcess extends EventTarget {
         }
     }
 
-    private scheduleResponse(response: MockResponse): void {
+    private scheduleResponse(response: Readonly<MockResponse>): void {
         setTimeout(() => {
             const payload =
                 response.type === "OK"
@@ -137,11 +142,11 @@ class MockProcess extends EventTarget {
 }
 
 function createSpawnMock(
-    responses: MockResponse[],
-    onCreate?: (proc: ChildProcess & MockProcess) => void,
-    hooks?: MockProcessHooks
+    responses: readonly Readonly<MockResponse>[],
+    onCreate?: (proc: Readonly<ChildProcess & MockProcess>) => void,
+    hooks?: Readonly<MockProcessHooks>
 ) {
-    return vi.fn(() => {
+    return vi.fn<() => ChildProcess & MockProcess>(() => {
         const proc = new MockProcess(
             responses,
             hooks
@@ -157,7 +162,9 @@ function createSpawnMock(
 const { env: testEnv } = process;
 const originalEnv = { ...testEnv };
 
-const replaceTestEnvironment = (overrides: NodeJS.ProcessEnv): void => {
+const replaceTestEnvironment = (
+    overrides: Readonly<NodeJS.ProcessEnv>
+): void => {
     for (const key of Object.keys(testEnv)) {
         testEnv[key] = undefined;
     }
@@ -165,55 +172,86 @@ const replaceTestEnvironment = (overrides: NodeJS.ProcessEnv): void => {
     Object.assign(testEnv, originalEnv, overrides);
 };
 
-afterEach(() => {
+const resetTestState = (): void => {
     replaceTestEnvironment({});
     vi.clearAllMocks();
     vi.resetModules();
-    vi.unmock("node:child_process");
+    vi.doUnmock("node:child_process");
     process.removeAllListeners("exit");
-});
+};
 
-describe("powerShell syntax utilities", () => {
+const withTestCleanup = async (action: () => Promise<void>): Promise<void> => {
+    try {
+        await action();
+    } finally {
+        resetTestState();
+    }
+};
+
+const requireCreatedProcess = (
+    processRef: null | Readonly<ChildProcess & MockProcess>
+): ChildProcess & MockProcess => {
+    if (processRef === null) {
+        throw new Error("Expected created process to be available");
+    }
+
+    return processRef;
+};
+
+describe("powershell syntax utilities", () => {
     it("skips validation when POWERSHELL_VERIFY_SYNTAX is 0", async () => {
-        replaceTestEnvironment({
-            POWERSHELL_VERIFY_SYNTAX: "0",
+        expect.hasAssertions();
+
+        await withTestCleanup(async () => {
+            replaceTestEnvironment({
+                POWERSHELL_VERIFY_SYNTAX: "0",
+            });
+
+            const spawnMock = vi.fn<() => ChildProcess>();
+            vi.doMock(import("node:child_process"), () => ({
+                spawn: spawnMock,
+            }));
+
+            const { assertPowerShellParses, isPowerShellParsable } =
+                await import("./powershell.js");
+
+            await expect(
+                isPowerShellParsable("Write-Host 'hello'", "disabled")
+            ).resolves.toBeTruthy();
+            await expect(
+                assertPowerShellParses("Write-Host 'hello'", "disabled")
+            ).resolves.toBeUndefined();
+
+            expect(spawnMock).not.toHaveBeenCalled();
         });
-
-        const spawnMock = vi.fn();
-        vi.doMock(import("node:child_process"), () => ({ spawn: spawnMock }));
-
-        const { assertPowerShellParses, isPowerShellParsable } = await import(
-            "./powershell.js"
-        );
-
-        await expect(
-            isPowerShellParsable("Write-Host 'hello'", "disabled")
-        ).resolves.toBeTruthy();
-        await expect(
-            assertPowerShellParses("Write-Host 'hello'", "disabled")
-        ).resolves.toBeUndefined();
-
-        expect(spawnMock).not.toHaveBeenCalled();
     });
 
     it("validates scripts using the persistent process", async () => {
-        replaceTestEnvironment({
-            POWERSHELL_VERIFY_SYNTAX: "1",
+        expect.hasAssertions();
+
+        await withTestCleanup(async () => {
+            replaceTestEnvironment({
+                POWERSHELL_VERIFY_SYNTAX: "1",
+            });
+
+            const spawnMock = createSpawnMock([{ type: "OK" }]);
+            vi.doMock(import("node:child_process"), () => ({
+                spawn: spawnMock,
+            }));
+
+            const { isPowerShellParsable } = await import("./powershell.js");
+
+            await expect(
+                isPowerShellParsable("Write-Host 'ok'", "success")
+            ).resolves.toBeTruthy();
+
+            expect(spawnMock).toHaveBeenCalledOnce();
         });
-
-        const spawnMock = createSpawnMock([{ type: "OK" }]);
-        vi.doMock(import("node:child_process"), () => ({ spawn: spawnMock }));
-
-        const { isPowerShellParsable } = await import("./powershell.js");
-
-        await expect(
-            isPowerShellParsable("Write-Host 'ok'", "success")
-        ).resolves.toBeTruthy();
-
-        expect(spawnMock).toHaveBeenCalledOnce();
     });
 
     it("throws when PowerShell reports errors", async () => {
+        expect.hasAssertions();
+
         replaceTestEnvironment({
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
@@ -233,6 +271,8 @@ describe("powerShell syntax utilities", () => {
     });
 
     it("returns false from isPowerShellParsable when parser reports errors", async () => {
+        expect.hasAssertions();
+
         replaceTestEnvironment({
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
@@ -250,6 +290,8 @@ describe("powerShell syntax utilities", () => {
     });
 
     it("limits validation invocations using POWERSHELL_MAX_SYNTAX_CHECKS", async () => {
+        expect.hasAssertions();
+
         replaceTestEnvironment({
             POWERSHELL_MAX_SYNTAX_CHECKS: "1",
             POWERSHELL_VERIFY_SYNTAX: "1",
@@ -271,11 +313,13 @@ describe("powerShell syntax utilities", () => {
     });
 
     it("throws informative error when pwsh executable is missing", async () => {
+        expect.hasAssertions();
+
         replaceTestEnvironment({
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
 
-        const spawnMock = vi.fn(() => {
+        const spawnMock = vi.fn<() => never>(() => {
             const error = new Error("not found") as NodeJS.ErrnoException;
             error.code = "ENOENT";
             throw error;
@@ -292,11 +336,13 @@ describe("powerShell syntax utilities", () => {
     });
 
     it("wraps unexpected spawn errors with additional context", async () => {
+        expect.hasAssertions();
+
         replaceTestEnvironment({
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
 
-        const spawnMock = vi.fn(() => {
+        const spawnMock = vi.fn<() => never>(() => {
             throw new Error("spawn failure");
         });
         vi.doMock(import("node:child_process"), () => ({ spawn: spawnMock }));
@@ -311,11 +357,13 @@ describe("powerShell syntax utilities", () => {
     });
 
     it("throws when process stdio streams are unavailable", async () => {
+        expect.hasAssertions();
+
         replaceTestEnvironment({
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
 
-        const spawnMock = vi.fn(
+        const spawnMock = vi.fn<() => ChildProcess>(
             () =>
                 Object.assign(new EventTarget(), {
                     stderr: null,
@@ -333,6 +381,8 @@ describe("powerShell syntax utilities", () => {
     });
 
     it("rejects pending validations when the process emits an error", async () => {
+        expect.hasAssertions();
+
         replaceTestEnvironment({
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
@@ -360,7 +410,9 @@ describe("powerShell syntax utilities", () => {
 
         expect(createdProcess).not.toBeNull();
 
-        createdProcess!.emit("error", new Error("simulated failure"));
+        const processRef = requireCreatedProcess(createdProcess);
+
+        processRef.emit("error", new Error("simulated failure"));
 
         await expect(parsePromise).rejects.toThrow(
             "PowerShell process error: simulated failure"
@@ -368,6 +420,8 @@ describe("powerShell syntax utilities", () => {
     });
 
     it("handles chunked stdout responses from PowerShell", async () => {
+        expect.hasAssertions();
+
         replaceTestEnvironment({
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
@@ -403,6 +457,8 @@ describe("powerShell syntax utilities", () => {
     });
 
     it("rejects pending validations when the process exits unexpectedly", async () => {
+        expect.hasAssertions();
+
         replaceTestEnvironment({
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
@@ -430,7 +486,7 @@ describe("powerShell syntax utilities", () => {
 
         expect(createdProcess).not.toBeNull();
 
-        const processRef = createdProcess!;
+        const processRef = requireCreatedProcess(createdProcess);
         processRef.emit("exit", 1);
 
         await expect(parsePromise).rejects.toThrow(
@@ -439,6 +495,8 @@ describe("powerShell syntax utilities", () => {
     });
 
     it("rejects when writing to the PowerShell stdin stream fails", async () => {
+        expect.hasAssertions();
+
         replaceTestEnvironment({
             POWERSHELL_VERIFY_SYNTAX: "1",
         });
@@ -460,6 +518,8 @@ describe("powerShell syntax utilities", () => {
     });
 
     it("traces diagnostic output when POWERSHELL_SYNTAX_TRACE is enabled", async () => {
+        expect.hasAssertions();
+
         const logs: string[] = [];
         const errors: string[] = [];
         const logSpy = vi
@@ -494,9 +554,10 @@ describe("powerShell syntax utilities", () => {
 
         expect(createdProcess).not.toBeNull();
 
-        const processRef = createdProcess!;
+        const processRef = requireCreatedProcess(createdProcess);
+        const stderrStream = processRef.stderr as PassThrough;
 
-        processRef.stderr.emit("data", Buffer.from("warning", "utf8"));
+        stderrStream.emit("data", Buffer.from("warning", "utf8"));
         processRef.emit("error", new Error("boom"));
         processRef.emit("exit", 0);
 

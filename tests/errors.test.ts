@@ -10,6 +10,8 @@ import {
 describe("error Handling System", () => {
     describe("line and Column Calculation", () => {
         it("calculates line and column for first character", () => {
+            expect.hasAssertions();
+
             const source = "Hello World";
             const { column, line } = getLineAndColumn(source, 0);
 
@@ -18,6 +20,8 @@ describe("error Handling System", () => {
         });
 
         it("calculates line and column for middle of first line", () => {
+            expect.hasAssertions();
+
             const source = "Hello World";
             const { column, line } = getLineAndColumn(source, 6);
 
@@ -26,6 +30,8 @@ describe("error Handling System", () => {
         });
 
         it("calculates line and column for second line", () => {
+            expect.hasAssertions();
+
             const source = "Line 1\nLine 2";
             const { column, line } = getLineAndColumn(source, 7);
 
@@ -34,6 +40,8 @@ describe("error Handling System", () => {
         });
 
         it("calculates line and column for third line", () => {
+            expect.hasAssertions();
+
             const source = "Line 1\nLine 2\nLine 3";
             const { column, line } = getLineAndColumn(source, 14);
 
@@ -44,6 +52,8 @@ describe("error Handling System", () => {
 
     describe(PowerShellParseError, () => {
         it("creates error with source location", () => {
+            expect.hasAssertions();
+
             const source = "function Test {\n  Write-Output";
             const error = createParseError(
                 "Unexpected end of input",
@@ -58,6 +68,8 @@ describe("error Handling System", () => {
         });
 
         it("formats error message with context", () => {
+            expect.hasAssertions();
+
             const source = "function Test {\n  $x = 1\n  $y =\n}";
             const error = createParseError("Missing value", source, 28);
 
@@ -68,6 +80,8 @@ describe("error Handling System", () => {
         });
 
         it("gets context around error", () => {
+            expect.hasAssertions();
+
             const source = "line 1\nline 2\nline 3 ERROR\nline 4\nline 5";
             const error = createParseError("Test error", source, 21);
 
@@ -82,6 +96,8 @@ describe("error Handling System", () => {
 
     describe("anti-Pattern Detection", () => {
         it("detects Write-Host usage", () => {
+            expect.hasAssertions();
+
             const source = `Write-Host "Hello"`;
             const warnings = detectIssues(source);
 
@@ -96,6 +112,8 @@ describe("error Handling System", () => {
         });
 
         it("detects Invoke-Expression usage", () => {
+            expect.hasAssertions();
+
             const source = `Invoke-Expression $command`;
             const warnings = detectIssues(source);
 
@@ -109,6 +127,8 @@ describe("error Handling System", () => {
         });
 
         it("detects performance anti-patterns", () => {
+            expect.hasAssertions();
+
             const source = `Get-Process | Where-Object { $_.Name -eq "powershell" } | Select-Object -First 1`;
             const warnings = detectIssues(source);
 
@@ -118,6 +138,8 @@ describe("error Handling System", () => {
         });
 
         it("detects foreach performance issue", () => {
+            expect.hasAssertions();
+
             const source = `foreach ($item in Get-ChildItem) { }`;
             const warnings = detectIssues(source);
 
@@ -129,6 +151,8 @@ describe("error Handling System", () => {
         });
 
         it("provides helpful suggestions", () => {
+            expect.hasAssertions();
+
             const source = `Write-Host "message"`;
             const warnings = detectIssues(source);
 
@@ -141,6 +165,8 @@ describe("error Handling System", () => {
 
     describe("warning Formatting", () => {
         it("formats warning message", () => {
+            expect.hasAssertions();
+
             const source = `Write-Host "test"`;
             const warnings = detectIssues(source);
 
@@ -152,6 +178,8 @@ describe("error Handling System", () => {
         });
 
         it("includes line and column in warning", () => {
+            expect.hasAssertions();
+
             const source = `$x = 1\nWrite-Host "test"`;
             const warnings = detectIssues(source);
 
@@ -164,6 +192,8 @@ describe("error Handling System", () => {
 
     describe("multiple Issues Detection", () => {
         it("detects multiple issues in same file", () => {
+            expect.hasAssertions();
+
             const source = `
                 Write-Host "test1"
                 Invoke-Expression $cmd
@@ -175,6 +205,8 @@ describe("error Handling System", () => {
         });
 
         it("reports correct positions for multiple issues", () => {
+            expect.hasAssertions();
+
             const source = `Write-Host "1"\nWrite-Host "2"`;
             const warnings = detectIssues(source);
 
