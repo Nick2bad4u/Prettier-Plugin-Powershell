@@ -1,39 +1,47 @@
 name: Greetings
+run-name: >-
+    Greetings • ${{ github.event_name }} • ${{ github.ref_name }}
 
 # Define the events that trigger this workflow
 on:
-  pull_request_target: # Trigger on pull request events targeting the repository
-  issues: # Trigger on issue events
+    pull_request_target: # Trigger on pull request events targeting the repository
+        branches:
+            - main
+    issues: # Trigger on issue events
+        types:
+            - opened
 
 # Define permissions required for the workflow
 permissions:
-  contents: read # Required to fetch repository contents
+    contents: read # Required to fetch repository contents
 
 concurrency:
-  group: greetings-${{ github.ref }}
-  cancel-in-progress: false
+    group: greetings-${{ github.ref }}
+    cancel-in-progress: true
 
 jobs:
-  greeting:
-    # Specify the runner to use (ubuntu-latest)
-    runs-on: ubuntu-latest
+    greeting:
+        name: Send greeting
+        timeout-minutes: 10
+        # Specify the runner to use (ubuntu-latest)
+        runs-on: ubuntu-latest
 
-    # Define permissions specific to the job
-    permissions:
-      issues: write # Required to write comments on issues
-      pull-requests: write # Required to write comments on pull requests
+        # Define permissions specific to the job
+        permissions:
+            issues: write # Required to write comments on issues
+            pull-requests: write # Required to write comments on pull requests
 
-    steps:
-      # Step to harden the runner for security purposes
-      - name: Harden Runner
-        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d # v2.16.1
-        with:
-          egress-policy: audit # Set egress policy to audit
+        steps:
+            # Step to harden the runner for security purposes
+            - name: Harden Runner
+              uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d # v2.16.1
+              with:
+                  egress-policy: audit # Set egress policy to audit
 
-      # Step to send a greeting message for issues and pull requests
-      - name: First Interaction
-        uses: actions/first-interaction@1c4688942c71f71d4f5502a26ea67c331730fa4d # v3.1.0
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }} # Use the repository token for authentication
-          issue-message: "Greetings, thanks for opening an issue, I'll look when I can." # Message for new issues
-          pr-message: "Greetings, thanks for opening a pull request, I'll look when I can." # Message for new pull requests
+            # Step to send a greeting message for issues and pull requests
+            - name: First Interaction
+              uses: actions/first-interaction@1c4688942c71f71d4f5502a26ea67c331730fa4d # v3.1.0
+              with:
+                  repo-token: ${{ secrets.GITHUB_TOKEN }} # Use the repository token for authentication
+                  issue-message: "Greetings, thanks for opening an issue, I'll look when I can." # Message for new issues
+                  pr-message: "Greetings, thanks for opening a pull request, I'll look when I can." # Message for new pull requests

@@ -1,55 +1,58 @@
-# This is a Dependabot configuration file for automating dependency updates.
-# The configuration is set to version 2 of the Dependabot schema.
-# It defines update settings for three package ecosystems: GitHub Actions, Bundler, and npm.
-# Each ecosystem has its own update configuration, including:
-# - The directory to scan for dependencies (root directory in this case).
-# - The schedule for checking updates (daily).
-# - Allowing both direct and indirect updates for all packages.
-# - Grouping updates by ecosystem with specific patterns for version updates.
-
 version: 2
 
 multi-ecosystem-groups:
-    dependabot-all:
-        schedule:
-            interval: "monthly"
-            time: "05:30"
-            timezone: "America/Detroit"
-        assignees:
-            - "Nick2bad4u"
-        labels:
-            - "dependabot"
-            - "dependencies"
-        commit-message:
-            prefix: "[dependabot][all]"
-            prefix-development: "[dependabot][dev][all]"
-            include: "scope"
+  dependabot-all:
+    assignees:
+      - "Nick2bad4u"
+    commit-message:
+      include: "scope"
+      prefix: "[dependabot][all]"
+      prefix-development: "[dependabot][dev][all]"
+    labels:
+      - "dependabot"
+      - "dependencies"
+    schedule:
+      interval: "monthly"
+      time: "05:30"
+      timezone: "America/Detroit"
 
 updates:
-    - package-ecosystem: github-actions
-      directory: /
-      allow:
-          # Allow both direct and indirect updates for all packages
-          - dependency-type: "all"
-      labels:
-          - "github-actions"
-      multi-ecosystem-group: dependabot-all
-      patterns:
-          - "*"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "main"
+    cooldown: 14
+    schedule:
+      interval: "monthly"
+      time: "05:30"
+      timezone: "America/Detroit"
+    allow:
+      - dependency-type: "all"
+    labels:
+      - "github-actions"
+    multi-ecosystem-group: "dependabot-all"
+    patterns:
+      - "*"
 
-    - package-ecosystem: npm
-      directory: /
-      versioning-strategy: increase
-      allow:
-          # Allow both direct and indirect updates for all packages
-          - dependency-type: "all"
-      ignore:
-          - dependency-name: "electron-builder"
-            versions: ["< 26.0.18"]
-          - dependency-name: "electron-builder-squirrel-windows"
-            versions: ["< 26.0.18"]
-      labels:
-          - "npm"
-      multi-ecosystem-group: dependabot-all
-      patterns:
-          - "*"
+  - package-ecosystem: "npm"
+    directory: "/"
+    target-branch: "main"
+    cooldown: 14
+    versioning-strategy: "increase"
+    schedule:
+      interval: "monthly"
+      time: "05:30"
+      timezone: "America/Detroit"
+    allow:
+      - dependency-type: "all"
+    ignore:
+      - dependency-name: "electron-builder"
+        versions:
+          - "< 26.0.18"
+      - dependency-name: "electron-builder-squirrel-windows"
+        versions:
+          - "< 26.0.18"
+    labels:
+      - "npm"
+    multi-ecosystem-group: "dependabot-all"
+    patterns:
+      - "*"

@@ -23,34 +23,39 @@
 # https://github.com/actions/stale
 
 name: Mark Stale Issues And Pull Requests
+run-name: >-
+    Stale Sweep • ${{ github.event_name }}
 
 on:
-  schedule:
-    - cron: "38 7 * * *"
+    schedule:
+        - cron: "38 7 * * *"
 
 permissions:
-  contents: read
+    contents: read
 
 jobs:
-  stale:
-    runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      pull-requests: write
-    concurrency:
-      group: stale-${{ github.ref }}
-      cancel-in-progress: false
+    stale:
+        name: Mark stale issues and pull requests
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        permissions:
+            issues: write
+            pull-requests: write
+        concurrency:
+            group: stale-${{ github.ref }}
+            cancel-in-progress: true
 
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d # v2.16.1
-        with:
-          egress-policy: audit
+        steps:
+            - name: Harden Runner
+              uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d # v2.16.1
+              with:
+                  egress-policy: audit
 
-      - uses: actions/stale@b5d41d4e1d5dceea10e7104786b73624c18a190f # v10.2.0
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          stale-issue-message: "Stale issue"
-          stale-pr-message: "Stale pull request"
-          stale-issue-label: "no-issue-activity"
-          stale-pr-label: "no-pr-activity"
+            - name: Run stale policy
+              uses: actions/stale@b5d41d4e1d5dceea10e7104786b73624c18a190f # v10.2.0
+              with:
+                  repo-token: ${{ secrets.GITHUB_TOKEN }}
+                  stale-issue-message: "Stale issue"
+                  stale-pr-message: "Stale pull request"
+                  stale-issue-label: "no-issue-activity"
+                  stale-pr-label: "no-pr-activity"

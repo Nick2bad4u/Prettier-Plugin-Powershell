@@ -1,44 +1,51 @@
 name: Summarize New Issues
+run-name: >-
+    Summarize Issues • ${{ github.event_name }}
 
 on:
-  issues:
-    types: [opened]
+    issues:
+        types: [opened]
 
 permissions:
-  contents: read
+    contents: read
 
 jobs:
-  summary:
-    runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      contents: read
-    concurrency:
-      group: summary-${{ github.ref }}
-      cancel-in-progress: false
+    summary:
+        name: Summarize new issues
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        defaults:
+            run:
+                shell: bash
+        permissions:
+            issues: write
+            contents: read
+        concurrency:
+            group: summary-${{ github.ref }}
+            cancel-in-progress: true
 
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d # v2.16.1
-        with:
-          egress-policy: audit
+        steps:
+            - name: Harden the runner (Audit all outbound calls)
+              uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d # v2.16.1
+              with:
+                  egress-policy: audit
 
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+            - name: Checkout repository
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Run AI inference
-        id: inference
-        uses: actions/ai-inference@e09e65981758de8b2fdab13c2bfb7c7d5493b0b6 # v2.0.7
-        with:
-          prompt: |
-            Summarize the following GitHub issue in one paragraph:
-            Title: ${{ github.event.issue.title }}
-            Body: ${{ github.event.issue.body }}
+            - name: Run AI inference
+              id: inference
+              uses: actions/ai-inference@e09e65981758de8b2fdab13c2bfb7c7d5493b0b6 # v2.0.7
+              with:
+                  prompt: |
+                      Summarize the following GitHub issue in one paragraph:
+                      Title: ${{ github.event.issue.title }}
+                      Body: ${{ github.event.issue.body }}
 
-      - name: Comment with AI summary
-        run: |
-          gh issue comment "$ISSUE_NUMBER" --body '${{ steps.inference.outputs.response }}'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          RESPONSE: ${{ steps.inference.outputs.response }}
+            - name: Comment with AI summary
+              run: |
+                  gh issue comment "$ISSUE_NUMBER" --body '${{ steps.inference.outputs.response }}'
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  ISSUE_NUMBER: ${{ github.event.issue.number }}
+                  RESPONSE: ${{ steps.inference.outputs.response }}

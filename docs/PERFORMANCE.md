@@ -87,7 +87,7 @@ Optimize formatting in VS Code:
 
 `.prettierignore`:
 
-```
+```text
 # Don't format generated files
 *.generated.ps1
 out/
@@ -157,7 +157,7 @@ nvm install --lts
 nvm use --lts
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Configuration Optimization
 
@@ -200,7 +200,7 @@ Some options are more computationally expensive:
 }
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Profiling and Monitoring
 
@@ -208,19 +208,19 @@ Some options are more computationally expensive:
 
 ```javascript
 // profile.mjs
-import { readFileSync } from 'node:fs';
-import prettier from 'prettier';
-import plugin from 'prettier-plugin-powershell';
+import { readFileSync } from "node:fs";
+import prettier from "prettier";
+import plugin from "prettier-plugin-powershell";
 
-const source = readFileSync('script.ps1', 'utf8');
+const source = readFileSync("script.ps1", "utf8");
 
-console.time('format');
+console.time("format");
 await prettier.format(source, {
-  parser: 'powershell',
-  plugins: [plugin],
-  filepath: 'script.ps1'
+ parser: "powershell",
+ plugins: [plugin],
+ filepath: "script.ps1",
 });
-console.timeEnd('format');
+console.timeEnd("format");
 ```
 
 > Save as `profile.mjs` (or any ESM file) and run with `node profile.mjs` on Node.js 18+ (top-level `await` is supported).
@@ -245,7 +245,7 @@ for file in **/*.ps1; do
 done | sort -rn | head -10
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Caching Strategies
 
@@ -280,7 +280,7 @@ prettier --cache --cache-strategy metadata "**/*.ps1" # Use file metadata
 }
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Large Codebase Strategies
 
@@ -320,7 +320,7 @@ for dir in src/{module1,module2,module3}; do
 done
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Performance Monitoring
 
@@ -347,26 +347,26 @@ name: Performance Check
 on: [pull_request]
 
 jobs:
-  perf:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.1.6
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v4.0.4
-        with:
-          node-version: '20'
-      - run: npm ci
-      - name: Benchmark
-        run: |
-          npm run benchmark > benchmark.txt
-          # Fail if throughput drops below threshold
-          throughput=$(grep -i "throughput" benchmark.txt | awk '{print $2}')
-          if (( $(echo "$throughput < 6000" | bc -l) )); then
-            echo "Performance regression detected!"
-            exit 1
-          fi
+ perf:
+  runs-on: ubuntu-latest
+  steps:
+   - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.1.6
+   - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v4.0.4
+     with:
+      node-version: "20"
+   - run: npm ci
+   - name: Benchmark
+     run: |
+      npm run benchmark > benchmark.txt
+      # Fail if throughput drops below threshold
+      throughput=$(grep -i "throughput" benchmark.txt | awk '{print $2}')
+      if (( $(echo "$throughput < 6000" | bc -l) )); then
+        echo "Performance regression detected!"
+        exit 1
+      fi
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Troubleshooting Performance Issues
 
@@ -374,47 +374,47 @@ jobs:
 
 1. **Check file size**: Files >500KB may be slow
 
-  ```bash
-  find . -name "*.ps1" -size +500k
-  ```
+```bash
+find . -name "*.ps1" -size +500k
+```
 
 2. **Profile the specific file**:
 
-  ```bash
-  node --prof $(which prettier) --plugin=prettier-plugin-powershell --write slow-file.ps1
-  node --prof-process isolate-*.log
-  ```
+```bash
+node --prof $(which prettier) --plugin=prettier-plugin-powershell --write slow-file.ps1
+node --prof-process isolate-*.log
+```
 
 3. **Check for pathological cases**:
 
-  - Extremely deep nesting (>50 levels)
-  - Very long lines (>1000 characters)
-  - Thousands of hashtable entries
+- Extremely deep nesting (>50 levels)
+- Very long lines (>1000 characters)
+- Thousands of hashtable entries
 
 ### High Memory Usage
 
 1. **Process files in batches**:
 
-  ```bash
-  ls *.ps1 | xargs -n 10 prettier --write
-  ```
+```bash
+ls *.ps1 | xargs -n 10 prettier --write
+```
 
 2. **Increase Node.js heap**:
 
-  ```bash
-  NODE_OPTIONS="--max-old-space-size=8192" prettier --write "**/*.ps1"
-  ```
+```bash
+NODE_OPTIONS="--max-old-space-size=8192" prettier --write "**/*.ps1"
+```
 
 3. **Monitor with heapdump**:
 
-  ```javascript
-  const heapdump = await import('heapdump');
-  const api = heapdump.default ?? heapdump;
-  // Take snapshot before/after formatting
-  await api.writeSnapshot('./before.heapsnapshot');
-  ```
+```javascript
+const heapdump = await import("heapdump");
+const api = heapdump.default ?? heapdump;
+// Take snapshot before/after formatting
+await api.writeSnapshot("./before.heapsnapshot");
+```
 
---------------------------------------------------------------------------------
+---
 
 ## Best Practices Summary
 
@@ -435,7 +435,7 @@ jobs:
 - Format generated/vendor code
 - Ignore performance budgets
 
---------------------------------------------------------------------------------
+---
 
 ## Performance Checklist
 
@@ -450,18 +450,18 @@ jobs:
 - [ ] Optimized editor integration
 - [ ] Set performance budgets in CI
 
---------------------------------------------------------------------------------
+---
 
 ## Expected Performance by File Size
 
-File Size  | Format Time | Notes
----------- | ----------- | ------------------
-< 10 KB    | < 5ms       | Instant
-10-50 KB   | 5-15ms      | Very fast
-50-100 KB  | 15-30ms     | Fast
-100-200 KB | 30-60ms     | Acceptable
-200-500 KB | 60-150ms    | Consider splitting
-> 500 KB   | > 150ms     | Should split
+| File Size  | Format Time | Notes              |
+| ---------- | ----------- | ------------------ |
+| < 10 KB    | < 5ms       | Instant            |
+| 10-50 KB   | 5-15ms      | Very fast          |
+| 50-100 KB  | 15-30ms     | Fast               |
+| 100-200 KB | 30-60ms     | Acceptable         |
+| 200-500 KB | 60-150ms    | Consider splitting |
+| > 500 KB   | > 150ms     | Should split       |
 
 If your performance is significantly worse than these benchmarks, check for:
 
@@ -470,7 +470,7 @@ If your performance is significantly worse than these benchmarks, check for:
 - Slow disk I/O
 - Pathological code patterns
 
---------------------------------------------------------------------------------
+---
 
 ## Support
 

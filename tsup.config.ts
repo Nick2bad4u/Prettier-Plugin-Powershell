@@ -1,16 +1,20 @@
-import { defineConfig } from "tsup";
+import type { Options } from "tsup";
 
-export default defineConfig({
+const config: Options = {
     clean: true,
-    dts: true,
+    dts: {
+        resolve: true,
+    },
     entry: {
         index: "src/plugin.ts",
     },
-    external: ["prettier"],
-    format: ["esm", "cjs"],
+    format: ["cjs", "esm"],
+    minify: false,
     outDir: "dist",
-    shims: false,
+    platform: "node",
     sourcemap: true,
-    splitting: false,
     target: "es2020",
-});
+    treeshake: false,
+};
+
+export default config;

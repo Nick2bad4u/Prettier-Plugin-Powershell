@@ -18,7 +18,7 @@ This guide provides examples for each formatting option available in the prettie
 - [Rewrite Write-Host](#rewrite-write-host)
 - [Presets](#presets)
 
---------------------------------------------------------------------------------
+---
 
 ## Indent Style
 
@@ -50,7 +50,7 @@ function Test-Function {
 }
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Indent Size
 
@@ -78,7 +78,7 @@ function Test {
 }
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Trailing Commas
 
@@ -110,7 +110,7 @@ $hash = @{
 $hash = @{ Name = "John"; Age = 30; }
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Sort Hashtable Keys
 
@@ -118,7 +118,7 @@ Alphabetically sort hashtable keys.
 
 **Option:** `powershellSortHashtableKeys` **Type:** `boolean` **Default:** `false`
 
-### Example with false (default)
+### Example with false (default for rewrite aliases)
 
 ```powershell
 $config = @{
@@ -129,7 +129,7 @@ $config = @{
 }
 ```
 
-### Example with true
+### Example with true (rewrite aliases)
 
 ```powershell
 $config = @{
@@ -140,7 +140,7 @@ $config = @{
 }
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Blank Lines Between Functions
 
@@ -173,7 +173,7 @@ function Set-User {
 }
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Blank Line After Param
 
@@ -200,7 +200,7 @@ function Test-Function {
 }
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Brace Style
 
@@ -236,7 +236,7 @@ function Test-Function
 }
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Line Width
 
@@ -262,7 +262,7 @@ Get-Process | Where-Object { $_.CPU -gt 10 } |
   Sort-Object CPU -Descending
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Prefer Single Quote
 
@@ -270,14 +270,14 @@ Prefer single quotes over double quotes when possible.
 
 **Option:** `powershellPreferSingleQuote` **Type:** `boolean` **Default:** `false`
 
-### Example with false (default)
+### Example with false (default for rewrite write-host)
 
 ```powershell
 $message = "Hello, World!"
 $name = "John"
 ```
 
-### Example with true
+### Example with true (rewrite write-host)
 
 ```powershell
 $message = 'Hello, World!'
@@ -291,7 +291,7 @@ $name = 'John'
 $greeting = "Hello, $name"
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Keyword Case
 
@@ -339,7 +339,7 @@ Function Test-Function {
 }
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Rewrite Aliases
 
@@ -347,7 +347,7 @@ Control whether common cmdlet aliases are rewritten to their canonical names.
 
 **Option:** `powershellRewriteAliases` **Type:** `boolean` **Default:** `false`
 
-### Example with `false` (default)
+### Example with `false` (default for rewrite write-host)
 
 ```powershell
 ls -Path .
@@ -355,7 +355,7 @@ gci -Recurse
 % { $_ }
 ```
 
-### Example with `true`
+### Example with `true` (rewrite write-host)
 
 ```powershell
 Get-ChildItem -Path .
@@ -363,7 +363,7 @@ Get-ChildItem -Recurse
 ForEach-Object { $_ }
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Rewrite Write-Host
 
@@ -383,7 +383,7 @@ Write-Host "Hello, World!"
 Write-Output "Hello, World!"
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Presets
 
@@ -402,7 +402,7 @@ Bundle related settings together instead of specifying every dial individually.
 
 The preset mirrors PowerShell's built-in `Invoke-Formatter` (PSScriptAnalyzer's `CodeFormatting` profile): four-space indentation, inline braces, `none` trailing commas, lowercase keywords, and the default blank-line heuristics. Any explicit option you pass still wins, so you can layer overrides on top of the preset when needed. Combine the preset with Prettier's `overrides` to scope different casing or brace styles to selected folders.
 
---------------------------------------------------------------------------------
+---
 
 ## Configuration File Example
 
@@ -427,7 +427,7 @@ Here's a complete `.prettierrc` configuration file with all PowerShell options:
 }
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Command Line Usage
 
@@ -447,7 +447,7 @@ prettier --plugin=prettier-plugin-powershell --parser powershell --powershell-br
 prettier --plugin=prettier-plugin-powershell --parser powershell --powershell-preset invoke-formatter script.ps1
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Tips and Best Practices
 

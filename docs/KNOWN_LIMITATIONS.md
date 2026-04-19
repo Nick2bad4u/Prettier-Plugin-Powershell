@@ -10,9 +10,9 @@ This document outlines current limitations and known issues with prettier-plugin
 - [Formatting Limitations](#formatting-limitations)
 - [Performance Considerations](#performance-considerations)
 - [Platform-Specific Issues](#platform-specific-issues)
-- [Workarounds](#workarounds)
+- [Workarounds](#workaround-patterns)
 
---------------------------------------------------------------------------------
+---
 
 ## Language Features
 
@@ -52,7 +52,7 @@ Configuration WebServer {
 
 **Impact**: Very low - most DSC configurations now format optimally
 
---------------------------------------------------------------------------------
+---
 
 ### 2\. Dynamic Keywords
 
@@ -70,7 +70,7 @@ CustomKeyword  # Treated as identifier, not keyword
 
 **Impact**: Low - doesn't affect correctness
 
---------------------------------------------------------------------------------
+---
 
 ### 3\. Here-Strings with Unusual Escape Sequences
 
@@ -88,7 +88,7 @@ Line with \u0041 unicode escape
 
 **Impact**: Low - preserved content is still valid
 
---------------------------------------------------------------------------------
+---
 
 ### 4\. Script Blocks in Very Long One-Liners
 
@@ -113,7 +113,7 @@ Get-Process |
 
 **Impact**: Low - most cases now handled automatically
 
---------------------------------------------------------------------------------
+---
 
 ## Formatting Limitations
 
@@ -133,7 +133,7 @@ Get-Proccess  # Typo, but still formats
 
 **Impact**: Low - formatting and linting are separate concerns
 
---------------------------------------------------------------------------------
+---
 
 ### 2\. Comment Positioning Edge Cases
 
@@ -181,7 +181,7 @@ Get-Proccess  # Typo, but still formats
 
 **Tip**: Inline comments use `lineSuffix` handling so they remain attached even when entries wrap across lines.
 
---------------------------------------------------------------------------------
+---
 
 ### 3\. No Custom Formatting Rules (Yet)
 
@@ -195,7 +195,7 @@ Get-Proccess  # Typo, but still formats
 
 **TODO (owner: @Nick2bad4u)**: Design and document an extension mechanism for custom formatting rules in a future major version.
 
---------------------------------------------------------------------------------
+---
 
 ### 4\. Hashtable Key Ordering
 
@@ -215,7 +215,7 @@ Get-Proccess  # Typo, but still formats
 
 **Impact**: None - this is by design
 
---------------------------------------------------------------------------------
+---
 
 ## Performance Considerations
 
@@ -240,7 +240,7 @@ For up-to-date and more detailed numbers, see [`docs/PERFORMANCE.md`](./PERFORMA
 
 **Impact**: Very low – performance is more than adequate for day-to-day usage.
 
---------------------------------------------------------------------------------
+---
 
 ### 2\. Memory Usage on Extremely Large Files
 
@@ -255,7 +255,7 @@ For typical PowerShell files (<500 KB), memory usage remains well within default
 
 **TODO (owner: @Nick2bad4u)**: Re-run large-file memory profiling on the latest major version and capture updated numbers in `docs/PERFORMANCE.md`.
 
---------------------------------------------------------------------------------
+---
 
 ### 3\. No Incremental Formatting
 
@@ -267,7 +267,7 @@ For typical PowerShell files (<500 KB), memory usage remains well within default
 
 **TODO (owner: @Nick2bad4u)**: Evaluate incremental formatting support and document feasibility.
 
---------------------------------------------------------------------------------
+---
 
 ## Platform-Specific Issues
 
@@ -277,7 +277,7 @@ For typical PowerShell files (<500 KB), memory usage remains well within default
 
 **Example**:
 
-```
+```text
 Windows: CRLF (\r\n)
 Linux/Mac: LF (\n)
 ```
@@ -292,7 +292,7 @@ Linux/Mac: LF (\n)
 
 **Impact**: Low - usually desired behavior
 
---------------------------------------------------------------------------------
+---
 
 ### 2\. Path Separators in Strings
 
@@ -310,7 +310,7 @@ $path2 = "C:/Windows/System32"
 
 **Impact**: None - correct behavior
 
---------------------------------------------------------------------------------
+---
 
 ## Edge Cases
 
@@ -331,7 +331,7 @@ $x-eq  # Variable named "x-eq" or "$x -eq"?
 
 **Impact**: Low - matches PowerShell's own behavior
 
---------------------------------------------------------------------------------
+---
 
 ### 2\. Mixing Tabs and Spaces
 
@@ -357,7 +357,7 @@ function Test {
 
 **Impact**: None - improves consistency
 
---------------------------------------------------------------------------------
+---
 
 ### 3\. Very Deeply Nested Structures
 
@@ -380,7 +380,7 @@ function Test {
 
 **Impact**: Very low - rarely encountered
 
---------------------------------------------------------------------------------
+---
 
 ## Not Supported
 
@@ -392,7 +392,7 @@ The following features are **not supported** and not planned:
 
 **Minimum Version**: PowerShell 3.0+
 
---------------------------------------------------------------------------------
+---
 
 ### 2\. Reformatting String Content
 
@@ -413,7 +413,7 @@ $json = @"
 
 **TODO (owner: @Nick2bad4u)**: Investigate an opt-in string-content formatter (e.g., JSON/XML) and document trade-offs.
 
---------------------------------------------------------------------------------
+---
 
 ### 3\. Auto-fixing Linting Issues
 
@@ -430,20 +430,20 @@ Write-Host "message"
 
 **Note**: Warnings are provided via error detection system
 
---------------------------------------------------------------------------------
+---
 
 ## Comparison with PowerShell's Own Formatter
 
-Feature             | PowerShell Formatter | prettier-plugin-powershell
-------------------- | -------------------- | --------------------------
-Requires PowerShell | Yes                  | No
-Speed               | Moderate             | Fast
-Cross-platform      | PowerShell only      | Anywhere Node.js runs
-Customization       | Limited              | 10+ options
-Consistency         | Good                 | Excellent
-Large files         | Slower               | Faster
+| Feature             | PowerShell Formatter | prettier-plugin-powershell |
+| ------------------- | -------------------- | -------------------------- |
+| Requires PowerShell | Yes                  | No                         |
+| Speed               | Moderate             | Fast                       |
+| Cross-platform      | PowerShell only      | Anywhere Node.js runs      |
+| Customization       | Limited              | 10+ options                |
+| Consistency         | Good                 | Excellent                  |
+| Large files         | Slower               | Faster                     |
 
---------------------------------------------------------------------------------
+---
 
 ## Future Improvements
 
@@ -457,7 +457,7 @@ Planned for future versions:
 - [ ] LSP support -- TODO (owner: @Nick2bad4u)
 - [ ] Performance improvements for huge files -- TODO (owner: @Nick2bad4u)
 
---------------------------------------------------------------------------------
+---
 
 ## Reporting Limitations
 
@@ -467,13 +467,13 @@ If you encounter a limitation not listed here:
 2. Search [existing issues](https://github.com/Nick2bad4u/prettier-plugin-powershell/issues)
 3. Create new issue with:
 
-  - PowerShell version
-  - Input code
-  - Expected output
-  - Actual output
-  - Why it's problematic
+- PowerShell version
+- Input code
+- Expected output
+- Actual output
+- Why it's problematic
 
---------------------------------------------------------------------------------
+---
 
 ## Workaround Patterns
 
@@ -524,19 +524,19 @@ find . -name "*.ps1" | parallel -j 4 prettier --write {}
 git diff --name-only | grep '\.ps1$' | xargs prettier --check
 ```
 
---------------------------------------------------------------------------------
+---
 
 ## Version Compatibility
 
-PowerShell Version | Support Status
------------------- | --------------------------------
-1.0 - 2.0          | ❌ Not supported
-3.0 - 4.0          | ⚠️ Basic support
-5.0 - 5.1          | ✅ Full support
-6.0 - 7.0          | ✅ Full support
-7.1+               | ✅ Full support + latest features
+| PowerShell Version | Support Status                    |
+| ------------------ | --------------------------------- |
+| 1.0 - 2.0          | ❌ Not supported                  |
+| 3.0 - 4.0          | ⚠️ Basic support                  |
+| 5.0 - 5.1          | ✅ Full support                   |
+| 6.0 - 7.0          | ✅ Full support                   |
+| 7.1+               | ✅ Full support + latest features |
 
---------------------------------------------------------------------------------
+---
 
 ## Getting Help
 

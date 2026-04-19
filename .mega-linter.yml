@@ -15,16 +15,16 @@ FAIL_IF_MISSING_LINTER_IN_FLAVOR: false
 
 FILEIO_REPORTER: false
 # File exclusions
-FILTER_REGEX_EXCLUDE: '(node_modules/|\.git/|\.vscode/|Scripts/.*\.ps1|cache/)'
+FILTER_REGEX_EXCLUDE: "(node_modules/|\\.git/|\\.vscode/|Scripts/.*\\.ps1|cache/)"
 
 GITHUB_COMMENT_REPORTER: true
 JSON_REPORTER: true
 # Markdown settings
 MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.json
-MARKDOWN_MARKDOWNLINT_FILTER_REGEX_EXCLUDE: '(CHANGELOG\.md|node_modules/)'
+MARKDOWN_MARKDOWNLINT_FILTER_REGEX_EXCLUDE: "(CHANGELOG\\.md|node_modules/)"
 MARKDOWN_MARKDOWN_LINK_CHECK_CLI_LINT_MODE: file
 MARKDOWN_MARKDOWN_LINK_CHECK_CONFIG_FILE: .markdown-link-check.json
-MARKDOWN_MARKDOWN_TABLE_FORMATTER_FILTER_REGEX_EXCLUDE: '(CHANGELOG\.md|.*AUDIT.*\.md|.*SUMMARY.*\.md)'
+MARKDOWN_MARKDOWN_TABLE_FORMATTER_FILTER_REGEX_EXCLUDE: "(CHANGELOG\\.md|.*AUDIT.*\\.md|.*SUMMARY.*\\.md)"
 
 MARKDOWN_SUMMARY_REPORTER: true
 # Parallel execution
@@ -34,7 +34,12 @@ POST_COMMANDS:
   - command: echo "MegaLinter complete"
     cwd: workspace
 # PowerShell specific settings
-POWERSHELL_POWERSHELL_FILTER_REGEX_EXCLUDE: '(Scripts/.*\.ps1)'
+POWERSHELL_POWERSHELL_FILTER_REGEX_EXCLUDE: "(Scripts/.*\\.ps1)"
+
+# Pre/post commands
+PRE_COMMANDS:
+  - command: echo "Starting MegaLinter for Prettier-Plugin-Powershell"
+    cwd: workspace
 
 # Repository linters
 REPOSITORY_CHECKOV_ARGUMENTS: "--framework github_actions --skip-check CKV_GHA_7,CKV2_GHA_1"
@@ -45,9 +50,3 @@ REPOSITORY_TRIVY_ARGUMENTS: "--skip-dirs node_modules"
 SHOW_ELAPSED_TIME: true
 TAP_REPORTER: false
 UPDATED_SOURCES_REPORTER: false
-
-# Pre/post commands
-PRE_COMMANDS:
-  - command: echo "Starting MegaLinter for Prettier-Plugin-Powershell"
-    cwd: workspace
-

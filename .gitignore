@@ -189,3 +189,5 @@ tsup.config.bundled_*.mjs
 # Temp files
 *.tmp
 lint*.txt
+temp/
+!**/.gitkeep

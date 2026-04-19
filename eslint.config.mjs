@@ -916,10 +916,10 @@ export default defineConfig([
     // ═══════════════════════════════════════════════════════════════════════════════
     {
         files: [
-            "*.{js,mjs,cjs,ts,mts,cts,tsx}",
-            "src/**/*.{js,mjs,cjs,ts,mts,cts,tsx}",
-            "tests/**/*.{js,mjs,cjs,ts,mts,cts,tsx}",
-            "benchmarks/**/*.{js,mjs,cjs,ts,mts,cts,tsx}",
+            "*.{ts,mts,cts,tsx}",
+            "src/**/*.{ts,mts,cts,tsx}",
+            "tests/**/*.{ts,mts,cts,tsx}",
+            "benchmarks/**/*.{ts,mts,cts,tsx}",
         ],
         ignores: ["plugin.mjs"],
         languageOptions: {

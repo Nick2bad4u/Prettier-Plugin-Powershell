@@ -13,9 +13,10 @@ const vitestConfig: ReturnType<typeof defineConfig> = defineConfig(() => {
     // In Vitest 4, poolOptions was removed and all options are now top-level.
     // maxWorkers replaces poolOptions.threads.maxThreads (and singleThread: true
     // is now expressed as maxWorkers: 1).  minWorkers and useAtomics were removed.
-    const maxWorkers = globalThis.process.env.CI
-        ? 1
-        : Math.max(16, Number(globalThis.process.env.MAX_THREADS ?? "4"));
+    const maxWorkers =
+        globalThis.process.env.CI === "true"
+            ? 1
+            : Math.max(16, Number(globalThis.process.env.MAX_THREADS ?? "4"));
 
     return {
         test: {
