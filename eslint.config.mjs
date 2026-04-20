@@ -86,16 +86,6 @@ import { fileURLToPath } from "node:url";
 import * as tomlEslintParser from "toml-eslint-parser";
 import * as yamlEslintParser from "yaml-eslint-parser";
 
-/**
- * @remarks
- * When bootstrapping a new ESLint plugin, do the following:
- *
- * 1. Import `typefest` from the npm package and add it above
- * 2. Change the `typefest` local import below to be the new plugin's name and path
- * 3. Setup the `🚢 Local Plugin Import` section below for new plugin
- */
-import typefest from "./plugin.mjs";
-
 // NOTE: eslint-plugin-json-schema-validator may attempt to fetch remote schemas
 // at lint time. That makes linting flaky/offline-hostile.
 // Keep it opt-in via ENABLE_JSON_SCHEMA_VALIDATION=1.
@@ -740,24 +730,6 @@ export default defineConfig([
     //         ...typefest.configs.all.rules,
     //     },
     // },
-    // #endregion
-    // #region ⌨️ Typefest
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // SECTION: ⌨️ Typefest (typefest/*)
-    // ═══════════════════════════════════════════════════════════════════════════════
-    {
-        files: [
-            "src/**/*.{ts,tsx,mts,cts}",
-            //    "tests/**/*.{ts,tsx,mts,cts}"
-        ],
-        name: "Typefest Rules for Source",
-        plugins: {
-            typefest: typefest,
-        },
-        rules: {
-            ...typefest.configs.experimental.rules,
-        },
-    },
     // #endregion
     // #region ⌨ Etc-Misc
     // ═══════════════════════════════════════════════════════════════════════════════
