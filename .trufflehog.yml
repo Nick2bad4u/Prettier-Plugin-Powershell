@@ -8,9 +8,12 @@ exclude_detectors:
     - name: MongoDB
       paths:
           - .github/workflows/ci.yml
+          - node_modules/
 # Exclude specific paths
 exclude_paths:
     - .git/
     - node_modules/
     - coverage/
     - dist/
+    - temp/
+    - "**/*.test.ts"
