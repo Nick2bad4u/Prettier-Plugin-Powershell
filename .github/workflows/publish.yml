@@ -34,6 +34,10 @@ jobs:
         permissions:
             contents: write
             id-token: write
+        env:
+            CI: "true"
+            DEFAULT_RELEASE_BRANCH: "main"
+            NPM_REGISTRY_URL: "https://registry.npmjs.org"
         steps:
             - name: Harden runner
               uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
