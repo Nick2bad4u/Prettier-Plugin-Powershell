@@ -82,7 +82,7 @@ jobs:
               run: npm pack
 
             - name: Publish to npm
-              run: npm publish --access public
+              run: npm publish --access public --provenance --ignore-scripts
 
             - name: Create GitHub release
               env:
