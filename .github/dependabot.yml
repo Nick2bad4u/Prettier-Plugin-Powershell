@@ -20,7 +20,9 @@ updates:
     - package-ecosystem: "github-actions"
       directory: "/"
       target-branch: "main"
-      cooldown: 14
+      cooldown:
+          default-days: 3
+          include: ["*"]
       schedule:
           interval: "monthly"
           time: "05:30"
@@ -36,7 +38,9 @@ updates:
     - package-ecosystem: "npm"
       directory: "/"
       target-branch: "main"
-      cooldown: 14
+      cooldown:
+          default-days: 3
+          include: ["*"]
       versioning-strategy: "increase"
       schedule:
           interval: "monthly"

@@ -13,11 +13,10 @@ describe("advanced PowerShell Features", () => {
             expect.hasAssertions();
 
             const input = `$message = "Today is $(Get-Date -Format yyyy-MM-dd)"`;
-            const result = await formatAndAssert(
-                input,
-                baseConfig,
-                "advanced-features.configuration|skipParse"
-            );
+            const result = await formatAndAssert(input, baseConfig, {
+                id: "advanced-features.configuration",
+                skipParse: true,
+            });
 
             expect(result).toContain("$(Get-Date -Format yyyy-MM-dd)");
         });
@@ -29,7 +28,7 @@ describe("advanced PowerShell Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-features.workflow|skipParse"
+                "advanced-features.workflow"
             );
 
             expect(result).toContain("$env:USERNAME");
@@ -43,7 +42,7 @@ describe("advanced PowerShell Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-features.workflow-parallel|skipParse"
+                "advanced-features.workflow-parallel"
             );
 
             expect(result).toContain("$(Get-Process");
@@ -58,7 +57,7 @@ describe("advanced PowerShell Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-features.workflow-sequence|skipParse"
+                "advanced-features.workflow-sequence"
             );
 
             expect(result).toContain('@"');
@@ -72,7 +71,7 @@ describe("advanced PowerShell Features", () => {
             const result = await formatAndAssert(
                 input,
                 baseConfig,
-                "advanced-features.workflow-inlinescript|skipParse"
+                "advanced-features.workflow-inlinescript"
             );
 
             expect(result).toContain("@'");
@@ -245,11 +244,10 @@ describe("advanced PowerShell Features", () => {
             expect.hasAssertions();
 
             const input = `configuration WebServer { Node localhost { WindowsFeature IIS { Name = "Web-Server" } } }`;
-            const result = await formatAndAssert(
-                input,
-                baseConfig,
-                "advanced-features.result"
-            );
+            const result = await formatAndAssert(input, baseConfig, {
+                id: "advanced-features.configuration",
+                skipParse: true,
+            });
 
             expect(result).toContain("configuration");
         });

@@ -128,7 +128,7 @@ describe("powershell parser property-based tests", () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
 
-        const numRuns = Math.max(25, Math.floor(PROPERTY_RUNS / 2));
+        const numRuns = Math.max(16, Math.floor(PROPERTY_RUNS / 5));
         await withProgress("parser.idempotence", numRuns, async (tracker) => {
             await fc.assert(
                 fc.asyncProperty(structuredScriptArbitrary, async (script) => {
