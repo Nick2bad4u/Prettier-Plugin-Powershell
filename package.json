@@ -116,7 +116,6 @@
         "eslint-plugin-file-progress-2": "^5.0.1",
         "eslint-plugin-github-actions-2": "^1.0.6",
         "eslint-plugin-immutable-2": "^1.0.10",
-        "eslint-plugin-import": "^2.32.0",
         "eslint-plugin-import-x": "^4.16.2",
         "eslint-plugin-jsdoc": "^62.9.0",
         "eslint-plugin-jsonc": "^3.1.2",
