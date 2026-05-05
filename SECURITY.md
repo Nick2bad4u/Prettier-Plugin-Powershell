@@ -5,7 +5,7 @@
 If you discover a vulnerability in this repository, report it privately using one
 of these channels:
 
-- GitHub Security Advisory draft: <https://github.com/Nick2bad4u/eslint-plugin-typefest/security/advisories/new>
+- GitHub Security Advisory draft: <https://github.com/Nick2bad4u/prettier-plugin-powershell/security/advisories/new>
 - Maintainer email: <20943337+Nick2bad4u@users.noreply.github.com>
 
 Please do **not** open public issues for unpatched vulnerabilities.
@@ -24,8 +24,8 @@ fixes.
 
 | Version | Supported |
 | ------- | --------- |
-| Latest  | ✅         |
-| Older   | ❌         |
+| Latest  | ✅        |
+| Older   | ❌        |
 
 ## Response Expectations
 
@@ -35,7 +35,7 @@ fixes.
 
 ## Security Best Practices for Users
 
-- Keep `eslint-plugin-typefest`, ESLint, TypeScript, and dependencies updated.
+- Keep `prettier-plugin-powershell`, ESLint, TypeScript, and dependencies updated.
 - Run linting in CI on trusted code only.
 - Review new rule autofixes before applying at scale.
 

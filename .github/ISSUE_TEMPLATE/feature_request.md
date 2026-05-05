@@ -1,10 +1,10 @@
 ---
 name: Feature request
-about: Suggest a new rule or improvement for eslint-plugin-typefest
+about: Suggest a new rule or improvement for prettier-plugin-powershell
 title: "Feature: "
 labels:
-    - enhancement
-    - triage
+ - enhancement
+ - triage
 assignees: []
 ---
 

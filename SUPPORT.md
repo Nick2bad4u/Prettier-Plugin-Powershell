@@ -1,6 +1,6 @@
 # Support
 
-Thanks for using `eslint-plugin-typefest`.
+Thanks for using `prettier-plugin-powershell`.
 
 ## How to get help
 
@@ -8,9 +8,9 @@ Thanks for using `eslint-plugin-typefest`.
    - [README.md](./README.md)
    - [docs/](./docs/)
 2. Search existing issues:
-   - <https://github.com/Nick2bad4u/eslint-plugin-typefest/issues>
+   - <https://github.com/Nick2bad4u/prettier-plugin-powershell/issues>
 3. Open a new issue if needed:
-   - <https://github.com/Nick2bad4u/eslint-plugin-typefest/issues/new>
+   - <https://github.com/Nick2bad4u/prettier-plugin-powershell/issues/new>
 
 ## What to include in an issue
 
@@ -19,7 +19,7 @@ Please include:
 - Node.js version
 - TypeScript version
 - ESLint version
-- `eslint-plugin-typefest` version
+- `prettier-plugin-powershell` version
 - Minimal reproduction snippet
 - Expected behavior and actual behavior
 

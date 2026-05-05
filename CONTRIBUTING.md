@@ -1,4 +1,4 @@
-# Contributing to eslint-plugin-typefest
+# Contributing to prettier-plugin-powershell
 
 Thanks for your interest in contributing.
 
