@@ -36,7 +36,7 @@ node --prof-process isolate-*.log > profile.txt
 
 ### 1\. File Organization
 
-**Split Large Files**
+#### Split Large Files
 
 Instead of one 1000-line file:
 
@@ -60,30 +60,30 @@ Use multiple focused modules:
 
 ### 2\. Editor Integration
 
-**VS Code Settings**
+#### VS Code Settings
 
 Optimize formatting in VS Code:
 
 ```json
 {
-  // Format on save for fast feedback
-  "editor.formatOnSave": true,
+ // Format on save for fast feedback
+ "editor.formatOnSave": true,
 
-  // Only format modified lines (when supported)
-  "editor.formatOnSaveMode": "modifications",
+ // Only format modified lines (when supported)
+ "editor.formatOnSaveMode": "modifications",
 
-  // Delay formatting to avoid lag while typing
-  "editor.formatOnType": false,
+ // Delay formatting to avoid lag while typing
+ "editor.formatOnType": false,
 
-  // Use cache for faster repeated formatting
-  "prettier.useEditorConfig": false,
+ // Use cache for faster repeated formatting
+ "prettier.useEditorConfig": false,
 
-  // Limit timeout for large files
-  "editor.formatOnSaveTimeout": 3000
+ // Limit timeout for large files
+ "editor.formatOnSaveTimeout": 3000
 }
 ```
 
-**Exclude Unnecessary Files**
+#### Exclude Unnecessary Files
 
 `.prettierignore`:
 
@@ -103,7 +103,7 @@ third-party/
 
 ### 3\. CI/CD Optimization
 
-**Format Only Changed Files**
+#### Format Only Changed Files
 
 ```bash
 # In pre-commit hook
@@ -117,14 +117,14 @@ git diff --name-only origin/main |
   xargs prettier --check
 ```
 
-**Use Caching**
+#### Use Caching
 
 ```bash
 # Prettier's built-in cache
 prettier --cache --cache-location=.cache/.prettier-cache "**/*.ps1"
 ```
 
-**Parallel Processing**
+#### Parallel Processing
 
 ```bash
 # Format multiple files in parallel with xargs (4 workers)
@@ -136,7 +136,7 @@ find . -name "*.ps1" | parallel prettier --write {}
 
 ### 4\. Node.js Optimization
 
-**Memory Configuration**
+#### Memory Configuration
 
 ```bash
 # Increase heap size for large codebases
@@ -146,7 +146,7 @@ export NODE_OPTIONS="--max-old-space-size=4096"
 export NODE_OPTIONS="--max-old-space-size=4096 --gc-interval=100"
 ```
 
-**Use Latest Node.js**
+#### Use Latest Node.js
 
 ```bash
 # Check version
@@ -169,9 +169,9 @@ Some options are more computationally expensive:
 
 ```json
 {
-  "powershellIndentSize": 4,
-  "powershellIndentStyle": "spaces",
-  "powershellBraceStyle": "1tbs"
+ "powershellIndentSize": 4,
+ "powershellIndentStyle": "spaces",
+ "powershellBraceStyle": "1tbs"
 }
 ```
 
@@ -179,8 +179,8 @@ Some options are more computationally expensive:
 
 ```json
 {
-  // Sorting requires extra processing
-  "powershellSortHashtableKeys": true
+ // Sorting requires extra processing
+ "powershellSortHashtableKeys": true
 }
 ```
 
@@ -188,15 +188,15 @@ Some options are more computationally expensive:
 
 ```json
 {
-  "powershellIndentSize": 4,
-  "powershellTrailingComma": "none",
-  "powershellSortHashtableKeys": false,
-  "powershellBlankLinesBetweenFunctions": 1,
-  "powershellBlankLineAfterParam": true,
-  "powershellBraceStyle": "1tbs",
-  "powershellLineWidth": 120,
-  "powershellPreferSingleQuote": false,
-  "powershellKeywordCase": "lower"
+ "powershellIndentSize": 4,
+ "powershellTrailingComma": "none",
+ "powershellSortHashtableKeys": false,
+ "powershellBlankLinesBetweenFunctions": 1,
+ "powershellBlankLineAfterParam": true,
+ "powershellBraceStyle": "1tbs",
+ "powershellLineWidth": 120,
+ "powershellPreferSingleQuote": false,
+ "powershellKeywordCase": "lower"
 }
 ```
 
@@ -267,16 +267,14 @@ prettier --cache --cache-strategy metadata "**/*.ps1" # Use file metadata
 
 ```json
 {
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
-  "lint-staged": {
-    "*.{ps1,psm1,psd1}": [
-      "prettier --cache --write"
-    ]
+ "husky": {
+  "hooks": {
+   "pre-commit": "lint-staged"
   }
+ },
+ "lint-staged": {
+  "*.{ps1,psm1,psd1}": ["prettier --cache --write"]
+ }
 }
 ```
 
@@ -286,7 +284,7 @@ prettier --cache --cache-strategy metadata "**/*.ps1" # Use file metadata
 
 ### Incremental Adoption
 
-**Phase 1: New Files Only**
+#### Phase 1: New Files Only
 
 ```bash
 # Format only new files created this month
@@ -294,7 +292,7 @@ git ls-files --others --exclude-standard '*.ps1' |
   xargs prettier --write
 ```
 
-**Phase 2: Modified Files**
+#### Phase 2: Modified Files
 
 ```bash
 # Format files modified recently
@@ -303,7 +301,7 @@ git diff --name-only HEAD~10 |
   xargs prettier --write
 ```
 
-**Phase 3: Full Codebase**
+#### Phase 3: Full Codebase
 
 ```bash
 # Format everything (do once, then maintain)
@@ -372,47 +370,47 @@ jobs:
 
 ### Slow Formatting
 
-1. **Check file size**: Files >500KB may be slow
+Check file size (files >500KB may be slow):
 
-```bash
-find . -name "*.ps1" -size +500k
-```
+    ```bash
+    find . -name "*.ps1" -size +500k
+    ```
 
-2. **Profile the specific file**:
+Profile the specific file:
 
-```bash
-node --prof $(which prettier) --plugin=prettier-plugin-powershell --write slow-file.ps1
-node --prof-process isolate-*.log
-```
+    ```bash
+    node --prof $(which prettier) --plugin=prettier-plugin-powershell --write slow-file.ps1
+    node --prof-process isolate-*.log
+    ```
 
-3. **Check for pathological cases**:
+Check for pathological cases:
 
-- Extremely deep nesting (>50 levels)
-- Very long lines (>1000 characters)
+- Deep nesting (>50 levels)
+- Long lines (>1000 characters)
 - Thousands of hashtable entries
 
 ### High Memory Usage
 
-1. **Process files in batches**:
+Process files in batches:
 
-```bash
-ls *.ps1 | xargs -n 10 prettier --write
-```
+    ```bash
+    ls *.ps1 | xargs -n 10 prettier --write
+    ```
 
-2. **Increase Node.js heap**:
+Increase Node.js heap:
 
-```bash
-NODE_OPTIONS="--max-old-space-size=8192" prettier --write "**/*.ps1"
-```
+    ```bash
+    NODE_OPTIONS="--max-old-space-size=8192" prettier --write "**/*.ps1"
+    ```
 
-3. **Monitor with heapdump**:
+Monitor with heapdump:
 
-```javascript
-const heapdump = await import("heapdump");
-const api = heapdump.default ?? heapdump;
-// Take snapshot before/after formatting
-await api.writeSnapshot("./before.heapsnapshot");
-```
+    ```javascript
+    const heapdump = await import("heapdump");
+    const api = heapdump.default ?? heapdump;
+    // Take snapshot before/after formatting
+    await api.writeSnapshot("./before.heapsnapshot");
+    ```
 
 ---
 
@@ -457,13 +455,13 @@ await api.writeSnapshot("./before.heapsnapshot");
 | File Size  | Format Time | Notes              |
 | ---------- | ----------- | ------------------ |
 | < 10 KB    | < 5ms       | Instant            |
-| 10-50 KB   | 5-15ms      | Very fast          |
+| 10-50 KB   | 5-15ms      | Fast               |
 | 50-100 KB  | 15-30ms     | Fast               |
 | 100-200 KB | 30-60ms     | Acceptable         |
 | 200-500 KB | 60-150ms    | Consider splitting |
 | > 500 KB   | > 150ms     | Should split       |
 
-If your performance is significantly worse than these benchmarks, check for:
+If your performance is materially worse than these benchmarks, check for:
 
 - Old Node.js version
 - Insufficient memory

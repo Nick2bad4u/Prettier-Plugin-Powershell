@@ -38,13 +38,8 @@ const identifierCharArb: fc.Arbitrary<string> = fc.constantFrom<string>(
 const baseIdentifierArb: fc.Arbitrary<string> = fc
     .tuple(identifierStartArb, fc.array(identifierCharArb, { maxLength: 7 }))
     .map(
-        ([
-            head,
-            tail,
-        ]: readonly [
-            string,
-            readonly string[],
-        ]) => `${head}${tail.join("")}`
+        ([head, tail]: readonly [string, readonly string[]]) =>
+            `${head}${tail.join("")}`
     );
 
 const capitalizedIdentifierArb: fc.Arbitrary<string> = baseIdentifierArb.map(
@@ -128,15 +123,7 @@ interface HashtableEntry {
 
 const hashtableEntryArb: fc.Arbitrary<HashtableEntry> = fc
     .tuple(capitalizedIdentifierArb, simpleValueArb)
-    .map(
-        ([
-            key,
-            value,
-        ]: readonly [
-            string,
-            string,
-        ]) => ({ key, value })
-    );
+    .map(([key, value]: readonly [string, string]) => ({ key, value }));
 
 const formatHashtableEntry = ({
     key,
@@ -270,9 +257,7 @@ const commandStatementArb: fc.Arbitrary<string> = fc
         ]: readonly [
             string,
             readonly string[],
-            (
-                string | undefined
-            ),
+            string | undefined,
         ]) => {
             const pieces = [cmdlet];
             if (args.length > 0) {
@@ -288,13 +273,8 @@ const commandStatementArb: fc.Arbitrary<string> = fc
 const assignmentStatementArb: fc.Arbitrary<string> = fc
     .tuple(variableNameArb, expressionValueArb)
     .map(
-        ([
-            variable,
-            value,
-        ]: readonly [
-            string,
-            string,
-        ]) => `${variable} = ${value}`
+        ([variable, value]: readonly [string, string]) =>
+            `${variable} = ${value}`
     );
 
 const pipelineStageArb: fc.Arbitrary<string> = fc.oneof(
@@ -312,29 +292,16 @@ const pipelineStatementArb: fc.Arbitrary<string> = fc
         commandArgumentArb,
         fc.array(pipelineStageArb, { maxLength: 3, minLength: 1 })
     )
-    .map(
-        ([
-            input,
-            stages,
-        ]: readonly [
-            string,
-            readonly string[],
-        ]) => {
-            const pipelineHead = `Write-Output ${input}`;
-            return [pipelineHead, ...stages].join(" | ");
-        }
-    );
+    .map(([input, stages]: readonly [string, readonly string[]]) => {
+        const pipelineHead = `Write-Output ${input}`;
+        return [pipelineHead, ...stages].join(" | ");
+    });
 
 const hereStringAssignmentArb: fc.Arbitrary<string> = fc
     .tuple(variableNameArb, hereStringLiteralArb)
     .map(
-        ([
-            variable,
-            literal,
-        ]: readonly [
-            string,
-            string,
-        ]) => `${variable} = ${literal}`
+        ([variable, literal]: readonly [string, string]) =>
+            `${variable} = ${literal}`
     );
 
 const hereStringCommandArb: fc.Arbitrary<string> = hereStringLiteralArb.map(
@@ -388,13 +355,7 @@ const parameterTypeArb: fc.Arbitrary<string> = fc.constantFrom(
 const parameterDeclarationArb: fc.Arbitrary<string> = fc
     .tuple(parameterTypeArb, variableNameArb)
     .map(
-        ([
-            type,
-            variable,
-        ]: readonly [
-            string,
-            string,
-        ]) => `${type} ${variable}`
+        ([type, variable]: readonly [string, string]) => `${type} ${variable}`
     );
 
 const lineEndingArb: fc.Arbitrary<string> = fc.constantFrom("\n", "\r\n");

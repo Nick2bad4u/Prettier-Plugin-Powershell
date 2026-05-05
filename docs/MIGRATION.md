@@ -49,15 +49,15 @@ PSScriptAnalyzer is primarily a linter, but it has some formatting capabilities 
 
 ```json
 {
-  "plugins": ["prettier-plugin-powershell"],
-  "powershellBraceStyle": "1tbs",
-  "powershellIndentSize": 4
+ "plugins": ["prettier-plugin-powershell"],
+ "powershellBraceStyle": "1tbs",
+ "powershellIndentSize": 4
 }
 ```
 
 ### Migration Steps (PowerShell Extension)
 
-1. **Remove PSScriptAnalyzer formatting**:
+#### PowerShell Extension step 1: Remove PSScriptAnalyzer formatting
 
 ```json
 // In VS Code settings.json, remove or disable:
@@ -66,23 +66,23 @@ PSScriptAnalyzer is primarily a linter, but it has some formatting capabilities 
 }
 ```
 
-2. **Install Prettier plugin**:
+#### PowerShell Extension step 2: Install Prettier plugin
 
 ```bash
 npm install --save-dev prettier prettier-plugin-powershell
 ```
 
-3. **Configure Prettier**:
+#### PowerShell Extension step 3: Configure Prettier
 
 ```json
 {
-  "plugins": ["prettier-plugin-powershell"],
-  "powershellIndentSize": 4,
-  "powershellBraceStyle": "1tbs"
+ "plugins": ["prettier-plugin-powershell"],
+ "powershellIndentSize": 4,
+ "powershellBraceStyle": "1tbs"
 }
 ```
 
-4. **Update VS Code settings**:
+#### PowerShell Extension step 4: Update VS Code settings
 
 ```json
 "[powershell]": {
@@ -91,7 +91,7 @@ npm install --save-dev prettier prettier-plugin-powershell
 }
 ```
 
-5. **Format your codebase**:
+#### PowerShell Extension step 5: Format your codebase
 
 ```bash
 prettier --write "**/*.{ps1,psm1,psd1}"
@@ -118,10 +118,10 @@ The VS Code PowerShell extension has built-in formatting.
 
 ```json
 {
-  "powershell.codeFormatting.openBraceOnSameLine": true,
-  "powershell.codeFormatting.whitespaceAroundOperator": true,
-  "powershell.codeFormatting.indentationSize": 4,
-  "powershell.codeFormatting.alignPropertyValuePairs": true
+ "powershell.codeFormatting.openBraceOnSameLine": true,
+ "powershell.codeFormatting.whitespaceAroundOperator": true,
+ "powershell.codeFormatting.indentationSize": 4,
+ "powershell.codeFormatting.alignPropertyValuePairs": true
 }
 ```
 
@@ -129,43 +129,43 @@ The VS Code PowerShell extension has built-in formatting.
 
 ```json
 {
-  "plugins": ["prettier-plugin-powershell"],
-  "powershellBraceStyle": "1tbs",
-  "powershellIndentSize": 4,
-  "powershellSortHashtableKeys": false
+ "plugins": ["prettier-plugin-powershell"],
+ "powershellBraceStyle": "1tbs",
+ "powershellIndentSize": 4,
+ "powershellSortHashtableKeys": false
 }
 ```
 
 ### Migration Steps
 
-1. **Document current settings**:
+#### Extension formatter step 1: Document current settings
 
 - Export your PowerShell extension formatting settings
 
-2. **Install Prettier**:
+#### Extension formatter step 2: Install Prettier
 
 ```bash
 npm install --save-dev prettier prettier-plugin-powershell
 ```
 
-3. **Create Prettier config** matching your preferences
+Create a Prettier config matching your preferences.
 
-4. **Test on a single file**:
+#### Extension formatter step 3: Test on a single file
 
 ```bash
 prettier --write test-file.ps1
 ```
 
-5. **Verify output** matches your expectations
+Verify the output matches your expectations.
 
-6. **Disable PowerShell extension formatting**:
+#### Extension formatter step 4: Disable PowerShell extension formatting
 
 ```json
 {
-  "powershell.codeFormatting.preset": "Custom",
-  "[powershell]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+ "powershell.codeFormatting.preset": "Custom",
+ "[powershell]": {
+  "editor.defaultFormatter": "esbenp.prettier-vscode"
+ }
 }
 ```
 
@@ -184,30 +184,30 @@ If you've been formatting PowerShell code manually, Prettier will enforce consis
 
 ### Getting Started
 
-1. **Install**:
+#### Manual migration step 1: Install
 
 ```bash
 npm install --save-dev prettier prettier-plugin-powershell
 ```
 
-2. **Choose your style** (create `.prettierrc`):
+#### Manual migration step 2: Choose your style (create `.prettierrc`)
 
 ```json
 {
-  "plugins": ["prettier-plugin-powershell"],
-  "powershellIndentSize": 2,
-  "powershellBraceStyle": "1tbs",
-  "powershellTrailingComma": "multiline"
+ "plugins": ["prettier-plugin-powershell"],
+ "powershellIndentSize": 2,
+ "powershellBraceStyle": "1tbs",
+ "powershellTrailingComma": "multiline"
 }
 ```
 
-3. **Format existing code**:
+#### Manual migration step 3: Format existing code
 
 ```bash
 prettier --write "src/**/*.ps1"
 ```
 
-4. **Set up automation**:
+#### Manual migration step 4: Set up automation
 
 - Editor integration (format on save)
 - Git hooks (format before commit)
@@ -251,8 +251,8 @@ prettier --write "src/**/*.ps1"
 
 ```json
 {
-  "powershellIndentSize": 4,
-  "powershellIndentStyle": "spaces"
+ "powershellIndentSize": 4,
+ "powershellIndentStyle": "spaces"
 }
 ```
 
@@ -266,7 +266,7 @@ prettier --write "src/**/*.ps1"
 
 ```json
 {
-  "powershellIndentStyle": "tabs"
+ "powershellIndentStyle": "tabs"
 }
 ```
 
@@ -294,10 +294,10 @@ prettier --write "src/**/*.ps1"
 
 ```json
 {
-  "plugins": ["prettier-plugin-powershell"],
-  "powershellIndentSize": 4,
-  "powershellBraceStyle": "allman",
-  "powershellBlankLineAfterParam": true
+ "plugins": ["prettier-plugin-powershell"],
+ "powershellIndentSize": 4,
+ "powershellBraceStyle": "allman",
+ "powershellBlankLineAfterParam": true
 }
 ```
 
@@ -309,9 +309,9 @@ prettier --write "src/**/*.ps1"
 
 ```json
 {
-  "[powershell]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+ "[powershell]": {
+  "editor.defaultFormatter": "esbenp.prettier-vscode"
+ }
 }
 ```
 
@@ -341,7 +341,7 @@ Or in VS Code:
 
 ```json
 {
-  "prettier.useEditorConfig": false
+ "prettier.useEditorConfig": false
 }
 ```
 
@@ -396,26 +396,24 @@ Automatically format files before commit:
 
 ### Using Husky + lint-staged
 
-1. **Install**:
+#### Husky step 1: Install
 
 ```bash
 npm install --save-dev husky lint-staged
 npx husky install
 ```
 
-2. **Configure** (`package.json`):
+#### Husky step 2: Configure (`package.json`)
 
 ```json
 {
-  "lint-staged": {
-    "*.{ps1,psm1,psd1}": [
-      "prettier --write"
-    ]
-  }
+ "lint-staged": {
+  "*.{ps1,psm1,psd1}": ["prettier --write"]
+ }
 }
 ```
 
-3. **Add hook**:
+#### Husky step 3: Add hook
 
 ```bash
 npx husky add .husky/pre-commit "npx lint-staged"
@@ -491,14 +489,20 @@ If you encounter issues during migration:
 
 If you need to rollback:
 
-1. **Remove Prettier**:
+### Step 1: Remove Prettier
 
 ```bash
 npm uninstall prettier prettier-plugin-powershell
 ```
 
-2. **Re-enable previous formatter** in VS Code settings
+### Step 2: Re-enable previous formatter in VS Code settings
 
-3. **Reformat** with previous tool if needed
+Restore your previous formatter and format-on-save settings in your editor.
 
-4. **Document issues** to help improve the migration guide
+### Step 3: Reformat with previous tool if needed
+
+Run the previous formatter across affected files to reestablish your prior style.
+
+### Step 4: Document issues to help improve the migration guide
+
+Record what did not work so the migration process can be improved for others.

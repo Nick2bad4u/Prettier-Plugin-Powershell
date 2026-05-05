@@ -1,8 +1,8 @@
 // @ts-nocheck
 
-import prettier from "prettier";
 import { performance } from "node:perf_hooks";
 
+const { format } = await import("prettier");
 const pluginPath = "./dist/index.cjs";
 
 const buildComplexScript = (count) =>
@@ -17,7 +17,7 @@ const measure = async (count) => {
     const bytes = Buffer.byteLength(source, "utf8");
 
     const start = performance.now();
-    await prettier.format(source, {
+    await format(source, {
         parser: "powershell",
         plugins: [pluginPath],
     });
@@ -36,9 +36,6 @@ const profiles = [
     250,
     1000,
 ];
-const output = [];
-for (const count of profiles) {
-    output.push(await measure(count));
-}
+const output = await Promise.all(profiles.map(async (count) => measure(count)));
 
 console.table(output);

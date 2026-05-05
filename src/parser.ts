@@ -1,5 +1,15 @@
 import type { ParserOptions } from "prettier";
 
+import {
+    arrayAt,
+    arrayFirst,
+    arrayJoin,
+    isDefined,
+    isEmpty,
+    isPresent,
+    setHas,
+} from "ts-extras";
+
 import type {
     ArrayLiteralNode,
     BlankLineNode,
@@ -135,7 +145,7 @@ const isInlineSpacing = (
     start: number,
     end: number
 ): boolean => {
-    if (start === undefined || end === undefined) {
+    if (!isDefined(start) || !isDefined(end)) {
         return false;
     }
     for (let index = start; index < end; index += 1) {
@@ -153,6 +163,9 @@ const isInlineSpacing = (
             case "\u200B":
             case "\u2060": {
                 break;
+            }
+            case undefined: {
+                return false;
             }
             default: {
                 return false;
@@ -175,7 +188,7 @@ const hasTopLevelComma = (tokens: readonly Token[]): boolean => {
             continue;
         }
         if (
-            stack.length === 0 &&
+            isEmpty(stack) &&
             token.type === "punctuation" &&
             token.value === ","
         ) {
@@ -203,17 +216,18 @@ class Parser {
         terminators: ReadonlySet<string> = new Set<string>()
     ): ScriptNode {
         const body: ScriptBodyNode[] = [];
-        const start = this.tokens.length > 0 ? this.tokens[0].start : 0;
+        const firstToken = arrayFirst(this.tokens);
+        const start = isDefined(firstToken) ? firstToken.start : 0;
 
         const appendNode = (
             node: null | Readonly<ScriptBodyNode> | undefined
         ) => {
-            if (node === null || node === undefined) {
+            if (!isPresent(node)) {
                 return;
             }
 
-            const last = body.at(-1);
-            if (last !== undefined && shouldMergeNodes(last, node)) {
+            const last = arrayAt(body, -1);
+            if (isDefined(last) && shouldMergeNodes(last, node)) {
                 mergeNodes(last, node);
             } else {
                 body.push(node);
@@ -222,12 +236,15 @@ class Parser {
 
         while (!this.isEOF()) {
             const token = this.peek();
-            // eslint-disable-next-line security/detect-possible-timing-attacks -- Comparing against undefined is not a timing-sensitive operation
-            if (token === undefined) {
+
+            if (!isDefined(token)) {
                 break;
             }
 
-            if (terminators.has(token.value) && token.type === "punctuation") {
+            if (
+                setHas(terminators, token.value) &&
+                token.type === "punctuation"
+            ) {
                 break;
             }
 
@@ -280,7 +297,7 @@ class Parser {
             }
         }
 
-        const lastBodyNode = body.at(-1);
+        const lastBodyNode = arrayAt(body, -1);
         const end = lastBodyNode ? lastBodyNode.loc.end : start;
         return {
             body,
@@ -291,7 +308,11 @@ class Parser {
 
     private advance(): Token {
         this.tokenIndex += 1;
-        return this.tokens[this.tokenIndex - 1];
+        const token = this.tokens[this.tokenIndex - 1];
+        if (!isDefined(token)) {
+            throw new Error("Unexpected end of token stream");
+        }
+        return token;
     }
 
     /**
@@ -308,15 +329,18 @@ class Parser {
         body: readonly ScriptBodyNode[],
         commentNode: Readonly<CommentNode>
     ): boolean {
-        const previousNode = body.at(-1);
+        const previousNode = arrayAt(body, -1);
         if (previousNode?.type !== "Pipeline") {
             return false;
         }
 
         const nextToken = this.peekNextNonNewlineToken();
-        const lastSegment = previousNode.segments.at(-1);
-        const lastPart = lastSegment?.parts.at(-1);
-        if (lastPart?.type !== "ScriptBlock" || lastSegment === undefined) {
+        const lastSegment = arrayAt(previousNode.segments, -1);
+        if (!isDefined(lastSegment)) {
+            return false;
+        }
+        const lastPart = arrayAt(lastSegment.parts, -1);
+        if (lastPart?.type !== "ScriptBlock") {
             return false;
         }
 
@@ -439,6 +463,9 @@ class Parser {
             if (char === "\r") {
                 return false;
             }
+            if (!isDefined(char)) {
+                return false;
+            }
             if (!/\s/.test(char)) {
                 return true;
             }
@@ -455,9 +482,11 @@ class Parser {
      */
     private isPipelineContinuationAfterNewline(): boolean {
         let offset = 1;
-        // eslint-disable-next-line @typescript-eslint/init-declarations -- assigned in while condition; initializing to undefined would trigger no-useless-assignment
-        let next: Token | undefined;
-        while ((next = this.peek(offset)) !== undefined) {
+        while (true) {
+            const next = this.peek(offset);
+            if (!isDefined(next)) {
+                return false;
+            }
             if (next.type === "newline") {
                 offset += 1;
                 continue;
@@ -470,7 +499,6 @@ class Parser {
             }
             return false;
         }
-        return false;
     }
 
     private parseFunction(): FunctionDeclarationNode {
@@ -479,8 +507,8 @@ class Parser {
 
         while (!this.isEOF()) {
             const token = this.peek();
-            // eslint-disable-next-line security/detect-possible-timing-attacks -- Comparing against undefined is not a timing-sensitive operation
-            if (token === undefined) {
+
+            if (!isDefined(token)) {
                 break;
             }
             if (token.type === "comment") {
@@ -523,7 +551,7 @@ class Parser {
         const nestedParser = new Parser(contentTokens, this.source);
         const script = nestedParser.parseScript(new Set());
         const closingEnd = closingToken?.end ?? openToken.end;
-        const lastScriptBodyNode = script.body.at(-1);
+        const lastScriptBodyNode = arrayAt(script.body, -1);
         const bodyEnd = lastScriptBodyNode
             ? lastScriptBodyNode.loc.end
             : closingEnd;
@@ -545,8 +573,8 @@ class Parser {
 
         while (!this.isEOF()) {
             const token = this.peek();
-            // eslint-disable-next-line security/detect-possible-timing-attacks -- Comparing against undefined is not a timing-sensitive operation
-            if (token === undefined) {
+
+            if (!isDefined(token)) {
                 break;
             }
             const terminatorType = classifyStatementTerminator(
@@ -563,14 +591,14 @@ class Parser {
                 /* c8 ignore next */
                 if (structureStack.length > 0) {
                     const newlineToken = this.advance();
-                    const lastSegment = segments.at(-1);
+                    const lastSegment = arrayAt(segments, -1);
                     if (lastSegment) {
                         lastSegment.push(newlineToken);
                     }
                     continue;
                 }
                 if (
-                    structureStack.length === 0 &&
+                    isEmpty(structureStack) &&
                     this.isPipelineContinuationAfterNewline()
                 ) {
                     this.advance();
@@ -591,20 +619,17 @@ class Parser {
             }
 
             if (token.type === "comment") {
-                if (
-                    structureStack.length === 0 &&
-                    this.isInlineComment(token)
-                ) {
+                if (isEmpty(structureStack) && this.isInlineComment(token)) {
                     trailingComment = this.createCommentNode(
                         this.advance(),
                         true
                     );
                 }
-                if (structureStack.length === 0) {
+                if (isEmpty(structureStack)) {
                     break;
                 }
                 // Inside a structure - include the comment as part of the statement
-                const currentSegment = segments.at(-1);
+                const currentSegment = arrayAt(segments, -1);
                 if (currentSegment) {
                     currentSegment.push(this.advance());
                 }
@@ -612,11 +637,11 @@ class Parser {
             }
 
             if (token.type === "block-comment") {
-                if (structureStack.length === 0) {
+                if (isEmpty(structureStack)) {
                     break;
                 }
                 // Inside a structure - include the block comment
-                const currentSegment = segments.at(-1);
+                const currentSegment = arrayAt(segments, -1);
                 if (currentSegment) {
                     currentSegment.push(this.advance());
                 }
@@ -625,7 +650,7 @@ class Parser {
 
             if (token.type === "operator" && token.value === "|") {
                 if (structureStack.length > 0) {
-                    const currentSegment = segments.at(-1);
+                    const currentSegment = arrayAt(segments, -1);
                     if (currentSegment) {
                         currentSegment.push(this.advance());
                     }
@@ -646,7 +671,7 @@ class Parser {
                 continue;
             }
 
-            const currentSegment = segments.at(-1);
+            const currentSegment = arrayAt(segments, -1);
             if (currentSegment) {
                 currentSegment.push(this.advance());
             }
@@ -662,15 +687,19 @@ class Parser {
         const filteredSegments = segments.filter(
             (segment) => segment.length > 0
         );
-        if (filteredSegments.length === 0) {
+        if (isEmpty(filteredSegments)) {
             return null;
         }
 
         const expressionSegments = filteredSegments.map((segmentTokens) =>
             buildExpressionFromTokens(segmentTokens, this.source)
         );
-        const start = expressionSegments[0].loc.start;
-        const lastExpressionSegment = expressionSegments.at(-1);
+        const firstExpressionSegment = arrayFirst(expressionSegments);
+        if (!isDefined(firstExpressionSegment)) {
+            return null;
+        }
+        const start = firstExpressionSegment.loc.start;
+        const lastExpressionSegment = arrayAt(expressionSegments, -1);
         const end = lastExpressionSegment
             ? lastExpressionSegment.loc.end
             : start;
@@ -760,6 +789,9 @@ function buildExpressionFromTokens(
     let lastToken: Token | undefined = undefined;
     for (let index = tokens.length - 1; index >= 0; index -= 1) {
         const candidate = tokens[index];
+        if (!isDefined(candidate)) {
+            continue;
+        }
         if (candidate.type !== "newline") {
             lastToken = candidate;
             break;
@@ -768,8 +800,8 @@ function buildExpressionFromTokens(
     if (!firstToken || !lastToken) {
         return {
             loc: {
-                end: tokens.at(-1)?.end ?? 0,
-                start: tokens[0]?.start ?? 0,
+                end: arrayAt(tokens, -1)?.end ?? 0,
+                start: arrayFirst(tokens)?.start ?? 0,
             },
             parts: [],
             type: "Expression",
@@ -781,6 +813,10 @@ function buildExpressionFromTokens(
 
     while (index < tokens.length) {
         const token = tokens[index];
+        if (!isDefined(token)) {
+            index += 1;
+            continue;
+        }
 
         if (token.type === "newline") {
             index += 1;
@@ -846,7 +882,7 @@ function buildExpressionFromTokens(
         index += 1;
     }
 
-    const lastPart = parts.at(-1);
+    const lastPart = arrayAt(parts, -1);
     const expressionEnd = lastPart ? lastPart.loc.end : lastToken.end;
 
     return {
@@ -861,11 +897,12 @@ function buildExpressionFromTokens(
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
 const extractKeyText = (tokens: readonly Token[]): string => {
-    const text = tokens
-        .filter((token) => token.type !== "newline")
-        .map((token) => token.value)
-        .join(" ")
-        .trim();
+    const text = arrayJoin(
+        tokens
+            .filter((token) => token.type !== "newline")
+            .map((token) => token.value),
+        " "
+    ).trim();
     if (text.startsWith('"') && text.endsWith('"')) {
         return text.slice(1, -1);
     }
@@ -921,8 +958,10 @@ function buildHashtableEntry(
     const key = extractKeyText(keyTokens);
 
     // Calculate start/end based on non-comment tokens like original logic
-    const start = keyTokens[0]?.start ?? valueTokens[0]?.start ?? 0;
-    const end = (valueTokens.at(-1) ?? keyTokens.at(-1))?.end ?? start;
+    const start =
+        arrayFirst(keyTokens)?.start ?? arrayFirst(valueTokens)?.start ?? 0;
+    const end =
+        (arrayAt(valueTokens, -1) ?? arrayAt(keyTokens, -1))?.end ?? start;
 
     const entry: HashtableEntryNode = {
         key,
@@ -949,9 +988,9 @@ function buildHashtableEntry(
     if (trailingComments.length > 0) {
         const trailingNodes: CommentNode[] = [];
         let referenceEnd =
-            valueTokens.at(-1)?.end ??
-            keyTokens.at(-1)?.end ??
-            tokens[0]?.start ??
+            arrayAt(valueTokens, -1)?.end ??
+            arrayAt(keyTokens, -1)?.end ??
+            arrayFirst(tokens)?.start ??
             0;
 
         for (const token of trailingComments) {
@@ -991,8 +1030,7 @@ function classifyStatementTerminator(
     token: Readonly<Token> | undefined,
     structureDepth: number
 ): "closing-brace" | "closing-paren" | "newline" | "semicolon" | null {
-    // eslint-disable-next-line security/detect-possible-timing-attacks -- Comparing against undefined is not a timing-sensitive operation
-    if (token === undefined) {
+    if (!isDefined(token)) {
         return null;
     }
     if (token.type === "newline") {
@@ -1018,11 +1056,19 @@ function collectStructureTokens(
     startIndex: number
 ): { closingToken?: Token; contentTokens: Token[]; endIndex: number } {
     const contentTokens: Token[] = [];
-    const stack: string[] = [tokens[startIndex].value];
+    const startToken = tokens[startIndex];
+    if (!isDefined(startToken)) {
+        return { contentTokens, endIndex: startIndex };
+    }
+    const stack: string[] = [startToken.value];
     let index = startIndex + 1;
 
     while (index < tokens.length) {
         const token = tokens[index];
+        if (!isDefined(token)) {
+            index += 1;
+            continue;
+        }
 
         if (isOpeningToken(token)) {
             stack.push(token.value);
@@ -1076,7 +1122,7 @@ function createTextNode(token: Readonly<Token>): TextNode {
 
     if (
         (role === "unknown" || role === "word") &&
-        FALLBACK_OPERATOR_TOKENS.has(token.value)
+        setHas(FALLBACK_OPERATOR_TOKENS, token.value)
     ) {
         role = "operator";
     }
@@ -1105,13 +1151,20 @@ function extractElseContinuation(
 ): null | { elseTokens: Token[]; remainingTokens: Token[] } {
     let index = 0;
     const prefix: Token[] = [];
-    while (
-        index < tokens.length &&
-        (tokens[index].type === "newline" ||
-            tokens[index].type === "comment" ||
-            tokens[index].type === "block-comment")
-    ) {
-        prefix.push(tokens[index]);
+    while (index < tokens.length) {
+        const currentToken = tokens[index];
+        if (!isDefined(currentToken)) {
+            index += 1;
+            continue;
+        }
+        if (
+            currentToken.type !== "newline" &&
+            currentToken.type !== "comment" &&
+            currentToken.type !== "block-comment"
+        ) {
+            break;
+        }
+        prefix.push(currentToken);
         index += 1;
     }
 
@@ -1128,15 +1181,18 @@ function extractElseContinuation(
     const stack: string[] = [];
     for (; index < tokens.length; index += 1) {
         const token = tokens[index];
+        if (!isDefined(token)) {
+            continue;
+        }
         captured.push(token);
         if (token.type === "punctuation" && token.value === "{") {
             stack.push("{");
         } else if (token.type === "punctuation" && token.value === "}") {
-            if (stack.length === 0) {
+            if (isEmpty(stack)) {
                 continue;
             }
             stack.pop();
-            if (stack.length === 0) {
+            if (isEmpty(stack)) {
                 index += 1;
                 break;
             }
@@ -1160,6 +1216,17 @@ function parseArrayPart(
     source = ""
 ): { nextIndex: number; node: ArrayLiteralNode } {
     const startToken = tokens[startIndex];
+    if (!isDefined(startToken)) {
+        return {
+            nextIndex: startIndex + 1,
+            node: {
+                elements: [],
+                kind: "explicit",
+                loc: { end: 0, start: 0 },
+                type: "ArrayLiteral",
+            },
+        };
+    }
     const { closingToken, contentTokens, endIndex } = collectStructureTokens(
         tokens,
         startIndex
@@ -1188,6 +1255,16 @@ function parseHashtablePart(
     source = ""
 ): { nextIndex: number; node: HashtableNode } {
     const startToken = tokens[startIndex];
+    if (!isDefined(startToken)) {
+        return {
+            nextIndex: startIndex + 1,
+            node: {
+                entries: [],
+                loc: { end: 0, start: 0 },
+                type: "Hashtable",
+            },
+        };
+    }
     const { closingToken, contentTokens, endIndex } = collectStructureTokens(
         tokens,
         startIndex
@@ -1196,7 +1273,7 @@ function parseHashtablePart(
         buildHashtableEntry(entryTokens, source)
     );
     const end =
-        closingToken?.end ?? contentTokens.at(-1)?.end ?? startToken.end;
+        closingToken?.end ?? arrayAt(contentTokens, -1)?.end ?? startToken.end;
     return {
         nextIndex: endIndex,
         node: {
@@ -1214,6 +1291,18 @@ function parseParenthesisPart(
     source = ""
 ): { nextIndex: number; node: ParenthesisNode } {
     const startToken = tokens[startIndex];
+    if (!isDefined(startToken)) {
+        return {
+            nextIndex: startIndex + 1,
+            node: {
+                elements: [],
+                hasComma: false,
+                hasNewline: false,
+                loc: { end: 0, start: 0 },
+                type: "Parenthesis",
+            },
+        };
+    }
     const { closingToken, contentTokens, endIndex } = collectStructureTokens(
         tokens,
         startIndex
@@ -1243,6 +1332,16 @@ function parseScriptBlockPart(
     source = ""
 ): { nextIndex: number; node: ScriptBlockNode } {
     const startToken = tokens[startIndex];
+    if (!isDefined(startToken)) {
+        return {
+            nextIndex: startIndex + 1,
+            node: {
+                body: [],
+                loc: { end: 0, start: 0 },
+                type: "ScriptBlock",
+            },
+        };
+    }
     const { closingToken, contentTokens, endIndex } = collectStructureTokens(
         tokens,
         startIndex
@@ -1254,7 +1353,7 @@ function parseScriptBlockPart(
         closingToken,
         contentTokens
     );
-    const lastScriptNode = script.body.at(-1);
+    const lastScriptNode = arrayAt(script.body, -1);
     const bodyEnd = lastScriptNode ? lastScriptNode.loc.end : closingEnd;
     const end = Math.max(closingEnd, bodyEnd);
     return {
@@ -1286,7 +1385,7 @@ function resolveStructureEnd(
         return closingToken.end;
     }
     const lastContent =
-        contentTokens.length > 0 ? contentTokens.at(-1) : undefined;
+        contentTokens.length > 0 ? arrayAt(contentTokens, -1) : undefined;
     if (lastContent) {
         return lastContent.end;
     }
@@ -1342,7 +1441,7 @@ function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
                 if (segment.length > 0) {
                     segment.push(...state.pendingComments);
                 } else if (segments.length > 0) {
-                    const previousSegment = segments.at(-1);
+                    const previousSegment = arrayAt(segments, -1);
                     if (previousSegment) {
                         previousSegment.push(...state.pendingComments);
                     }
@@ -1353,7 +1452,7 @@ function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
             state.justSawEquals = false;
             return segment;
         },
-        // eslint-disable-next-line @typescript-eslint/consistent-return -- return type includes undefined so implicit return is valid per the SplitDecision type
+
         onToken: (context): SplitDecision => {
             if (
                 context.token.type === "comment" ||
@@ -1362,9 +1461,10 @@ function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
                 context.state.pendingComments.push(context.token);
                 return "skip";
             }
+            return undefined;
         },
         shouldSplitOnDelimiter: (context) => {
-            if (context.current.length === 0) {
+            if (isEmpty(context.current)) {
                 return false;
             }
             if (context.state.pendingComments.length > 0) {
@@ -1374,7 +1474,7 @@ function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
             return true;
         },
         splitOnNewline: (context) => {
-            if (context.current.length === 0) {
+            if (isEmpty(context.current)) {
                 return false;
             }
             if (!context.state.hasEquals || context.state.justSawEquals) {
@@ -1393,7 +1493,7 @@ function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
         if (segments.length > 0) {
             const continuation = extractElseContinuation(segment);
             if (continuation) {
-                const previousSegment = segments.at(-1);
+                const previousSegment = arrayAt(segments, -1);
                 if (previousSegment) {
                     previousSegment.push(...continuation.elseTokens);
                 }
@@ -1422,7 +1522,7 @@ function splitTopLevelTokens<TState = Record<string, never>>(
         : ({} as TState);
 
     const flush = (force = false) => {
-        if (!force && current.length === 0) {
+        if (!force && isEmpty(current)) {
             return;
         }
         const maybeSegment = options.onFlush?.(current, state, result, force);
@@ -1434,7 +1534,7 @@ function splitTopLevelTokens<TState = Record<string, never>>(
     };
 
     for (const token of tokens) {
-        const topLevel = stack.length === 0;
+        const topLevel = isEmpty(stack);
         const context: SplitContext<TState> = {
             current,
             stack,
@@ -1483,7 +1583,7 @@ function splitTopLevelTokens<TState = Record<string, never>>(
             stack,
             state,
             token,
-            topLevel: stack.length === 0,
+            topLevel: isEmpty(stack),
         });
     }
 
@@ -1505,7 +1605,7 @@ const findTopLevelEquals = (tokens: readonly Token[]): number => {
             continue;
         }
         if (
-            stack.length === 0 &&
+            isEmpty(stack) &&
             token.type === "operator" &&
             token.value === "="
         ) {

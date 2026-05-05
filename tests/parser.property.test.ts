@@ -130,7 +130,6 @@ describe("powershell parser property-based tests", () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
 
-        // eslint-disable-next-line vitest/no-conditional-in-test -- CI fast-path prevents expensive PowerShell process spawning from timing out.
         if (globalThis.process.env.CI === "true") {
             return;
         }

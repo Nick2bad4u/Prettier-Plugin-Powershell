@@ -3,7 +3,7 @@ name: General issue
 about: Open a project-related issue that is not a bug or feature request
 title: "Issue: "
 labels:
-    - triage
+ - triage
 assignees: []
 ---
 

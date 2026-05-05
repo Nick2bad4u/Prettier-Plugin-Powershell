@@ -1,3 +1,5 @@
+import { arrayAt, arrayJoin, isDefined, stringSplit } from "ts-extras";
+
 /**
  * Shape describing one anti-pattern detection rule.
  */
@@ -70,20 +72,20 @@ export class PowerShellParseError extends Error {
      * @returns Context snippet with an indicator prefix for the failing line.
      */
     public getContext(contextLines = 2): string {
-        const lines = this.source.split("\n");
+        const lines = stringSplit(this.source, "\n");
         const startLine = Math.max(0, this.line - contextLines - 1);
         const endLine = Math.min(lines.length, this.line + contextLines);
 
-        return lines
-            .slice(startLine, endLine)
-            .map((lineValue, index) => {
+        return arrayJoin(
+            lines.slice(startLine, endLine).map((lineValue, index) => {
                 const lineNumber = startLine + index + 1;
                 const isErrorLine = lineNumber === this.line;
                 const prefix = isErrorLine ? ">" : " ";
 
                 return `${prefix} ${lineNumber.toString().padStart(4)} | ${lineValue}`;
-            })
-            .join("\n");
+            }),
+            "\n"
+        );
     }
 
     /**
@@ -92,7 +94,7 @@ export class PowerShellParseError extends Error {
      * @returns Human-readable parse error string.
      */
     public override toString(): string {
-        const lines = this.source.split("\n");
+        const lines = stringSplit(this.source, "\n");
         const errorLine = lines[this.line - 1] ?? "";
         const pointer = `${" ".repeat(this.column - 1)}^`;
 
@@ -143,7 +145,7 @@ export class PowerShellWarning {
         this.position = position;
         this.line = line;
         this.column = column;
-        if (suggestion !== undefined) {
+        if (isDefined(suggestion)) {
             this.suggestion = suggestion;
         }
     }
@@ -154,7 +156,7 @@ export class PowerShellWarning {
     public toString(): string {
         let result = `Warning [${this.type}]: ${this.message}`;
 
-        if (this.suggestion !== undefined && this.suggestion.length > 0) {
+        if (isDefined(this.suggestion) && this.suggestion.length > 0) {
             result += `\n  Suggestion: ${this.suggestion}`;
         }
 
@@ -176,10 +178,10 @@ export const getLineAndColumn = (
     source: string,
     position: number
 ): { column: number; line: number } => {
-    const lines = source.slice(0, Math.max(0, position)).split("\n");
+    const lines = stringSplit(source.slice(0, Math.max(0, position)), "\n");
 
     return {
-        column: (lines.at(-1) ?? "").length + 1,
+        column: (arrayAt(lines, -1) ?? "").length + 1,
         line: lines.length,
     };
 };

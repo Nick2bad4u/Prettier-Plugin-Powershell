@@ -12,29 +12,29 @@ These guidelines focus ESM-first JavaScript using `.mjs` files. These aren't har
 
 ### Imports and Exports
 
--   Use **ES modules exclusively** (`import` / `export`), no `require` / `module.exports`.
--   Prefer **named exports** for libraries and utilities:
--   Default exports only when there is a single primary concept.
+- Use **ES modules exclusively** (`import` / `export`), no `require` / `module.exports`.
+- Prefer **named exports** for libraries and utilities:
+- Default exports only when there is a single primary concept.
 
 ### Syntax
 
--   Always use `const` when variables are not reassigned, `let` otherwise; avoid `var`.
--   Prefer **arrow functions** for short callbacks and inline functions; use `function` declarations for named, reusable logic.
--   Use template literals (`` `...${value}...` ``) instead of string concatenation.
--   Prefer destructuring for objects and arrays when it improves clarity.
--   Keep `.mjs` modules compatible with strict checking and prefer JSDoc type annotations for public helpers.
+- Always use `const` when variables are not reassigned, `let` otherwise; avoid `var`.
+- Prefer **arrow functions** for short callbacks and inline functions; use `function` declarations for named, reusable logic.
+- Use template literals (`` `...${value}...` ``) instead of string concatenation.
+- Prefer destructuring for objects and arrays when it improves clarity.
+- Keep `.mjs` modules compatible with strict checking and prefer JSDoc type annotations for public helpers.
 
 ### Async and Promises
 
--   Use `async` / `await` for asynchronous workflows.
--   Handle errors explicitly with `try`/`catch` or by returning structured error results.
--   Keep async side effects (I/O, network, filesystem) close to the boundary of your module; keep pure logic separate.
+- Use `async` / `await` for asynchronous workflows.
+- Handle errors explicitly with `try`/`catch` or by returning structured error results.
+- Keep async side effects (I/O, network, filesystem) close to the boundary of your module; keep pure logic separate.
 
 ### Types and Documentation
 
--   Prefer JSDoc type annotations or `.d.ts` files for `.mjs` modules.
--   Document public functions and exports with concise JSDoc comments explaining purpose and parameters.
--   Repository conventions:
-	-   Target the repository runtime baseline for root `.mjs` tooling. If the repo declares a specific Node.js floor (for example Node.js `>=22.0.0`) and ES output target, match that baseline.
-	-   Use the `node:`-prefixed built-ins and `import.meta.url` + `fileURLToPath` when you need `__dirname`-style resolution.
-	-   Keep modules compatible with the repository's JS/TS checking config (for example `tsconfig.js.json`, if present) so the local typecheck and lint workflows succeed without extra config.
+- Prefer JSDoc type annotations or `.d.ts` files for `.mjs` modules.
+- Document public functions and exports with concise JSDoc comments explaining purpose and parameters.
+- Repository conventions:
+  - Target the repository runtime baseline for root `.mjs` tooling. If the repo declares a specific Node.js floor (for example Node.js `>=22.0.0`) and ES output target, match that baseline.
+  - Use the `node:`-prefixed built-ins and `import.meta.url` + `fileURLToPath` when you need `__dirname`-style resolution.
+  - Keep modules compatible with the repository's JS/TS checking config (for example `tsconfig.js.json`, if present) so the local typecheck and lint workflows succeed without extra config.

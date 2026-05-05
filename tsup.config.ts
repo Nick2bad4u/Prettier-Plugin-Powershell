@@ -3,6 +3,9 @@ import type { Options } from "tsup";
 const config: Options = {
     clean: true,
     dts: {
+        entry: {
+            index: "src/plugin.ts",
+        },
         resolve: true,
     },
     entry: {
@@ -12,6 +15,7 @@ const config: Options = {
     minify: false,
     outDir: "dist",
     platform: "node",
+    shims: true,
     sourcemap: true,
     target: "esnext",
     treeshake: true,

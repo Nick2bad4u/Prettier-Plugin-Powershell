@@ -1,6 +1,6 @@
 import { performance } from "node:perf_hooks";
-import prettier from "prettier";
 
+const { format } = await import("prettier");
 const pluginPath = "./dist/index.cjs";
 
 const buildPipelineScript = (segments) =>
@@ -16,26 +16,26 @@ const profileParser = async () => {
         { name: "large", segments: 1000 },
     ];
 
-    const rows = [];
+    const rows = await Promise.all(
+        testCases.map(async (testCase) => {
+            const source = buildPipelineScript(testCase.segments);
+            const sizeKb = Buffer.byteLength(source, "utf8") / 1024;
 
-    for (const testCase of testCases) {
-        const source = buildPipelineScript(testCase.segments);
-        const sizeKb = Buffer.byteLength(source, "utf8") / 1024;
+            const start = performance.now();
+            await format(source, {
+                parser: "powershell",
+                plugins: [pluginPath],
+            });
+            const duration = performance.now() - start;
 
-        const start = performance.now();
-        await prettier.format(source, {
-            parser: "powershell",
-            plugins: [pluginPath],
-        });
-        const duration = performance.now() - start;
-
-        rows.push({
-            case: testCase.name,
-            ms: Number(duration.toFixed(2)),
-            segments: testCase.segments,
-            sizeKb: Number(sizeKb.toFixed(2)),
-        });
-    }
+            return {
+                case: testCase.name,
+                ms: Number(duration.toFixed(2)),
+                segments: testCase.segments,
+                sizeKb: Number(sizeKb.toFixed(2)),
+            };
+        })
+    );
 
     console.table(rows);
 };

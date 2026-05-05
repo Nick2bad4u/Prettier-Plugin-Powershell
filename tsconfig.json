@@ -26,6 +26,7 @@
         "explainFiles": false,
         "extendedDiagnostics": false,
         "forceConsistentCasingInFileNames": true,
+        "ignoreDeprecations": "6.0",
         "importHelpers": true,
         "incremental": true,
         "inlineSourceMap": false,
@@ -98,8 +99,7 @@
         ],
         "useDefineForClassFields": true,
         "useUnknownInCatchVariables": true,
-        "verbatimModuleSyntax": true,
-        "ignoreDeprecations": "6.0"
+        "verbatimModuleSyntax": true
     },
     "exclude": [
         ".cache/**",

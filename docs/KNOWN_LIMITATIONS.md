@@ -16,7 +16,7 @@ This document outlines current limitations and known issues with prettier-plugin
 
 ## Language Features
 
-### 1\. Very Complex DSC Configurations
+### 1\. Complex DSC Configurations
 
 **Status**: ✅ **IMPROVED** - Enhanced in v2.0.4
 
@@ -48,9 +48,9 @@ Configuration WebServer {
 }
 ```
 
-**Remaining Consideration**: For extremely large configurations (>1000 lines), consider modularizing into separate configuration files.
+**Remaining Consideration**: For large configurations (>1000 lines), consider modularizing into separate configuration files.
 
-**Impact**: Very low - most DSC configurations now format optimally
+**Impact**: Low - most DSC configurations now format optimally
 
 ---
 
@@ -90,7 +90,7 @@ Line with \u0041 unicode escape
 
 ---
 
-### 4\. Script Blocks in Very Long One-Liners
+### 4\. Script Blocks in Long One-Liners
 
 **Status**: ✅ **FIXED** - Improved in v2.0.4
 
@@ -109,7 +109,7 @@ Get-Process |
   Select-Object Name
 ```
 
-**Remaining Consideration**: Extremely complex nested expressions (>500 chars in a single script block) may still benefit from manual refactoring.
+**Remaining Consideration**: Highly complex nested expressions (>500 chars in a single script block) may still benefit from manual refactoring.
 
 **Impact**: Low - most cases now handled automatically
 
@@ -236,19 +236,19 @@ For up-to-date and more detailed numbers, see [`docs/PERFORMANCE.md`](./PERFORMA
 
 - ✅ Suitable for format-on-save for typical PowerShell files (well under 500 KB)
 - ✅ Use Prettier's `--cache` flag for repeated formatting
-- ✅ For very large files (≈1 MB or more), consider pre-commit hooks instead of format-on-save
+- ✅ For large files (≈1 MB or more), consider pre-commit hooks instead of format-on-save
 
-**Impact**: Very low – performance is more than adequate for day-to-day usage.
+**Impact**: Low – performance is more than adequate for day-to-day usage.
 
 ---
 
-### 2\. Memory Usage on Extremely Large Files
+### 2\. Memory Usage on Large Files
 
 **Status**: ✅ **IMPROVED** – No known memory regressions in recent releases.
 
 For typical PowerShell files (<500 KB), memory usage remains well within default Node.js limits.
 
-**For very large files** (>1 MB):
+**For large files** (>1 MB):
 
 - Consider setting `NODE_OPTIONS="--max-old-space-size=4096"` if you run into memory pressure
 - Prefer formatting files individually instead of batching hundreds of large files in a single process
@@ -286,7 +286,7 @@ Linux/Mac: LF (\n)
 
 ```json
 {
-  "endOfLine": "lf"
+ "endOfLine": "lf"
 }
 ```
 
@@ -359,7 +359,7 @@ function Test {
 
 ---
 
-### 3\. Very Deeply Nested Structures
+### 3\. Deeply Nested Structures
 
 **Limitation**: Structures nested >100 levels may cause stack overflow.
 
@@ -378,7 +378,7 @@ function Test {
 
 **Workaround**: Refactor to reduce nesting depth.
 
-**Impact**: Very low - rarely encountered
+**Impact**: Low - rarely encountered
 
 ---
 
@@ -455,7 +455,7 @@ Planned for future versions:
 - [ ] Semantic analysis integration -- TODO (owner: @Nick2bad4u)
 - [ ] PowerShell AST integration -- TODO (owner: @Nick2bad4u)
 - [ ] LSP support -- TODO (owner: @Nick2bad4u)
-- [ ] Performance improvements for huge files -- TODO (owner: @Nick2bad4u)
+- [ ] Performance improvements for large files -- TODO (owner: @Nick2bad4u)
 
 ---
 

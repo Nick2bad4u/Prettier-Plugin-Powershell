@@ -69,7 +69,7 @@ Prefer benchmark scenarios that reveal real maintenance risk:
 
 ## Interpreting regressions
 
-- A benchmark should help answer *what got slower* and *why*.
+- A benchmark should help answer _what got slower_ and _why_.
 - Prefer scenario sets that make it easy to attribute regressions to:
   - one rule
   - one preset

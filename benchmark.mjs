@@ -1,8 +1,6 @@
-// @ts-nocheck
-
 import { performance } from "node:perf_hooks";
-import prettier from "prettier";
 
+const { format } = await import("prettier");
 const pluginPath = "./dist/index.cjs";
 
 const buildScript = (functionCount) =>
@@ -13,7 +11,7 @@ const buildScript = (functionCount) =>
     ).join("\n");
 
 const formatOnce = async (source) =>
-    prettier.format(source, {
+    format(source, {
         parser: "powershell",
         plugins: [pluginPath],
     });
@@ -24,15 +22,15 @@ const runScenario = async (functionCount, iterations) => {
 
     await formatOnce(script);
 
-    const times = [];
-    for (let index = 0; index < iterations; index += 1) {
-        const start = performance.now();
-        await formatOnce(script);
-        times.push(performance.now() - start);
-    }
+    const times = await Promise.all(
+        Array.from({ length: iterations }, async () => {
+            const start = performance.now();
+            await formatOnce(script);
+            return performance.now() - start;
+        })
+    );
 
-    const average =
-        times.reduce((total, current) => total + current, 0) / times.length;
+    const average = Math.sumPrecise(times) / times.length;
 
     return {
         averageMs: Number(average.toFixed(2)),
@@ -49,13 +47,10 @@ const scenarios = [
     { functionCount: 250, iterations: 5 },
 ];
 
-const results = [];
-for (const scenario of scenarios) {
-    const result = await runScenario(
-        scenario.functionCount,
-        scenario.iterations
-    );
-    results.push(result);
-}
+const results = await Promise.all(
+    scenarios.map(async (scenario) =>
+        runScenario(scenario.functionCount, scenario.iterations)
+    )
+);
 
 console.table(results);

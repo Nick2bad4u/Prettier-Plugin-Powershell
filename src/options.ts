@@ -1,4 +1,7 @@
 import type { ParserOptions, SupportOptions } from "prettier";
+import type { UnknownRecord } from "type-fest";
+
+import { isDefined, isFinite, objectEntries, safeCastTo } from "ts-extras";
 
 /**
  * Brace placement styles supported by the plugin.
@@ -254,13 +257,13 @@ const applyPresetDefaults = (
     preset: PresetOption
 ): void => {
     const overrides = PRESET_DEFAULTS[preset];
-    if (overrides === undefined) {
+    if (!isDefined(overrides)) {
         return;
     }
 
-    const target = options as Record<string, unknown>;
-    for (const [key, value] of Object.entries(overrides)) {
-        if (target[key] === undefined) {
+    const target = safeCastTo<UnknownRecord>(options);
+    for (const [key, value] of objectEntries(overrides)) {
+        if (!isDefined(target[key])) {
             target[key] = value;
         }
     }
@@ -277,26 +280,23 @@ export function resolveOptions(
     options: Readonly<ParserOptions>
 ): ResolvedOptions {
     const preset =
-        (options.powershellPreset as PresetOption | undefined) ?? "none";
+        (options["powershellPreset"] as PresetOption | undefined) ?? "none";
     applyPresetDefaults(options, preset);
 
     // Use a mutable alias for Prettier's core settings we must write back.
-    const mutableOptions = options as ParserOptions;
+    const mutableOptions = safeCastTo<ParserOptions>(options);
 
     const indentStyle =
-        (options.powershellIndentStyle as IndentStyleOption | undefined) ??
+        (options["powershellIndentStyle"] as IndentStyleOption | undefined) ??
         "spaces";
-    const rawIndentOverride = options.powershellIndentSize;
+    const rawIndentOverride = options["powershellIndentSize"];
     const normalizedIndentOverride = Number(rawIndentOverride);
     const normalizedTabWidth = options.tabWidth;
     // Default to 4; overridden by explicit override or tabWidth when valid.
     let indentSize = 4;
-    if (
-        Number.isFinite(normalizedIndentOverride) &&
-        normalizedIndentOverride > 0
-    ) {
+    if (isFinite(normalizedIndentOverride) && normalizedIndentOverride > 0) {
         indentSize = Math.floor(normalizedIndentOverride);
-    } else if (Number.isFinite(normalizedTabWidth) && normalizedTabWidth > 0) {
+    } else if (isFinite(normalizedTabWidth) && normalizedTabWidth > 0) {
         indentSize = Math.floor(normalizedTabWidth);
     }
 
@@ -304,37 +304,36 @@ export function resolveOptions(
     mutableOptions.tabWidth = indentSize;
 
     const trailingComma =
-        (options.powershellTrailingComma as TrailingCommaOption | undefined) ??
-        "none";
-    const sortHashtableKeys = Boolean(options.powershellSortHashtableKeys);
+        (options["powershellTrailingComma"] as
+            | TrailingCommaOption
+            | undefined) ?? "none";
+    const sortHashtableKeys = Boolean(options["powershellSortHashtableKeys"]);
     const rawBlankLines = Number(
-        options.powershellBlankLinesBetweenFunctions ?? 1
+        options["powershellBlankLinesBetweenFunctions"] ?? 1
     );
-    const normalizedBlankLines = Number.isFinite(rawBlankLines)
-        ? rawBlankLines
-        : 1;
+    const normalizedBlankLines = isFinite(rawBlankLines) ? rawBlankLines : 1;
     const blankLinesBetweenFunctions = Math.max(
         0,
         Math.min(3, Math.floor(normalizedBlankLines))
     );
     let blankLineAfterParam = true;
     /* c8 ignore next */
-    if (options.powershellBlankLineAfterParam === false) {
+    if (options["powershellBlankLineAfterParam"] === false) {
         blankLineAfterParam = false;
     }
     const braceStyle =
-        (options.powershellBraceStyle as BraceStyleOption | undefined) ??
+        (options["powershellBraceStyle"] as BraceStyleOption | undefined) ??
         "1tbs";
     const lineWidth = Math.max(
         40,
-        Math.min(200, Number(options.powershellLineWidth ?? 120))
+        Math.min(200, Number(options["powershellLineWidth"] ?? 120))
     );
-    const preferSingleQuote = options.powershellPreferSingleQuote === true;
+    const preferSingleQuote = options["powershellPreferSingleQuote"] === true;
     const keywordCase =
-        (options.powershellKeywordCase as KeywordCaseOption | undefined) ??
+        (options["powershellKeywordCase"] as KeywordCaseOption | undefined) ??
         "lower";
-    const rewriteAliases = options.powershellRewriteAliases === true;
-    const rewriteWriteHost = options.powershellRewriteWriteHost === true;
+    const rewriteAliases = options["powershellRewriteAliases"] === true;
+    const rewriteWriteHost = options["powershellRewriteWriteHost"] === true;
 
     if (!options.printWidth || options.printWidth > lineWidth) {
         mutableOptions.printWidth = lineWidth;

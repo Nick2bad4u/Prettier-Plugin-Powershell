@@ -109,7 +109,7 @@ npx vitest run test/plugin-contract-snapshots.test.ts test/rule-metadata-snapsho
 ```
 
 For detailed design and review guidance, see
-[`docs/rules/guides/snapshot-testing.md`](./docs/rules/guides/snapshot-testing.md).
+[the snapshot testing guidance section](#snapshot-testing-guidance).
 
 Optional focused checks:
 
@@ -146,4 +146,4 @@ Use the process described in [SECURITY.md](./SECURITY.md).
 ## License
 
 By contributing, you agree your contributions are licensed under the
-[MIT License](./LICENSE).
+[MIT License](./LICENSE.md).

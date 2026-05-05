@@ -1,6 +1,15 @@
 import type { AstPath, Doc, ParserOptions, Printer } from "prettier";
 
 import { doc } from "prettier";
+import {
+    arrayFirst,
+    isDefined,
+    isEmpty,
+    not,
+    objectHasOwn,
+    safeCastTo,
+    setHas,
+} from "ts-extras";
 
 import type {
     ArrayLiteralNode,
@@ -109,6 +118,15 @@ const CONCATENATED_OPERATOR_PAIRS = new Set([
     "|=",
 ]);
 
+/**
+ * Fictional discriminant used solely to satisfy ts-extras `not()` type
+ * constraints without accidentally removing `TextNode` from the filtered array
+ * type. No real AST node ever carries this discriminant value.
+ */
+interface BacktickContinuationNode {
+    readonly type: "BacktickContinuation";
+}
+
 function getSymbol(node: null | Readonly<ExpressionPartNode>): null | string {
     if (!node) {
         return null;
@@ -168,14 +186,24 @@ function normalizeStringLiteral(
     return `'${inner}'`;
 }
 
-function shouldSkipPart(part: Readonly<ExpressionPartNode>): boolean {
-    if (part.type === "Text") {
-        const trimmed = part.value.trim();
-        if (trimmed === "`") {
-            return true;
-        }
+/**
+ * Type guard identifying backtick-only text nodes (PowerShell line-continuation
+ * markers) that should be removed before expression normalization.
+ *
+ * Uses a fictional discriminant (`BacktickContinuationNode`) so that
+ * `Exclude<ExpressionPartNode, BacktickContinuationNode>` =
+ * `ExpressionPartNode` (no real union member has type: "BacktickContinuation"),
+ * preserving the full element type in the filtered result.
+ */
+function shouldSkipPart(part: unknown): part is BacktickContinuationNode {
+    if (!isDefined(part) || typeof part !== "object" || part === null) {
+        return false;
     }
-    return false;
+    // Safe widening: any non-null object can be indexed as a record.
+    const node = part as Record<PropertyKey, unknown>;
+    const type = node["type"];
+    const value = node["value"];
+    return type === "Text" && typeof value === "string" && value.trim() === "`";
 }
 
 /**
@@ -201,31 +229,38 @@ export const powerShellPrinter: Printer<ScriptNode> = {
         // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Prettier API type
         options: ParserOptions
     ): Doc {
-        const node = path.node as
-            | ExpressionPartNode
-            | ScriptBodyNode
-            | ScriptNode
-            | undefined;
-        if (node === undefined) {
-            return "" as Doc;
+        const node = safeCastTo<
+            ExpressionPartNode | ScriptBodyNode | ScriptNode | undefined
+        >(path.node);
+        let result: Doc = "";
+        if (isDefined(node)) {
+            const resolved = resolveOptions(options);
+            result = printNode(node, resolved);
         }
-        const resolved = resolveOptions(options);
-        return printNode(node, resolved);
+        return result;
     },
 };
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Doc is a recursive Prettier type that cannot be made deeply readonly
 function concatDocs(docs: readonly Doc[]): Doc {
-    if (docs.length === 0) {
-        return "" as Doc;
+    let result: Doc = "";
+
+    if (!isEmpty(docs)) {
+        const firstDoc = arrayFirst(docs);
+        if (isDefined(firstDoc)) {
+            let acc: Doc = firstDoc;
+            for (let index = 1; index < docs.length; index += 1) {
+                const docPart = docs[index];
+                if (!isDefined(docPart)) {
+                    continue;
+                }
+                acc = [acc, docPart];
+            }
+            result = acc;
+        }
     }
 
-    let acc: Doc = docs[0];
-    for (let index = 1; index < docs.length; index += 1) {
-        acc = [acc, docs[index]];
-    }
-
-    return acc;
+    return result;
 }
 
 function determineBlankLines(
@@ -281,7 +316,7 @@ function gapBetween(
         current.role === "operator"
     ) {
         const combined = previous.value + current.value;
-        if (CONCATENATED_OPERATOR_PAIRS.has(combined)) {
+        if (setHas(CONCATENATED_OPERATOR_PAIRS, combined)) {
             return null;
         }
     }
@@ -320,7 +355,7 @@ function gapBetween(
     }
 
     if (previous.type === "Parenthesis") {
-        if (currentSymbol !== null && NO_SPACE_BEFORE.has(currentSymbol)) {
+        if (currentSymbol !== null && setHas(NO_SPACE_BEFORE, currentSymbol)) {
             return null;
         }
         return " ";
@@ -331,31 +366,31 @@ function gapBetween(
     }
 
     if (prevSymbol === null) {
-        if (currentSymbol !== null && NO_SPACE_BEFORE.has(currentSymbol)) {
+        if (currentSymbol !== null && setHas(NO_SPACE_BEFORE, currentSymbol)) {
             return null;
         }
         return " ";
     }
 
-    if (NO_SPACE_AFTER.has(prevSymbol)) {
+    if (setHas(NO_SPACE_AFTER, prevSymbol)) {
         return null;
     }
 
-    if (currentSymbol !== null && NO_SPACE_BEFORE.has(currentSymbol)) {
+    if (currentSymbol !== null && setHas(NO_SPACE_BEFORE, currentSymbol)) {
         return null;
     }
 
     if (
         prevSymbol !== null &&
         currentSymbol !== null &&
-        SYMBOL_NO_GAP.has(`${prevSymbol}:${currentSymbol}`)
+        setHas(SYMBOL_NO_GAP, `${prevSymbol}:${currentSymbol}`)
     ) {
         return null;
     }
 
     if (prevSymbol !== null && currentSymbol !== null) {
         const pair = `${prevSymbol}${currentSymbol}`;
-        if (CONCATENATED_OPERATOR_PAIRS.has(pair)) {
+        if (setHas(CONCATENATED_OPERATOR_PAIRS, pair)) {
             return null;
         }
     }
@@ -383,18 +418,18 @@ function indentStatement(
 ): Doc {
     const indentUnit =
         options.indentStyle === "tabs" ? "\t" : " ".repeat(options.indentSize);
-    return [indentUnit, align(indentUnit.length, docToIndent)] as Doc;
+    return safeCastTo<Doc>([indentUnit, align(indentUnit.length, docToIndent)]);
 }
 
 function isParamStatement(node: null | Readonly<ScriptBodyNode>): boolean {
     if (node?.type !== "Pipeline") {
         return false;
     }
-    if (node.segments.length === 0) {
+    if (isEmpty(node.segments)) {
         return false;
     }
-    const firstSegment = node.segments[0];
-    if (firstSegment.parts.length === 0) {
+    const firstSegment = arrayFirst(node.segments);
+    if (!isDefined(firstSegment) || isEmpty(firstSegment.parts)) {
         return false;
     }
     const firstPart = firstSegment.parts.find((part) => part.type === "Text");
@@ -440,7 +475,7 @@ function looksLikeCommentText(text: string): boolean {
 
     // If it contains spaces and looks like natural language, it's likely a comment
     const hasSpaces = trimmed.includes(" ");
-    const wordCount = trimmed.split(/\s+/).length;
+    const wordCount = (trimmed.match(/\S+/gu) ?? []).length;
     return hasSpaces && wordCount >= 3;
 }
 
@@ -450,16 +485,19 @@ function printExpression(
 ): Doc {
     const docs: Doc[] = [];
 
-    const filteredParts = node.parts.filter((part) => !shouldSkipPart(part));
+    const filteredParts = node.parts.filter(not(shouldSkipPart));
     const normalizedParts: ExpressionPartNode[] = [];
 
     for (let index = 0; index < filteredParts.length; index += 1) {
         const current = filteredParts[index];
+        if (!isDefined(current)) {
+            continue;
+        }
         if (current.type === "Text" && current.role === "operator") {
             const next = filteredParts[index + 1];
             if (next?.type === "Text" && next.role === "operator") {
                 const combinedValue = current.value + next.value;
-                if (CONCATENATED_OPERATOR_PAIRS.has(combinedValue)) {
+                if (setHas(CONCATENATED_OPERATOR_PAIRS, combinedValue)) {
                     normalizedParts.push({
                         ...current,
                         loc: { end: next.loc.end, start: current.loc.start },
@@ -477,6 +515,9 @@ function printExpression(
 
     for (let index = 0; index < normalizedParts.length; index += 1) {
         let part = normalizedParts[index];
+        if (!isDefined(part)) {
+            continue;
+        }
 
         if (
             part.type === "Text" &&
@@ -540,7 +581,7 @@ function printExpression(
         previous = part;
     }
 
-    return docs.length === 0 ? "" : group(docs);
+    return isEmpty(docs) ? "" : group(docs);
 }
 
 function printFunction(
@@ -622,7 +663,7 @@ function printNode(
             return printText(node, options);
         }
         default: {
-            return [] as Doc;
+            return safeCastTo<Doc>([]);
         }
     }
 }
@@ -634,36 +675,40 @@ function printPipeline(
     const segmentDocs = node.segments.map((segment) =>
         printExpression(segment, options)
     );
-    if (segmentDocs.length === 0) {
-        return "" as Doc;
+
+    let result: Doc = "";
+
+    const firstSegmentDoc = arrayFirst(segmentDocs);
+    if (!isEmpty(segmentDocs) && isDefined(firstSegmentDoc)) {
+        let pipelineDoc: Doc = firstSegmentDoc;
+
+        if (segmentDocs.length > 1) {
+            const shouldAlwaysBreak = segmentDocs.length > 3;
+
+            const restDocs = segmentDocs
+                .slice(1)
+                .map((segmentDoc) => [line, ["| ", segmentDoc]]);
+
+            // For long pipelines, force line breaks; shorter ones may fit on one line.
+            pipelineDoc = shouldAlwaysBreak
+                ? [firstSegmentDoc, indent(restDocs.flat())]
+                : group([firstSegmentDoc, indent(restDocs.flat())]);
+        }
+
+        if (node.trailingComment) {
+            pipelineDoc = node.trailingComment.inline
+                ? [pipelineDoc, lineSuffix([" #", node.trailingComment.value])]
+                : [
+                      pipelineDoc,
+                      hardline,
+                      printComment(node.trailingComment),
+                  ];
+        }
+
+        result = pipelineDoc;
     }
 
-    let pipelineDoc: Doc = segmentDocs[0];
-
-    if (segmentDocs.length > 1) {
-        const shouldAlwaysBreak = segmentDocs.length > 3;
-
-        const restDocs = segmentDocs
-            .slice(1)
-            .map((segmentDoc) => [line, ["| ", segmentDoc]]);
-
-        // For long pipelines, force line breaks; shorter ones may fit on one line.
-        pipelineDoc = shouldAlwaysBreak
-            ? [segmentDocs[0], indent(restDocs.flat())]
-            : group([segmentDocs[0], indent(restDocs.flat())]);
-    }
-
-    if (node.trailingComment) {
-        pipelineDoc = node.trailingComment.inline
-            ? [pipelineDoc, lineSuffix([" #", node.trailingComment.value])]
-            : [
-                  pipelineDoc,
-                  hardline,
-                  printComment(node.trailingComment),
-              ];
-    }
-
-    return pipelineDoc;
+    return result;
 }
 
 function printScript(
@@ -678,7 +723,7 @@ function printScriptBlock(
     node: Readonly<ScriptBlockNode>,
     options: Readonly<ResolvedOptions>
 ): Doc {
-    if (node.body.length === 0) {
+    if (isEmpty(node.body)) {
         return group(["{", "}"]);
     }
 
@@ -731,11 +776,14 @@ function printStatementList(
                 ? indentStatement(printed, options)
                 : printed;
             const lastIndex = docs.length - 1;
-            docs[lastIndex] = concatDocs([
-                docs[lastIndex],
-                hardline,
-                commentDoc,
-            ]);
+            const lastDoc = docs[lastIndex];
+            if (isDefined(lastDoc)) {
+                docs[lastIndex] = concatDocs([
+                    lastDoc,
+                    hardline,
+                    commentDoc,
+                ]);
+            }
             previous = entry;
             pendingBlankLines = 0;
             continue;
@@ -753,10 +801,16 @@ function printStatementList(
 
 const KEYWORD_CASE_TRANSFORMS: Record<string, (value: string) => string> = {
     lower: (value) => value.toLowerCase(),
-    pascal: (value) =>
-        value.length === 0
-            ? value
-            : value[0].toUpperCase() + value.slice(1).toLowerCase(),
+    pascal: (value) => {
+        if (value.length === 0) {
+            return value;
+        }
+        const first = value[0];
+        if (!isDefined(first)) {
+            return value;
+        }
+        return first.toUpperCase() + value.slice(1).toLowerCase();
+    },
     preserve: (value) => value,
     upper: (value) => value.toUpperCase(),
 };
@@ -801,8 +855,8 @@ function extractCommentText(node: Readonly<ExpressionNode>): null | string {
         return null;
     }
 
-    const part = node.parts[0];
-    if (part.type !== "Text") {
+    const part = arrayFirst(node.parts);
+    if (!isDefined(part) || part.type !== "Text") {
         return null;
     }
 
@@ -816,7 +870,7 @@ function extractCommentText(node: Readonly<ExpressionNode>): null | string {
 }
 
 function isAttributeExpression(node: Readonly<ExpressionNode>): boolean {
-    if (node.parts.length === 0) {
+    if (isEmpty(node.parts)) {
         return false;
     }
 
@@ -834,8 +888,8 @@ function isCommentExpression(node: Readonly<ExpressionNode>): boolean {
         return false;
     }
 
-    const part = node.parts[0];
-    if (part.type !== "Text") {
+    const part = arrayFirst(node.parts);
+    if (!isDefined(part) || part.type !== "Text") {
         return false;
     }
 
@@ -854,8 +908,8 @@ function isSimpleExpression(node: Readonly<ExpressionNode>): boolean {
     if (node.parts.length !== 1) {
         return false;
     }
-    const [part] = node.parts;
-    if (part.type !== "Text") {
+    const part = arrayFirst(node.parts);
+    if (!isDefined(part) || part.type !== "Text") {
         return false;
     }
     if (part.role === "keyword") {
@@ -870,7 +924,7 @@ function printArray(
 ): Doc {
     const open = node.kind === "implicit" ? "@(" : "[";
     const close = node.kind === "implicit" ? ")" : "]";
-    if (node.elements.length === 0) {
+    if (isEmpty(node.elements)) {
         return group([open, close]);
     }
     const groupId = Symbol("array");
@@ -887,14 +941,14 @@ function printArray(
 
         // Skip standalone comment expressions here; they will be attached to
         // the previous real element when encountered as `nextElement` below.
-        if (isCommentExpression(element)) {
+        if (!isDefined(element) || isCommentExpression(element)) {
             continue;
         }
 
         let printed = printExpression(element, options);
 
         const nextElement = node.elements[index + 1];
-        if (nextElement !== undefined && isCommentExpression(nextElement)) {
+        if (isDefined(nextElement) && isCommentExpression(nextElement)) {
             const commentText = extractCommentText(nextElement);
             if (commentText !== null) {
                 printed = [printed, lineSuffix([" ", commentText])];
@@ -925,9 +979,9 @@ function printArray(
 
 function printComment(node: Readonly<CommentNode>): Doc {
     if (node.style === "block") {
-        return node.value as Doc;
+        return safeCastTo<Doc>(node.value);
     }
-    return ["#", node.value] as Doc;
+    return safeCastTo<Doc>(["#", node.value]);
 }
 
 function printHashtable(
@@ -938,7 +992,7 @@ function printHashtable(
         ? sortHashtableEntries(node.entries)
         : node.entries;
 
-    if (entries.length === 0) {
+    if (isEmpty(entries)) {
         return group(["@{}"]);
     }
     const groupId = Symbol("hashtable");
@@ -978,7 +1032,7 @@ function printHashtableEntry(
 
     // Check if the value expression starts with a control flow keyword
     // (if, switch, foreach, etc.) - these should stay on the same line as '='
-    const firstPart = node.value.parts[0];
+    const firstPart = arrayFirst(node.value.parts);
     const startsWithKeyword =
         firstPart?.type === "Text" &&
         firstPart.role === "keyword" &&
@@ -1032,14 +1086,18 @@ function printParamParenthesis(
     node: Readonly<ParenthesisNode>,
     options: Readonly<ResolvedOptions>
 ): Doc {
-    if (node.elements.length === 0) {
+    if (isEmpty(node.elements)) {
         return group(["(", ")"]);
     }
 
     if (node.elements.length <= 1 && !node.hasNewline) {
+        const onlyElement = arrayFirst(node.elements);
+        if (!isDefined(onlyElement)) {
+            return group(["(", ")"]);
+        }
         return group([
             "(",
-            indent([softline, printExpression(node.elements[0], options)]),
+            indent([softline, printExpression(onlyElement, options)]),
             softline,
             ")",
         ]);
@@ -1054,14 +1112,13 @@ function printParamParenthesis(
         nextDoc?: Doc
     ) => {
         if (pendingAttributes.length > 0) {
-            const attributeDoc =
+            const attributeDoc: Doc =
                 pendingAttributes.length === 1
-                    ? pendingAttributes[0]
+                    ? (arrayFirst(pendingAttributes) ??
+                      join(hardline, pendingAttributes))
                     : join(hardline, pendingAttributes);
 
-            if (nextDoc === undefined) {
-                elementDocs.push(attributeDoc);
-            } else {
+            if (isDefined(nextDoc)) {
                 elementDocs.push(
                     group([
                         attributeDoc,
@@ -1069,9 +1126,11 @@ function printParamParenthesis(
                         nextDoc,
                     ])
                 );
+            } else {
+                elementDocs.push(attributeDoc);
             }
             pendingAttributes = [];
-        } else if (nextDoc !== undefined) {
+        } else if (isDefined(nextDoc)) {
             elementDocs.push(nextDoc);
         }
     };
@@ -1080,7 +1139,7 @@ function printParamParenthesis(
         const element = node.elements[index];
 
         // Skip comment-only expressions - they'll be handled as trailing comments
-        if (isCommentExpression(element)) {
+        if (!isDefined(element) || isCommentExpression(element)) {
             continue;
         }
 
@@ -1093,7 +1152,7 @@ function printParamParenthesis(
 
         // Check if the next element is a comment - if so, attach it inline
         const nextElement = node.elements[index + 1];
-        if (nextElement !== undefined && isCommentExpression(nextElement)) {
+        if (isDefined(nextElement) && isCommentExpression(nextElement)) {
             const commentText = extractCommentText(nextElement);
             if (commentText !== null) {
                 printed = [printed, lineSuffix([" ", commentText])];
@@ -1124,18 +1183,22 @@ function printParenthesis(
     node: Readonly<ParenthesisNode>,
     options: Readonly<ResolvedOptions>
 ): Doc {
-    if (node.elements.length === 0) {
+    if (isEmpty(node.elements)) {
         return group(["(", ")"]);
     }
     const groupId = Symbol("parenthesis");
     const elementDocs = node.elements.map((element) =>
         printExpression(element, options)
     );
+    const firstElementDoc = arrayFirst(elementDocs);
     if (elementDocs.length === 1 && !node.hasNewline) {
+        if (!isDefined(firstElementDoc)) {
+            return group(["(", ")"]);
+        }
         return group(
             [
                 "(",
-                indent([softline, elementDocs[0]]),
+                indent([softline, firstElementDoc]),
                 softline,
                 ")",
             ],
@@ -1181,8 +1244,10 @@ function printText(
     if (node.role === "keyword") {
         const transform =
             KEYWORD_CASE_TRANSFORMS[options.keywordCase] ??
-            KEYWORD_CASE_TRANSFORMS.preserve;
-        value = transform(value);
+            KEYWORD_CASE_TRANSFORMS["preserve"];
+        if (isDefined(transform)) {
+            value = transform(value);
+        }
     }
 
     if (
@@ -1192,14 +1257,14 @@ function printText(
             node.role === "unknown")
     ) {
         const aliasKey = value.toLowerCase();
-        if (Object.hasOwn(CMDLET_ALIAS_MAP, aliasKey)) {
-            value = CMDLET_ALIAS_MAP[aliasKey];
+        if (objectHasOwn(CMDLET_ALIAS_MAP, aliasKey)) {
+            value = CMDLET_ALIAS_MAP[aliasKey] ?? value;
         }
     }
 
     if (node.role === "word" && options.rewriteWriteHost) {
         const replacement = DISALLOWED_CMDLET_REWRITE.get(value.toLowerCase());
-        if (replacement !== undefined) {
+        if (isDefined(replacement)) {
             value = replacement;
         }
     }

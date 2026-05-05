@@ -270,14 +270,14 @@ Prefer single quotes over double quotes when possible.
 
 **Option:** `powershellPreferSingleQuote` **Type:** `boolean` **Default:** `false`
 
-### Example with false (default for rewrite write-host)
+### Prefer Single Quote example with false (default)
 
 ```powershell
 $message = "Hello, World!"
 $name = "John"
 ```
 
-### Example with true (rewrite write-host)
+### Prefer Single Quote example with true
 
 ```powershell
 $message = 'Hello, World!'
@@ -347,7 +347,7 @@ Control whether common cmdlet aliases are rewritten to their canonical names.
 
 **Option:** `powershellRewriteAliases` **Type:** `boolean` **Default:** `false`
 
-### Example with `false` (default for rewrite write-host)
+### Rewrite Aliases example with `false` (default)
 
 ```powershell
 ls -Path .
@@ -355,7 +355,7 @@ gci -Recurse
 % { $_ }
 ```
 
-### Example with `true` (rewrite write-host)
+### Rewrite Aliases example with `true`
 
 ```powershell
 Get-ChildItem -Path .
@@ -395,8 +395,8 @@ Bundle related settings together instead of specifying every dial individually.
 
 ```json
 {
-  "plugins": ["prettier-plugin-powershell"],
-  "powershellPreset": "invoke-formatter"
+ "plugins": ["prettier-plugin-powershell"],
+ "powershellPreset": "invoke-formatter"
 }
 ```
 
@@ -410,20 +410,20 @@ Here's a complete `.prettierrc` configuration file with all PowerShell options:
 
 ```json
 {
-  "plugins": ["prettier-plugin-powershell"],
-  "powershellPreset": "invoke-formatter",
-  "powershellIndentStyle": "spaces",
-  "powershellIndentSize": 4,
-  "powershellTrailingComma": "none",
-  "powershellSortHashtableKeys": false,
-  "powershellBlankLinesBetweenFunctions": 1,
-  "powershellBlankLineAfterParam": true,
-  "powershellBraceStyle": "1tbs",
-  "powershellLineWidth": 120,
-  "powershellPreferSingleQuote": false,
-  "powershellKeywordCase": "lower",
-  "powershellRewriteAliases": false,
-  "powershellRewriteWriteHost": false
+ "plugins": ["prettier-plugin-powershell"],
+ "powershellPreset": "invoke-formatter",
+ "powershellIndentStyle": "spaces",
+ "powershellIndentSize": 4,
+ "powershellTrailingComma": "none",
+ "powershellSortHashtableKeys": false,
+ "powershellBlankLinesBetweenFunctions": 1,
+ "powershellBlankLineAfterParam": true,
+ "powershellBraceStyle": "1tbs",
+ "powershellLineWidth": 120,
+ "powershellPreferSingleQuote": false,
+ "powershellKeywordCase": "lower",
+ "powershellRewriteAliases": false,
+ "powershellRewriteWriteHost": false
 }
 ```
 

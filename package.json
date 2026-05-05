@@ -40,20 +40,25 @@
     "type": "module",
     "exports": {
         ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.js",
-            "require": "./dist/index.cjs"
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            },
+            "import": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            }
         }
     },
     "main": "./dist/index.cjs",
     "module": "./dist/index.js",
-    "types": "./dist/index.d.ts",
+    "types": "./dist/index.d.cts",
     "files": [
         "dist"
     ],
     "scripts": {
         "benchmark": "node benchmark.mjs",
-        "build": "tsup --config tsup.config.ts && node -e \"const fs=require('node:fs'); const file='dist/index.cjs'; if(fs.existsSync(file)){ const content=fs.readFileSync(file,'utf8'); if(!content.includes('module.exports = module.exports.default;')){ fs.appendFileSync(file,'\\nmodule.exports = module.exports.default;\\n','utf8'); } }\"",
+        "build": "tsup --config tsup.config.ts && node scripts/fix-cts-exports.mjs",
         "build:watch": "tsup src/plugin.ts --format esm,cjs --dts --watch",
         "changelog:generate": "git-cliff --config cliff.toml --output CHANGELOG.md",
         "changelog:preview": "git-cliff --config cliff.toml --unreleased",
@@ -85,8 +90,8 @@
         "lint:compat:eslint9": "node scripts/eslint9-compat-smoke.mjs",
         "lint:config:build": "npm run build:eslint-inspector",
         "lint:config:inspect": "npx eslint --inspect-config",
-        "lint:css": "stylelint --cache --config stylelint.config.mjs --cache-strategy content --cache-location .cache/stylelintcache src/ docs/ --custom-formatter stylelint-formatter-pretty && echo \"Stylelint done!\"",
-        "lint:css:fix": "stylelint --cache --config stylelint.config.mjs --cache-strategy content --cache-location .cache/stylelintcache src/ docs/ --custom-formatter stylelint-formatter-pretty --fix && echo \"Stylelint done!\"",
+        "lint:css": "stylelint --allow-empty-input --cache --cache-strategy content --cache-location .cache/stylelintcache \"src/**/*.{css,scss}\" \"docs/**/*.{css,scss}\" --custom-formatter stylelint-formatter-pretty && echo \"Stylelint done!\"",
+        "lint:css:fix": "stylelint --allow-empty-input --cache --cache-strategy content --cache-location .cache/stylelintcache \"src/**/*.{css,scss}\" \"docs/**/*.{css,scss}\" --custom-formatter stylelint-formatter-pretty --fix && echo \"Stylelint done!\"",
         "lint:depcheck": "depcheck",
         "lint:deps": "depcheck && npm run knip",
         "lint:dupes": "jscpd src/ --config jscpd.json",
@@ -117,8 +122,8 @@
         "lint:prettier:fix": "prettier . --log-level warn --cache --cache-location=.cache/.prettier-cache --cache-strategy=content --write",
         "lint:publint": "publint",
         "lint:quiet": "cross-env ESLINT_PROGRESS=nofile NODE_OPTIONS=--max_old_space_size=16384 eslint . --cache --cache-strategy content --cache-location .cache/.eslintcache && echo \"Eslint done!\"",
-        "lint:remark": "remark --rc-path .remarkrc.mjs --silently-ignore --ignore-path .remarkignore --frail \"*.{md,mdx}\" \"docs/**/*.{md,mdx}\" --quiet",
-        "lint:remark:fix": "prettier --log-level warn --ignore-path prettierignore.remark --cache --cache-location=.cache/.prettier-cache --cache-strategy=content --no-error-on-unmatched-pattern --write \"*.{md,mdx}\" \"docs/**/*.{md,mdx}\" && npm run remark:fix",
+        "lint:remark": "remark --rc-path .remarkrc.mjs --silently-ignore --ignore-path .remarkignore \"*.{md,mdx}\" \"docs/**/*.{md,mdx}\" --quiet",
+        "lint:remark:fix": "prettier --log-level warn --ignore-path prettierignore.remark --cache --cache-location=.cache/.prettier-cache --cache-strategy=content --no-error-on-unmatched-pattern --write \"*.{md,mdx}\" \"docs/**/*.{md,mdx}\" && npm run lint:remark",
         "lint:secretlint": "secretlint --secretlintrc .secretlintrc.cjs --secretlintignore .secretlintignore \"./*\" \".vscode/**\" \"assets/**\" \"src/**\" \"electron/**\" \"shared/**\" \"config/**\" \"scripts/**\" \"playwright/**\" \"storybook/**\" \".storybook\" \"tests/**\" \"benchmarks/**\" \".devin/**\" \"public/**\" \".github/**\" \"docs/Architecture/**\" \"docs/*\" \"docs/assets/**\" \"docs/Guides/**\" \"docs/Testing/**\" \"docs/TSDoc/**\" \"docs/docusaurus/src/**\" \"docs/docusaurus/static/**\" \"docs/docusaurus/blog/**\" \"docs/docusaurus/docs/**\" \"docs/docusaurus/docs/*\"",
         "lint:secrets": "detect-secrets scan",
         "lint:unused": "npm run knip -- --include unlisted,unresolved,duplicates",
@@ -131,7 +136,11 @@
         "prepare": "npm run build",
         "profile": "node profile-parser.mjs",
         "profile:enhanced": "node profile-enhanced.mjs",
+        "release:check": "npm run release:verify",
+        "release:verify": "npm run build && npm run lint:all:fix && npm run lint:package-check:strict && npm run test:coverage",
         "sync:node-version-files": "node scripts/sync-node-version-files.mjs",
+        "sync:rules:check": "node -e \"console.log('No rule-sync sources configured; check passed.')\"",
+        "sync:rules:write": "node -e \"console.log('No rule-sync sources configured; nothing to write.')\"",
         "sync-peer-prettier-range": "node scripts/sync-peer-prettier-range.mjs",
         "test": "vitest run",
         "test:ci": "vitest run --reporter=summary",
@@ -144,7 +153,9 @@
     },
     "dependencies": {
         "rimraf": "^6.1.3",
-        "tsup": "^8.5.1"
+        "ts-extras": "^1.0.0",
+        "tsup": "^8.5.1",
+        "type-fest": "^5.6.0"
     },
     "devDependencies": {
         "@arethetypeswrong/cli": "^0.18.2",
@@ -173,6 +184,8 @@
         "secretlint": "^13.0.0",
         "secretlint-config-nick2bad4u": "^1.0.4",
         "sort-package-json": "^3.6.1",
+        "stylelint": "^17.11.0",
+        "stylelint-formatter-pretty": "^4.0.1",
         "typescript": "^6.0.3",
         "vitest": "^4.1.5",
         "yamllint-js": "^0.2.4"

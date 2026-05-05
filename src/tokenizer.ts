@@ -1,3 +1,11 @@
+import {
+    arrayIncludes,
+    arrayJoin,
+    isDefined,
+    setHas,
+    stringSplit,
+} from "ts-extras";
+
 import type { HereStringNode } from "./ast.js";
 
 /**
@@ -67,7 +75,7 @@ const KEYWORDS = new Set([
 ]);
 
 // PowerShell operators (case-insensitive)
-const POWERSHELL_OPERATORS = new Set([
+const POWERSHELL_OPERATORS: ReadonlySet<string> = new Set([
     // Logical operators
     "-and",
     // Type operators
@@ -178,11 +186,11 @@ const UNICODE_IDENTIFIER_AFTER_DASH_PATTERN = /[\p{L}-]/u;
  *   here-string is too short (malformed), returns it as-is.
  */
 export function normalizeHereString(node: Readonly<HereStringNode>): string {
-    const lines = node.value.split(/\r?\n/);
+    const lines = stringSplit(node.value.replaceAll("\r\n", "\n"), "\n");
     if (lines.length <= 2) {
         return node.value;
     }
-    return lines.slice(1, -1).join("\n");
+    return arrayJoin(lines.slice(1, -1), "\n");
 }
 
 const readAttributeEnd = (
@@ -192,14 +200,14 @@ const readAttributeEnd = (
     let lookahead = startIndex + 1;
     while (
         lookahead < source.length &&
-        WHITESPACE_PATTERN.test(source[lookahead])
+        WHITESPACE_PATTERN.test(source.charAt(lookahead))
     ) {
         lookahead += 1;
     }
 
     if (
         lookahead >= source.length ||
-        !IDENTIFIER_START_PATTERN.test(source[lookahead])
+        !IDENTIFIER_START_PATTERN.test(source.charAt(lookahead))
     ) {
         return null;
     }
@@ -305,7 +313,7 @@ export function tokenize(source: string): Token[] {
         position: number
     ): null | { codePoint: number; text: string; width: number } => {
         const codePoint = source.codePointAt(position);
-        if (codePoint === undefined) {
+        if (!isDefined(codePoint)) {
             return null;
         }
         const text = String.fromCodePoint(codePoint);
@@ -392,51 +400,53 @@ export function tokenize(source: string): Token[] {
         if (
             firstChar === "0" &&
             scanIndex < length &&
-            (source[scanIndex] === "x" || source[scanIndex] === "X")
+            (source.charAt(scanIndex) === "x" ||
+                source.charAt(scanIndex) === "X")
         ) {
             scanIndex += 1;
             while (
                 scanIndex < length &&
-                HEX_DIGIT_PATTERN.test(source[scanIndex])
+                HEX_DIGIT_PATTERN.test(source.charAt(scanIndex))
             ) {
                 scanIndex += 1;
             }
-            if (scanIndex < length && /[lu]/i.test(source[scanIndex])) {
+            if (scanIndex < length && /[lu]/i.test(source.charAt(scanIndex))) {
                 scanIndex += 1;
             }
         } else if (
             firstChar === "0" &&
             scanIndex < length &&
-            (source[scanIndex] === "b" || source[scanIndex] === "B")
+            (source.charAt(scanIndex) === "b" ||
+                source.charAt(scanIndex) === "B")
         ) {
             scanIndex += 1;
             while (
                 scanIndex < length &&
-                BINARY_DIGIT_PATTERN.test(source[scanIndex])
+                BINARY_DIGIT_PATTERN.test(source.charAt(scanIndex))
             ) {
                 scanIndex += 1;
             }
-            if (scanIndex < length && /[lu]/i.test(source[scanIndex])) {
+            if (scanIndex < length && /[lu]/i.test(source.charAt(scanIndex))) {
                 scanIndex += 1;
             }
             return scanIndex;
         } else {
             while (
                 scanIndex < length &&
-                DECIMAL_DIGIT_PATTERN.test(source[scanIndex])
+                DECIMAL_DIGIT_PATTERN.test(source.charAt(scanIndex))
             ) {
                 scanIndex += 1;
             }
 
             if (
                 scanIndex + 1 < length &&
-                source[scanIndex] === "." &&
-                DECIMAL_DIGIT_PATTERN.test(source[scanIndex + 1])
+                source.charAt(scanIndex) === "." &&
+                DECIMAL_DIGIT_PATTERN.test(source.charAt(scanIndex + 1))
             ) {
                 scanIndex += 2;
                 while (
                     scanIndex < length &&
-                    DECIMAL_DIGIT_PATTERN.test(source[scanIndex])
+                    DECIMAL_DIGIT_PATTERN.test(source.charAt(scanIndex))
                 ) {
                     scanIndex += 1;
                 }
@@ -444,18 +454,20 @@ export function tokenize(source: string): Token[] {
 
             if (
                 scanIndex < length &&
-                (source[scanIndex] === "e" || source[scanIndex] === "E")
+                (source.charAt(scanIndex) === "e" ||
+                    source.charAt(scanIndex) === "E")
             ) {
                 scanIndex += 1;
                 if (
                     scanIndex < length &&
-                    (source[scanIndex] === "+" || source[scanIndex] === "-")
+                    (source.charAt(scanIndex) === "+" ||
+                        source.charAt(scanIndex) === "-")
                 ) {
                     scanIndex += 1;
                 }
                 while (
                     scanIndex < length &&
-                    DECIMAL_DIGIT_PATTERN.test(source[scanIndex])
+                    DECIMAL_DIGIT_PATTERN.test(source.charAt(scanIndex))
                 ) {
                     scanIndex += 1;
                 }
@@ -463,7 +475,7 @@ export function tokenize(source: string): Token[] {
 
             if (
                 scanIndex < length &&
-                NUMBER_SUFFIX_PATTERN.test(source[scanIndex])
+                NUMBER_SUFFIX_PATTERN.test(source.charAt(scanIndex))
             ) {
                 scanIndex += 1;
             }
@@ -472,13 +484,16 @@ export function tokenize(source: string): Token[] {
         if (scanIndex + 1 < length) {
             const suffix = source.slice(scanIndex, scanIndex + 2).toUpperCase();
             if (
-                [
-                    "GB",
-                    "KB",
-                    "MB",
-                    "PB",
-                    "TB",
-                ].includes(suffix)
+                arrayIncludes(
+                    [
+                        "GB",
+                        "KB",
+                        "MB",
+                        "PB",
+                        "TB",
+                    ],
+                    suffix
+                )
             ) {
                 scanIndex += 2;
             }
@@ -516,11 +531,11 @@ export function tokenize(source: string): Token[] {
     };
 
     while (index < length) {
-        const char = source[index];
+        const char = source.charAt(index);
         const start = index;
 
         if (char === "\r" || char === "\n") {
-            if (char === "\r" && source[index + 1] === "\n") {
+            if (char === "\r" && source.charAt(index + 1) === "\n") {
                 index += 2;
                 push({ end: index, start, type: "newline", value: "\r\n" });
             } else {
@@ -535,7 +550,11 @@ export function tokenize(source: string): Token[] {
             continue;
         }
 
-        if (char === "<" && index + 1 < length && source[index + 1] === "#") {
+        if (
+            char === "<" &&
+            index + 1 < length &&
+            source.charAt(index + 1) === "#"
+        ) {
             let scanIndex = index + 2;
             while (scanIndex < length) {
                 if (
@@ -636,8 +655,8 @@ export function tokenize(source: string): Token[] {
         if (
             char === "@" &&
             index + 1 < length &&
-            (UNICODE_IDENTIFIER_START_PATTERN.test(source[index + 1]) ||
-                source[index + 1] === "_")
+            (UNICODE_IDENTIFIER_START_PATTERN.test(source.charAt(index + 1)) ||
+                source.charAt(index + 1) === "_")
         ) {
             let scanIndex = index + 2;
             while (scanIndex < length) {
@@ -666,16 +685,16 @@ export function tokenize(source: string): Token[] {
             continue;
         }
 
-        if (PUNCTUATION.has(char)) {
+        if (setHas(PUNCTUATION, char)) {
             index += 1;
             push({ end: index, start, type: "punctuation", value: char });
             continue;
         }
 
         if (char === "|" || char === "=") {
-            let value = char;
-            if (source[index + 1] === char) {
-                value += char;
+            let value: string = char;
+            if (source.charAt(index + 1) === char) {
+                value = `${value}${char}`;
                 index += 2;
             } else {
                 index += 1;
@@ -685,7 +704,7 @@ export function tokenize(source: string): Token[] {
         }
 
         // Pipeline chain operators: && and ||
-        if (char === "&" && source[index + 1] === "&") {
+        if (char === "&" && source.charAt(index + 1) === "&") {
             index += 2;
             push({ end: index, start, type: "operator", value: "&&" });
             continue;
@@ -693,18 +712,18 @@ export function tokenize(source: string): Token[] {
 
         // Redirection operators: >, >>, <, 2>, 2>>, 3>, etc.
         if (char === ">" || char === "<") {
-            let value = char;
-            if (source[index + 1] === char) {
-                value += char;
+            let value: string = char;
+            if (source.charAt(index + 1) === char) {
+                value = `${value}${char}`;
                 index += 2;
             } else {
                 index += 1;
             }
             if (
-                source[index] === "&" &&
-                /[1-6]/.test(source[index + 1] ?? "")
+                source.charAt(index) === "&" &&
+                /[1-6]/.test(source.charAt(index + 1))
             ) {
-                value += `&${source[index + 1]}`;
+                value += `&${source.charAt(index + 1)}`;
                 index += 2;
             }
             push({ end: index, start, type: "operator", value });
@@ -712,17 +731,20 @@ export function tokenize(source: string): Token[] {
         }
 
         // Stream redirection operators: 2>, 3>, 4>, 5>, 6>, *>
-        if (/[*2-6]/.test(char) && source[index + 1] === ">") {
+        if (/[*2-6]/.test(char) && source.charAt(index + 1) === ">") {
             let value = `${char}>`;
             index += 2;
             // Check for >> (append)
-            if (source[index] === ">") {
+            if (source.charAt(index) === ">") {
                 value += ">";
                 index += 1;
             }
             // Check for merging redirection: 2>&1, *>&2, etc.
-            if (source[index] === "&" && /[1-6]/.test(source[index + 1])) {
-                value += `&${source[index + 1]}`;
+            if (
+                source.charAt(index) === "&" &&
+                /[1-6]/.test(source.charAt(index + 1))
+            ) {
+                value += `&${source.charAt(index + 1)}`;
                 index += 2;
             }
             push({ end: index, start, type: "operator", value });
@@ -738,11 +760,11 @@ export function tokenize(source: string): Token[] {
         // Merging redirection for stream 1: 1>&2
         if (
             char === "1" &&
-            source[index + 1] === ">" &&
-            source[index + 2] === "&" &&
-            /[2-6]/.test(source[index + 3])
+            source.charAt(index + 1) === ">" &&
+            source.charAt(index + 2) === "&" &&
+            /[2-6]/.test(source.charAt(index + 3))
         ) {
-            const value = `1>&${source[index + 3]}`;
+            const value = `1>&${source.charAt(index + 3)}`;
             index += 4;
             push({ end: index, start, type: "operator", value });
             continue;
@@ -806,9 +828,11 @@ export function tokenize(source: string): Token[] {
             }
             const raw = source.slice(start, index);
             const lower = raw.toLowerCase();
-            if (KEYWORDS.has(lower)) {
+            const isKeyword = setHas(KEYWORDS, lower);
+            const isOperator = setHas(POWERSHELL_OPERATORS, lower);
+            if (isKeyword) {
                 push({ end: index, start, type: "keyword", value: raw });
-            } else if (POWERSHELL_OPERATORS.has(lower)) {
+            } else if (isOperator) {
                 push({ end: index, start, type: "operator", value: raw });
             } else {
                 push({ end: index, start, type: "identifier", value: raw });
@@ -835,9 +859,11 @@ export function tokenize(source: string): Token[] {
                 }
                 const raw = source.slice(start, index);
                 const lower = raw.toLowerCase();
-                if (KEYWORDS.has(lower)) {
+                const isKeyword = setHas(KEYWORDS, lower);
+                const isOperator = setHas(POWERSHELL_OPERATORS, lower);
+                if (isKeyword) {
                     push({ end: index, start, type: "keyword", value: raw });
-                } else if (POWERSHELL_OPERATORS.has(lower)) {
+                } else if (isOperator) {
                     push({ end: index, start, type: "operator", value: raw });
                 } else {
                     push({ end: index, start, type: "identifier", value: raw });
