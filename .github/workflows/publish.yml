@@ -1,36 +1,59 @@
-name: Publish
-run-name: >-
-    Publish • ${{ github.event_name }} • ${{ github.ref_name }}
+# Release the npm package and create the matching GitHub release.
+# yaml-language-server: $schema=https://www.schemastore.org/github-workflow.json
+name: Release
 
-on:
-    workflow_dispatch:
-        inputs:
-            release:
-                description: "Release type (patch, minor, major) or explicit x.y.z"
-                type: string
-                required: false
-                default: patch
-            ref:
-                description: "Branch to release from"
-                type: string
-                required: false
-                default: main
-
-permissions:
-    contents: write
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('Manual release ({0}) by @{1}', inputs.version || inputs.release_type, github.actor) || format('Tagged release {0} by @{1}', github.ref_name, github.actor) }}
 
 concurrency:
-    group: publish-${{ github.ref }}
-    cancel-in-progress: true
+    group: "${{ github.workflow }}-${{ github.repository }}"
+    cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+
+on:
+    push:
+        tags:
+            - "v*"
+    workflow_dispatch:
+        inputs:
+            release_type:
+                description: "Release bump type"
+                required: true
+                default: patch
+                type: choice
+                options:
+                    - patch
+                    - minor
+                    - major
+            version:
+                description: "Explicit release version in x.y.z format (overrides release_type)"
+                required: false
+                type: string
+            ref:
+                description: "Branch to release from when running manually"
+                required: false
+                default: main
+                type: string
+            skip_verify:
+                description: "Skip package verification (manual dispatch only; use with caution)"
+                required: false
+                default: false
+                type: boolean
+
+defaults:
+    run:
+        shell: bash
 
 jobs:
     publish:
-        name: Publish package
+        name: Publish npm package and GitHub release
+        if: ${{ github.event_name != 'push' || github.actor != 'github-actions[bot]' }}
         runs-on: ubuntu-latest
-        timeout-minutes: 45
-        defaults:
-            run:
-                shell: bash
+        timeout-minutes: 60
+        outputs:
+            package_name: ${{ steps.version.outputs.package_name }}
+            version: ${{ steps.version.outputs.version }}
+            tag: ${{ steps.version.outputs.tag }}
+            npm_release_url: ${{ steps.version.outputs.npm_release_url }}
+            github_release_url: ${{ steps.version.outputs.github_release_url }}
         permissions:
             contents: write
             id-token: write
@@ -38,63 +61,290 @@ jobs:
             CI: "true"
             DEFAULT_RELEASE_BRANCH: "main"
             NPM_REGISTRY_URL: "https://registry.npmjs.org"
+            RELEASE_NOTES_PATH: temp/release-notes.md
+            RELEASE_ASSETS_DIR: temp/release-assets
+        concurrency:
+            group: release-pipeline
+            cancel-in-progress: false
+
         steps:
-            - name: Harden runner
-              uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+            - name: Harden the runner (Audit all outbound calls)
+              uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
               with:
                   egress-policy: audit
 
+            - name: Resolve target ref
+              id: target_ref
+              env:
+                  WORKFLOW_DISPATCH_REF: ${{ inputs.ref }}
+              run: |
+                  set -euo pipefail
+                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                    branch="${WORKFLOW_DISPATCH_REF:-}"
+                    if [ -z "$branch" ]; then
+                      branch="${DEFAULT_RELEASE_BRANCH}"
+                    fi
+                    branch="${branch#refs/heads/}"
+                    if [[ "$branch" == refs/tags/* ]]; then
+                      echo "workflow_dispatch ref must be a branch, not a tag: $branch" >&2
+                      exit 1
+                    fi
+                    echo "ref=$branch" >> "$GITHUB_OUTPUT"
+                    echo "branch=$branch" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "ref=${GITHUB_REF}" >> "$GITHUB_OUTPUT"
+                    echo "branch=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+                  fi
+
             - name: Checkout repository
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
               with:
                   fetch-depth: 0
-                  ref: ${{ inputs.ref }}
+                  fetch-tags: true
+                  ref: ${{ steps.target_ref.outputs.ref }}
+                  token: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Setup Node.js
-              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+              uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
               with:
-                  node-version: "20"
+                  node-version-file: .node-version
+                  registry-url: ${{ env.NPM_REGISTRY_URL }}
                   cache: npm
-                  registry-url: https://registry.npmjs.org
+                  cache-dependency-path: package-lock.json
 
             - name: Install dependencies
               run: npm ci --force
 
-            - name: Build package
-              run: npm run build
-
-            - name: Run quality gates
+            - name: Configure Git for release automation
+              if: github.event_name == 'workflow_dispatch'
               run: |
-                  npm run lint
-                  npm run typecheck
-                  npm test -- --run
+                  set -euo pipefail
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+                  git fetch --tags --force
 
-            - name: Resolve next version
+            - name: Validate workflow_dispatch release input
+              if: github.event_name == 'workflow_dispatch'
+              env:
+                  EXPLICIT_VERSION: ${{ inputs.version }}
+                  RELEASE_TYPE: ${{ inputs.release_type }}
+              run: |
+                  set -euo pipefail
+                  explicit_version="${EXPLICIT_VERSION:-}"
+                  if [ -n "$explicit_version" ]; then
+                    if [[ ! "$explicit_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                      echo "Invalid version input '$explicit_version'. Use x.y.z format." >&2
+                      exit 1
+                    fi
+                    exit 0
+                  fi
+
+                  release_type="${RELEASE_TYPE:-patch}"
+                  case "$release_type" in
+                    patch|minor|major)
+                      exit 0
+                      ;;
+                    *)
+                      echo "Invalid release_type '$release_type'. Allowed: patch, minor, major." >&2
+                      exit 1
+                      ;;
+                  esac
+
+            - name: Validate tag matches package version
+              if: startsWith(github.ref, 'refs/tags/v')
+              run: |
+                  TAG_VERSION="${GITHUB_REF_NAME#v}"
+                  PACKAGE_VERSION=$(node -p "require('./package.json').version")
+                  if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
+                    echo "Tag version ($TAG_VERSION) does not match package.json version ($PACKAGE_VERSION)."
+                    exit 1
+                  fi
+
+            - name: Warn when package verification is skipped
+              if: ${{ github.event_name == 'workflow_dispatch' && inputs.skip_verify }}
+              run: |
+                  echo "::warning::Skipping 'Verify package' because workflow_dispatch input 'skip_verify' is true."
+                  echo "::warning::Use this only when release checks were validated locally before dispatch."
+
+            - name: Verify package
+              if: ${{ github.event_name != 'workflow_dispatch' || !inputs.skip_verify }}
+              run: npm run release:check
+
+            - name: Ensure verification did not modify tracked files
+              if: startsWith(github.ref, 'refs/tags/v')
+              run: |
+                  set -euo pipefail
+                  if ! git diff --quiet || ! git diff --cached --quiet; then
+                    echo "release:check modified files on a tag-triggered release. Ensure main is clean before tagging." >&2
+                    git status --short
+                    exit 1
+                  fi
+
+            - name: Determine release version
               id: version
               env:
-                  RELEASE_INPUT: ${{ inputs.release }}
+                  EXPLICIT_VERSION: ${{ inputs.version }}
+                  RELEASE_TYPE: ${{ inputs.release_type }}
               run: |
-                  if [[ "$RELEASE_INPUT" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-                    NEW_VERSION="$RELEASE_INPUT"
-                  else
-                    NEW_VERSION=$(npm version "$RELEASE_INPUT" --no-git-tag-version)
-                    NEW_VERSION="${NEW_VERSION#v}"
-                  fi
-                  echo "new-version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+                  set -euo pipefail
 
-            - name: Pack artifact
-              run: npm pack
+                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                    explicit_version="${EXPLICIT_VERSION:-}"
+                    if [ -n "$explicit_version" ]; then
+                      npm version "$explicit_version" --no-git-tag-version
+                      version="$explicit_version"
+                    else
+                      release_type="${RELEASE_TYPE:-patch}"
+                      npm version "$release_type" --no-git-tag-version
+                      version=$(node -p "require('./package.json').version")
+                    fi
+                  else
+                    tag="${GITHUB_REF_NAME}"
+                    version="${tag#v}"
+                  fi
+
+                  package_name=$(node -p "require('./package.json').name")
+                  tag="v${version}"
+                  npm_release_url="https://www.npmjs.com/package/${package_name}/v/${version}"
+                  github_release_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${tag}"
+
+                  echo "version=$version" >> "$GITHUB_OUTPUT"
+                  echo "tag=$tag" >> "$GITHUB_OUTPUT"
+                  echo "package_name=$package_name" >> "$GITHUB_OUTPUT"
+                  echo "npm_release_url=$npm_release_url" >> "$GITHUB_OUTPUT"
+                  echo "github_release_url=$github_release_url" >> "$GITHUB_OUTPUT"
+
+            - name: Rebuild package after manual version bump
+              if: github.event_name == 'workflow_dispatch'
+              run: npm run build
+
+            - name: Check whether version is already published
+              id: npm_check
+              env:
+                  PACKAGE_NAME: ${{ steps.version.outputs.package_name }}
+                  VERSION: ${{ steps.version.outputs.version }}
+              run: |
+                  set -euo pipefail
+                  if npm view "${PACKAGE_NAME}@${VERSION}" version >/dev/null 2>&1; then
+                    echo "already_published=true" >> "$GITHUB_OUTPUT"
+                    echo "Version ${VERSION} is already published to npm."
+                  else
+                    echo "already_published=false" >> "$GITHUB_OUTPUT"
+                    echo "Version ${VERSION} is available for publishing."
+                  fi
+
+            - name: Prevent duplicate workflow_dispatch release version
+              if: github.event_name == 'workflow_dispatch' && steps.npm_check.outputs.already_published == 'true'
+              env:
+                  VERSION: ${{ steps.version.outputs.version }}
+              run: |
+                  echo "Version ${VERSION} is already published. Choose a new release type/version." >&2
+                  exit 1
+
+            - name: Commit and push release version + tag
+              if: github.event_name == 'workflow_dispatch'
+              env:
+                  BRANCH: ${{ steps.target_ref.outputs.branch }}
+                  TAG: ${{ steps.version.outputs.tag }}
+              run: |
+                  set -euo pipefail
+
+                  if git rev-parse "$TAG" >/dev/null 2>&1; then
+                    echo "Tag $TAG already exists locally." >&2
+                    exit 1
+                  fi
+
+                  git add -A
+                  if git diff --cached --quiet; then
+                    echo "No staged changes found for release commit." >&2
+                    exit 1
+                  fi
+
+                  git commit -m "chore: release ${TAG}"
+                  git tag -a "$TAG" -m "$TAG"
+                  git push origin "HEAD:${BRANCH}"
+                  git push origin "$TAG"
+
+            - name: Generate release notes from git-cliff
+              run: |
+                  set -euo pipefail
+                  mkdir -p temp
+                  npm run --silent changelog:release-notes -- --output "${RELEASE_NOTES_PATH}"
+                  if [ ! -s "${RELEASE_NOTES_PATH}" ]; then
+                    echo "No release notes were generated by git-cliff." > "${RELEASE_NOTES_PATH}"
+                  fi
 
             - name: Publish to npm
-              env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+              if: steps.npm_check.outputs.already_published != 'true'
               run: npm publish --access public --provenance --ignore-scripts
 
-            - name: Create GitHub release
+            - name: Create release archives
+              id: release_assets
               env:
-                  GH_TOKEN: ${{ github.token }}
+                  PACKAGE_NAME: ${{ steps.version.outputs.package_name }}
+                  VERSION: ${{ steps.version.outputs.version }}
               run: |
-                  gh release create "v${{ steps.version.outputs.new-version }}" \
-                    --title "v${{ steps.version.outputs.new-version }}" \
-                    --notes "Automated release of version v${{ steps.version.outputs.new-version }}." \
-                    ./*.tgz
+                  set -euo pipefail
+
+                  assets_dir="${RELEASE_ASSETS_DIR}"
+                  unpack_dir="temp/release-package"
+                  pack_metadata_path="${assets_dir}/npm-pack.json"
+                  mkdir -p "$assets_dir"
+                  rm -rf "$unpack_dir"
+
+                  npm pack --json --pack-destination "$assets_dir" > "$pack_metadata_path"
+
+                  tarball_filename=$(node -e "const fs = require('node:fs'); const packMetadata = JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); process.stdout.write(packMetadata[0].filename);" "$pack_metadata_path")
+                  tarball_path="${assets_dir}/${tarball_filename}"
+                  safe_package_name=$(printf '%s' "$PACKAGE_NAME" | sed 's/^@//; s#/#-#g')
+                  zip_basename="${safe_package_name}-${VERSION}"
+
+                  mkdir -p "$unpack_dir"
+                  tar -xzf "$tarball_path" -C "$unpack_dir"
+                  mv "$unpack_dir/package" "$unpack_dir/${zip_basename}"
+
+                  (
+                    cd "$unpack_dir"
+                    zip -rq "../release-assets/${zip_basename}.zip" "${zip_basename}"
+                  )
+
+                  echo "tarball_path=$tarball_path" >> "$GITHUB_OUTPUT"
+                  echo "zip_path=${assets_dir}/${zip_basename}.zip" >> "$GITHUB_OUTPUT"
+                  echo "tarball_name=$tarball_filename" >> "$GITHUB_OUTPUT"
+                  echo "zip_name=${zip_basename}.zip" >> "$GITHUB_OUTPUT"
+
+            - name: Create GitHub release
+              uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+              with:
+                  tag_name: ${{ steps.version.outputs.tag }}
+                  name: ${{ steps.version.outputs.tag }}
+                  body_path: ${{ env.RELEASE_NOTES_PATH }}
+                  draft: false
+                  files: |
+                      ${{ steps.release_assets.outputs.tarball_path }}
+                      ${{ steps.release_assets.outputs.zip_path }}
+                  fail_on_unmatched_files: true
+                  generate_release_notes: false
+                  overwrite_files: true
+                  prerelease: false
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Release summary
+              if: ${{ !cancelled() }}
+              run: |
+                  {
+                    echo "## 🚀 Release Summary"
+                    echo ""
+                    echo "- Event: \`${{ github.event_name }}\`"
+                    echo "- Actor: @${{ github.actor }}"
+                    echo "- Ref: \`${{ steps.target_ref.outputs.ref }}\`"
+                    echo "- Source branch: \`${{ steps.target_ref.outputs.branch }}\`"
+                    echo "- Package: \`${{ steps.version.outputs.package_name }}\`"
+                    echo "- Version: \`${{ steps.version.outputs.version }}\`"
+                    echo "- Tag: \`${{ steps.version.outputs.tag }}\`"
+                    echo "- Already published on npm: \`${{ steps.npm_check.outputs.already_published }}\`"
+                    echo "- npm package: [${{ steps.version.outputs.package_name }}@${{ steps.version.outputs.version }}](${{ steps.version.outputs.npm_release_url }})"
+                    echo "- GitHub release: [${{ steps.version.outputs.tag }}](${{ steps.version.outputs.github_release_url }})"
+                    echo "- Release assets: \`${{ steps.release_assets.outputs.tarball_name }}\`, \`${{ steps.release_assets.outputs.zip_name }}\`"
+                  } >> "$GITHUB_STEP_SUMMARY"

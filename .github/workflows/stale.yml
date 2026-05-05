@@ -1,57 +1,45 @@
-# This GitHub Actions workflow is designed to automatically mark issues and pull requests as stale
-# if they have had no activity for a specified amount of time. It uses the `actions/stale` action
-# to perform this task. The workflow is scheduled to run daily at 07:38 AM (UTC) as specified by
-# the cron expression.
-#
-# The workflow has the following permissions:
-# - Read access to repository contents.
-# - Write access to issues and pull requests.
-#
-# The workflow consists of a single job named `stale` that runs on the latest Ubuntu runner.
-# The job includes the following steps:
-# 1. Harden Runner: Uses the `step-security/harden-runner` action to enhance the security of the
-#    runner by auditing egress traffic.
-# 2. Mark Stale Issues and PRs: Uses the `actions/stale` action to mark issues and pull requests
-#    as stale. The action is configured with the following parameters:
-#    - `repo-token`: The GitHub token used to authenticate the action.
-#    - `stale-issue-message`: The message to post on stale issues.
-#    - `stale-pr-message`: The message to post on stale pull requests.
-#    - `stale-issue-label`: The label to apply to stale issues.
-#    - `stale-pr-label`: The label to apply to stale pull requests.
-#
-# For more information on configuring the `actions/stale` action, visit:
-# https://github.com/actions/stale
-
+# yaml-language-server: $schema=https://www.schemastore.org/github-workflow.json
 name: Mark Stale Issues And Pull Requests
-run-name: >-
-    Stale Sweep • ${{ github.event_name }}
+
+run-name: Stale Sweep • ${{ github.ref_name }} @${{ github.actor }}
+
+concurrency:
+    group: stale-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 on:
     schedule:
         - cron: "38 7 * * *"
-
-permissions:
-    contents: read
+    pull_request_target:
+        branches:
+            - main
+        types:
+            - opened
+            - reopened
+            - synchronize
+    issues:
+        types:
+            - opened
+            - reopened
+            - edited
+    workflow_dispatch:
 
 jobs:
     stale:
-        name: Mark stale issues and pull requests
+        name: Mark Stale Issues And Pull Requests
         runs-on: ubuntu-latest
         timeout-minutes: 20
         permissions:
+            contents: read
             issues: write
             pull-requests: write
-        concurrency:
-            group: stale-${{ github.ref }}
-            cancel-in-progress: true
-
         steps:
             - name: Harden Runner
-              uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d # v2.16.1
+              uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
               with:
                   egress-policy: audit
 
-            - name: Run stale policy
+            - name: Mark stale issues and pull requests
               uses: actions/stale@b5d41d4e1d5dceea10e7104786b73624c18a190f # v10.2.0
               with:
                   repo-token: ${{ secrets.GITHUB_TOKEN }}

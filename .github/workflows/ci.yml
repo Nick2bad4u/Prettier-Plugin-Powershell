@@ -1,122 +1,117 @@
-name: Ci
-run-name: >-
-    Ci • ${{ github.event_name }} • ${{ github.ref_name }}
+name: Continuous Integration
+
+run-name: Continuous Integration • ${{ github.ref_name }} @${{ github.actor }}
+
+concurrency:
+    group: ci-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 on:
     push:
         branches:
             - main
     pull_request:
-        branches:
-            - main
     merge_group:
         types:
             - checks_requested
 
-permissions:
-    contents: read
-
-concurrency:
-    group: ci-${{ github.ref }}
-    cancel-in-progress: true
-
 jobs:
-    quality-gates:
-        name: Lint, typecheck, test, coverage
-        runs-on: ubuntu-latest
-        timeout-minutes: 25
+    test:
+        name: Test (${{ matrix.label }})
+        runs-on: ${{ matrix.os }}
+        timeout-minutes: 60
+        permissions:
+            contents: read
+            id-token: write
+        strategy:
+            fail-fast: true
+            matrix:
+                include:
+                    - label: linux
+                      os: ubuntu-latest
+                      codecov_flag: os-linux
+                    - label: windows
+                      os: windows-latest
+                      codecov_flag: os-windows
+                    - label: macos
+                      os: macos-latest
+                      codecov_flag: os-macos
         defaults:
             run:
                 shell: bash
         env:
-            CI: true
+            CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
         steps:
-            - name: Harden the runner (audit all outbound calls)
-              uses: step-security/harden-runner@6c3c2f2c1c457b00c10c4848d6f5491db3b629df
+            - name: Harden the runner (Audit all outbound calls)
+              if: ${{ matrix.os == 'ubuntu-latest' }}
+              uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
               with:
                   egress-policy: audit
 
             - name: Checkout repository
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
             - name: Setup Node.js
-              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+              uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
               with:
-                  node-version: "20.x"
+                  node-version-file: .node-version
                   cache: npm
+                  cache-dependency-path: package-lock.json
 
             - name: Install dependencies
               run: npm ci --force
 
-            - name: Lint
-              run: npm run lint
+            - name: Build package
+              run: npm run build
+
+            - name: Upload bundle analysis to Codecov
+              if: ${{ matrix.os == 'ubuntu-latest' && !cancelled() && env.CODECOV_TOKEN != '' }}
+              run: npx @codecov/bundle-analyzer ./dist --bundle-name=${{ github.repository }} --upload-token="${CODECOV_TOKEN}"
+              env:
+                  GITHUB_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+                  GITHUB_REF: ${{ github.event_name == 'pull_request' && format('refs/heads/{0}', github.head_ref) || github.ref }}
 
             - name: Typecheck
               run: npm run typecheck
 
-            - name: Build distributable
-              run: npm run build
+            - name: Run tests with coverage and JUnit report
+              run: npx vitest run --coverage --reporter=github-actions --reporter=dot --reporter=junit --outputFile=test-report.junit.xml --silent
+              env:
+                  CI: "true"
+                  MAX_THREADS: "1"
+                  VITEST_HANGING_PROCESS_REPORTER: "true"
 
-            - name: Run tests with coverage
-              run: npm run test:coverage
+            - name: Verify coverage artifact
+              run: python -c "from pathlib import Path; assert Path('coverage/lcov.info').is_file(), 'coverage/lcov.info was not generated'"
 
-            - name: Upload coverage reports to Codecov
-              uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
+            - name: Verify JUnit artifact
+              run: python -c "from pathlib import Path; assert Path('test-report.junit.xml').is_file(), 'test-report.junit.xml was not generated'"
+
+            - name: Upload test results to Codecov
+              if: ${{ !cancelled() }}
+              uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
               with:
-                  token: ${{ secrets.CODECOV_TOKEN }}
-                  slug: Nick2bad4u/prettier-plugin-powershell
-                  files: ./coverage/lcov.info
-                  flags: unit
+                  use_oidc: true
+                  slug: ${{ github.repository }}
+                  files: test-report.junit.xml
+                  flags: ${{ matrix.codecov_flag }}
+                  name: vitest-junit-${{ matrix.codecov_flag }}
+                  report_type: test_results
                   fail_ci_if_error: true
+                  disable_search: true
+                  verbose: true
 
-    update-changelogs:
-        name: Update changelogs
-        runs-on: windows-latest
-        timeout-minutes: 20
-        steps:
-            - name: Harden the runner (Audit all outbound calls)
-              uses: step-security/harden-runner@6c3c2f2c1c457b00c10c4848d6f5491db3b629df # v2.18.0
+            - name: Upload coverage to Codecov
+              if: ${{ !cancelled() }}
+              uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
               with:
-                  egress-policy: audit
-
-            - name: Checkout repository (Full history)
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-              with:
-                  fetch-depth: 0
-
-            - name: Set up Node.js
-              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-              with:
-                  node-version: "20"
-
-            - name: Install git-cliff
-              shell: pwsh
-              run: npm install -g git-cliff
-
-            - name: Generate CHANGELOG.md files (With verbose logging)
-              shell: pwsh
-              run: |
-                  echo "Generating changelogs with git-cliff..."
-                  npx git-cliff --config cliff.toml --verbose --output CHANGELOG.md
-                  Get-ChildItem -Name
-
-            - name: Create Pull Request for changelogs
-              uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
-              with:
-                  commit-message: "chore: update changelogs [skip ci]"
-                  title: "chore: update changelogs"
-                  body: "Automated changelog update via GitHub Actions.\n\nThis PR was created automatically and will not be merged automatically."
-                  branch: "chore/update-changelogs"
-                  add-paths: "**/CHANGELOG.md"
-                  delete-branch: false
-                  token: ${{ secrets.GITHUB_TOKEN }}
-
-            - name: Add Job Summary
-              if: always()
-              shell: pwsh
-              run: |
-                  Add-Content -Path $env:GITHUB_STEP_SUMMARY "## 📝 Changelog Update Workflow Summary"
-                  Add-Content -Path $env:GITHUB_STEP_SUMMARY "- CHANGELOG.md files were generated or updated in the repository and subfolders."
-                  Add-Content -Path $env:GITHUB_STEP_SUMMARY "- A pull request was created or updated with the new changelogs."
-                  Add-Content -Path $env:GITHUB_STEP_SUMMARY "- Workflow completed with status: ${{ job.status }}."
+                  use_oidc: true
+                  slug: ${{ github.repository }}
+                  files: ./coverage/lcov.info
+                  flags: ${{ matrix.codecov_flag }}
+                  name: vitest-unit-coverage-${{ matrix.codecov_flag }}
+                  report_type: coverage
+                  fail_ci_if_error: true
+                  disable_search: true
+                  verbose: true

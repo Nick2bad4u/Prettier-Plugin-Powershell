@@ -1,3 +1,6 @@
 {
-    "vitest.rootConfig": "C:\\Users\\Nick\\Dropbox\\PC (2)\\Documents\\GitHub\\prettier_plugin\\vitest.config.ts"
+    "sonarlint.connectedMode.project": {
+        "connectionId": "nick2bad4u",
+        "projectKey": "Nick2bad4u_Prettier-Plugin-Powershell"
+    }
 }

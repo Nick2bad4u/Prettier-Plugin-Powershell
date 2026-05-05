@@ -1,0 +1,85 @@
+# yaml-language-server: $schema=https://www.schemastore.org/codecov.json
+
+codecov:
+    branch: main
+    max_report_age: "24h"
+    notify:
+        wait_for_ci: true
+    require_ci_to_pass: true
+    slug: Nick2bad4u/prettier-plugin-powershell
+
+comment:
+    behavior: default
+    layout: "header, diff, flags, files, footer"
+    require_base: false
+    require_changes: false
+    require_head: true
+
+component_management:
+    default_rules:
+        statuses:
+            - target: auto
+              threshold: 2%
+              type: project
+    individual_components:
+        - component_id: plugin_entry
+          name: "Plugin entrypoint"
+          paths:
+              - plugin.mjs
+              - src/plugin.ts
+
+        - component_id: rules
+          name: "Rules"
+          paths:
+              - src/**
+          statuses:
+              - target: auto
+                threshold: 2%
+                type: project
+              - target: 80%
+                threshold: 3%
+                type: patch
+
+coverage:
+    precision: 2
+    range: "60...100"
+    round: down
+    status:
+        patch:
+            default:
+                target: 80%
+                threshold: 2%
+        project:
+            default:
+                target: auto
+                threshold: 2%
+
+flags:
+    os-linux:
+        carryforward: true
+        paths:
+            - plugin.mjs
+            - src/
+
+    os-macos:
+        carryforward: true
+        paths:
+            - plugin.mjs
+            - src/
+
+    os-windows:
+        carryforward: true
+        paths:
+            - plugin.mjs
+            - src/
+
+ignore:
+    - "benchmarks/**"
+    - "coverage/**"
+    - "dist/**"
+    - "docs/**"
+    - "scripts/**"
+    - "test/**"
+    - "**/*.d.ts"
+    - "**/*.test.*"
+    - "**/*.spec.*"

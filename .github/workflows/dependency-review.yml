@@ -1,6 +1,12 @@
+# Dependency Review Action
+#
+# This Action will scan dependency manifest files that change as part of a pull request,
+# surfacing known-vulnerable versions of the packages declared or updated in the PR.
+
+# yaml-language-server: $schema=https://www.schemastore.org/github-workflow.json
 name: Dependency Review
-run-name: >-
-    Dependency Review • ${{ github.event_name }} • ${{ github.ref_name }}
+
+run-name: Dependency Review • ${{ github.ref_name }} @${{ github.actor }}
 
 on:
     pull_request:
@@ -8,28 +14,28 @@ on:
         types:
             - checks_requested
 
-permissions:
-    contents: read
-
 concurrency:
     group: dependency-review-${{ github.ref }}
     cancel-in-progress: true
 
+permissions:
+    contents: read
+
 jobs:
     dependency-review:
-        name: Review dependencies
+        name: Dependency Review
         runs-on: ubuntu-latest
         timeout-minutes: 20
         steps:
-            - name: Harden the runner (Audit all outbound calls)
-              uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d # v2.16.1
+            - name: Harden Runner
+              uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
               with:
                   egress-policy: audit
 
-            - name: Checkout repository
+            - name: Checkout Repository
               uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-            - name: Dependency review
-              uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
+            - name: Dependency Review
+              uses: actions/dependency-review-action@05fe4576374b728f0c523d6a13d64c25081e0803 # v4.8.3
               with:
-                  fail-on-severity: moderate
+                  fail-on-severity: high

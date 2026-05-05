@@ -1,6 +1,6 @@
 # Prettier Plugin PowerShell
 
-[![CI](https://github.com/Nick2bad4u/prettier-plugin-powershell/actions/workflows/ci.yml/badge.svg)](https://github.com/Nick2bad4u/prettier-plugin-powershell/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/Nick2bad4u/prettier-plugin-powershell/branch/main/graph/badge.svg)](https://codecov.io/gh/Nick2bad4u/prettier-plugin-powershell) [![npm version](https://img.shields.io/npm/v/prettier-plugin-powershell.svg)](https://www.npmjs.com/package/prettier-plugin-powershell) [![npm downloads](https://img.shields.io/npm/dm/prettier-plugin-powershell.svg)](https://www.npmjs.com/package/prettier-plugin-powershell) [![License: UnLicense](https://img.shields.io/badge/License-UnLicense-blue.svg)](LICENSE) [![Node.js >= 18.12](https://img.shields.io/badge/node-%3E%3D18.12-43853d.svg)](https://nodejs.org/)
+[![CI](https://github.com/Nick2bad4u/prettier-plugin-powershell/actions/workflows/ci.yml/badge.svg)](https://github.com/Nick2bad4u/prettier-plugin-powershell/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/Nick2bad4u/prettier-plugin-powershell/branch/main/graph/badge.svg)](https://codecov.io/gh/Nick2bad4u/prettier-plugin-powershell) [![npm version](https://img.shields.io/npm/v/prettier-plugin-powershell.svg)](https://www.npmjs.com/package/prettier-plugin-powershell) [![npm downloads](https://img.shields.io/npm/dm/prettier-plugin-powershell.svg)](https://www.npmjs.com/package/prettier-plugin-powershell) [![License: UnLicense](https://img.shields.io/badge/License-UnLicense-blue.svg)](LICENSE.md) [![Node.js >= 18.12](https://img.shields.io/badge/node-%3E%3D18.12-43853d.svg)](https://nodejs.org/)
 
 A Prettier 3 plugin that formats PowerShell source files (`.ps1`, `.psm1`, `.psd1`) with predictable, idiomatic output. The formatter is extensively tested (high coverage with strict CI thresholds) and ready for CI/CD pipelines, editor integrations, and automated release flows.
 
@@ -14,12 +14,8 @@ A Prettier 3 plugin that formats PowerShell source files (`.ps1`, `.psm1`, `.psd
   - [Prettier configuration](#prettier-configuration)
   - [Command line](#command-line)
   - [Programmatic usage](#programmatic-usage)
-
 - [Configuration reference](#configuration-reference)
-
 - [Example formatting](#example-formatting)
-- [Automation & coverage](#automation--coverage)
-- [Project scripts](#project-scripts)
 - [Contributing](#contributing)
 - [Credits](#credits)
 - [License](#license)
@@ -48,8 +44,8 @@ Add the plugin to your Prettier config (e.g. `.prettierrc.json`):
 
 ```json
 {
-  "plugins": ["prettier-plugin-powershell"],
-  "parser": "powershell"
+ "plugins": ["prettier-plugin-powershell"],
+ "parser": "powershell"
 }
 ```
 
@@ -57,10 +53,10 @@ You can co-locate plugin options with standard Prettier settings:
 
 ```json
 {
-  "plugins": ["prettier-plugin-powershell"],
-  "tabWidth": 2,
-  "powershellTrailingComma": "all",
-  "powershellRewriteAliases": true
+ "plugins": ["prettier-plugin-powershell"],
+ "tabWidth": 2,
+ "powershellTrailingComma": "all",
+ "powershellRewriteAliases": true
 }
 ```
 
@@ -170,58 +166,6 @@ function Get-Widget {
 }
 ```
 
-## Automation & coverage
-
-- **CI** – GitHub Actions (see [`ci.yml`](.github/workflows/ci.yml)) installs dependencies, lint checks, type-checks, and runs the Vitest suite with coverage on every push and pull request.
-- **Codecov** – Coverage artefacts (`coverage/lcov.info`) are uploaded via the [Codecov action](https://github.com/codecov/codecov-action). The badge above reflects the latest metrics on `main`.
-- **npm publishing** – Every push to `main` triggers [`publish.yml`](.github/workflows/publish.yml), which bumps the version (patch by default, `feat` → minor, `BREAKING` → major), runs the quality bar, builds the package in workflow, tags the release, publishes to npm, and opens a GitHub release. Generated `dist/` artifacts are produced by CI for publishing rather than committed manually.
-
-## Property-based testing
-
-- **Fast-check harness** – Property-based tests across multiple modules use [`fast-check`](https://github.com/dubzzz/fast-check) to validate behavior with randomly generated inputs:
-  - `tests/parser.property.test.ts` – Exercises the parser and formatter with randomly generated PowerShell snippets, validating location metadata, token ordering, formatting stability, and re-parseability.
-  - `tests/parser.edge-cases.property.test.ts` – Stress-tests the parser with edge cases: deep nesting, unbalanced delimiters, comment placement, string variations, whitespace handling, pipelines, operators, and location consistency.
-  - `tests/tokenizer.property.test.ts` – Validates tokenizer correctness: token ordering, location ranges, determinism, and proper handling of keywords, variables, strings, comments, and edge cases.
-  - `tests/tokenizer-helpers.property.test.ts` – Tests the `normalizeHereString` helper function with various line counts, empty lines, mixed line endings, and edge cases.
-  - `tests/options.property.test.ts` – Ensures option resolution never throws, produces valid output, respects user preferences, applies sensible defaults, and correctly clamps numeric values.
-  - `tests/ast.property.test.ts` – Tests AST utility functions (`createLocation`, `isNodeType`, `cloneNode`) for correctness with edge cases like negative values, NaN, Infinity, and type safety.
-  - `tests/printer.property.test.ts` – Validates printer output: formatting never throws, produces valid PowerShell, remains idempotent, preserves semantics, respects configuration options, and handles edge cases like empty scripts and comments.
-  - `tests/integration.property.test.ts` – Tests full round-trip preservation (tokenize → parse → format → re-parse), option combinations, cross-module consistency, error resilience, plugin interface contracts, and file extension handling.
-  - `tests/weird-files.property.test.ts` – Exercises BOM + shebang combinations, Unicode-heavy content, comment directives, and exotic whitespace to ensure the parser and printer remain stable on atypical files.
-  - `tests/printer-options.property.test.ts` – Verifies option-sensitive printing behavior (blank line heuristics, string quote normalization, alias rewriting, and Write-Host rewriting) across randomized inputs.
-  - `tests/github-samples.property.test.ts` – _Opt-in_: when enabled, pulls real-world PowerShell scripts from the GitHub API, then formats and re-parses them to guard against regressions on long/complex inputs. By default it runs against local fallback fixtures; set `POWERSHELL_ENABLE_GITHUB_SAMPLES=1` (and optionally `GITHUB_TOKEN`) to exercise live GitHub samples.
-
-- **Custom arbitraries** – Reusable builders in [`tests/property/arbitraries.ts`](tests/property/arbitraries.ts) generate assignments, pipelines, functions, try/catch blocks, and other constructs to shake out edge cases.
-
-- **Idempotence checks** – Most property tests and fixtures assert that formatting is idempotent; a small number of known edge-case fixtures are marked with `expectIdempotent: false` so they still validate parseability without requiring strict first/second-pass equality.
-- **Tuning** – Adjust the number of runs with the `POWERSHELL_PROPERTY_RUNS` environment variable (default `100` for most tests, `150` for parser tests). For a deeper local sweep: `POWERSHELL_PROPERTY_RUNS=500 npm test`.
-- **PowerShell syntax sampling** – By default, **every** formatted script is re-validated with PowerShell's built-in parser so regressions surface immediately. Use `POWERSHELL_MAX_SYNTAX_CHECKS` to cap the number of checks (set to a positive integer) or `0` to skip entirely, and toggle the feature wholesale with `POWERSHELL_VERIFY_SYNTAX` (`0` to disable).
-  - Use `POWERSHELL_SYNTAX_TRACE=1` to emit per-invocation logs when diagnosing hangs or parser failures.
-
-- **Property progress & timeboxing** – Flip on run-by-run logging with `POWERSHELL_PROPERTY_PROGRESS=1` (default interval `50`, tweak via `POWERSHELL_PROPERTY_PROGRESS_INTERVAL`). Extend or shrink Vitest's overall timeout with `POWERSHELL_TEST_TIMEOUT_MS` when running extended fuzz sweeps, and control worker concurrency with `MAX_THREADS` (default `4`, or `1` on CI).
-
-- **Deep fuzzing** – `npm run test:fuzz` now shells through PowerShell so the `POWERSHELL_PROPERTY_RUNS=2000` environment toggle works cross-platform.
-
-To fuzz against GitHub-hosted PowerShell, export `POWERSHELL_ENABLE_GITHUB_SAMPLES=1` (optionally `GITHUB_TOKEN` to raise rate limits) and run `npm test`. You can further tune `POWERSHELL_GITHUB_SAMPLE_COUNT`, `POWERSHELL_GITHUB_QUERY`, `POWERSHELL_GITHUB_MIN_LENGTH`, `POWERSHELL_GITHUB_MAX_LENGTH`, and `POWERSHELL_GITHUB_MAX_CANDIDATES` to control source selection. Enable `POWERSHELL_CACHE_GITHUB_SAMPLES=1` to save downloaded samples to `tests/fixtures/github-cache/` for reuse across runs, avoiding redundant API calls.
-
-## Project scripts
-
-| Script                                         | Description                                                                                |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `npm run build`                                | Bundle the plugin to `dist/` via `tsup`.                                                   |
-| `npm run build:watch`                          | Rebuild continuously while developing.                                                     |
-| `npm run clean`                                | Remove the `dist/` directory.                                                              |
-| `npm run lint` / `npm run lint:fix`            | Run ESLint (optionally with auto-fix).                                                     |
-| `npm run format`                               | Apply Prettier to TypeScript source and tests.                                             |
-| `npm run test` / `npm run test:watch`          | Execute the Vitest suite.                                                                  |
-| `npm run test:ci`                              | Run the Vitest suite with a summary reporter (used in CI workflows).                       |
-| `npm run test:debug`                           | Start Vitest under the Node inspector for interactive debugging.                           |
-| `npm run test:coverage`                        | Generate v8 coverage reports (consumed by Codecov).                                        |
-| `npm run test:fuzz`                            | Run the Vitest suite with `POWERSHELL_PROPERTY_RUNS=2000` via PowerShell for deep fuzzing. |
-| `npm run benchmark`                            | Run the built-in benchmark against synthetic PowerShell functions.                         |
-| `npm run profile` / `npm run profile:enhanced` | Capture parser/formatter performance profiles for detailed analysis.                       |
-| `npm run typecheck`                            | Ensure the TypeScript project compiles without emitting files.                             |
-
 ## Contributing
 
 1. Fork and clone the repository.
@@ -233,15 +177,46 @@ To fuzz against GitHub-hosted PowerShell, export `POWERSHELL_ENABLE_GITHUB_SAMPL
 - `npm run typecheck`
 - `npm run test:coverage`
 
-5. Contributions remain under the UnLicense license.
+5. Contributions remain under the MIT License.
 
 Bug reports and feature requests are welcome via [GitHub issues](https://github.com/Nick2bad4u/prettier-plugin-powershell/issues).
 
 ## Credits
 
-- Mascot artwork courtesy of the ColorScripts team (light and dark variants included in [`assets/`](assets)).
 - Built with [Prettier](https://prettier.io/), [TypeScript](https://www.typescriptlang.org/), and [Vitest](https://vitest.dev/).
 
 ## License
 
-Distributed under the [UnLicense License](LICENSE).
+Distributed under the [MIT License](LICENSE.md).
+
+## Contributors ✨
+
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+
+[![All Contributors.](https://img.shields.io/badge/all_contributors-5-orange.svg?style=flat-square)](#contributors-)
+
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
+
+Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tbody>
+    <tr>
+      <td align="center" valign="top" width="25%"><a href="https://github.com/Nick2bad4u"><img src="https://avatars.githubusercontent.com/u/20943337?v=4?s=80" width="80px;" alt="Nick2bad4u"/><br /><sub><b>Nick2bad4u</b></sub></a><br /><a href="https://github.com/Nick2bad4u/eslint-plugin-typefest/issues?q=author%3ANick2bad4u" title="Bug reports">🐛</a> <a href="https://github.com/Nick2bad4u/eslint-plugin-typefest/commits?author=Nick2bad4u" title="Code">💻</a> <a href="https://github.com/Nick2bad4u/eslint-plugin-typefest/commits?author=Nick2bad4u" title="Documentation">📖</a> <a href="#ideas-Nick2bad4u" title="Ideas, Planning, & Feedback">🤔</a> <a href="#infra-Nick2bad4u" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="#maintenance-Nick2bad4u" title="Maintenance">🚧</a> <a href="https://github.com/Nick2bad4u/eslint-plugin-typefest/pulls?q=is%3Apr+reviewed-by%3ANick2bad4u" title="Reviewed Pull Requests">👀</a> <a href="https://github.com/Nick2bad4u/eslint-plugin-typefest/commits?author=Nick2bad4u" title="Tests">⚠️</a> <a href="#tool-Nick2bad4u" title="Tools">🔧</a></td>
+      <td align="center" valign="top" width="25%"><a href="https://snyk.io/"><img src="https://avatars.githubusercontent.com/u/19733683?v=4?s=80" width="80px;" alt="Snyk bot"/><br /><sub><b>Snyk bot</b></sub></a><br /><a href="#security-snyk-bot" title="Security">🛡️</a> <a href="#infra-snyk-bot" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="#maintenance-snyk-bot" title="Maintenance">🚧</a> <a href="https://github.com/Nick2bad4u/eslint-plugin-typefest/pulls?q=is%3Apr+reviewed-by%3Asnyk-bot" title="Reviewed Pull Requests">👀</a></td>
+      <td align="center" valign="top" width="25%"><a href="https://www.stepsecurity.io/"><img src="https://avatars.githubusercontent.com/u/89328645?v=4?s=80" width="80px;" alt="StepSecurity Bot"/><br /><sub><b>StepSecurity Bot</b></sub></a><br /><a href="#security-step-security-bot" title="Security">🛡️</a> <a href="#infra-step-security-bot" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="#maintenance-step-security-bot" title="Maintenance">🚧</a></td>
+      <td align="center" valign="top" width="25%"><a href="https://github.com/apps/dependabot"><img src="https://avatars.githubusercontent.com/in/29110?v=4?s=80" width="80px;" alt="dependabot[bot]"/><br /><sub><b>dependabot[bot]</b></sub></a><br /><a href="#infra-dependabot[bot]" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="#security-dependabot[bot]" title="Security">🛡️</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="25%"><a href="https://github.com/apps/github-actions"><img src="https://avatars.githubusercontent.com/in/15368?v=4?s=80" width="80px;" alt="github-actions[bot]"/><br /><sub><b>github-actions[bot]</b></sub></a><br /><a href="https://github.com/Nick2bad4u/eslint-plugin-typefest/commits?author=github-actions[bot]" title="Code">💻</a> <a href="#infra-github-actions[bot]" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->

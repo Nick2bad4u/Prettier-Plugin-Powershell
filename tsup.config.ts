@@ -13,8 +13,8 @@ const config: Options = {
     outDir: "dist",
     platform: "node",
     sourcemap: true,
-    target: "es2020",
-    treeshake: false,
+    target: "esnext",
+    treeshake: true,
 };
 
 export default config;

@@ -1,12 +1,11 @@
 ---
 name: BeastMode
 description: Beast Mode 3.1 (Custom Prettier)
-agents: "*"
+agents: ["*"]
 disable-model-invocation: false
 user-invocable: true
 argument-hint: "💻 🤖 😈 Beast Mode agent ready. 👿 🤖 💻"
-tools:
- - agent
+tools: [vscode, execute, read, agent, edit, search, web, 'tavily-remote-mcp-system/*', 'vscode-mcp/*', browser, todo, artifacts, artifactRules]
 handoffs:
  - label: Unit
    agent: BeastMode

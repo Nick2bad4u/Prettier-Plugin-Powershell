@@ -1,0 +1,152 @@
+---
+$schema: "https://www.schemastore.org/yamllint.json"
+extends: default
+# yaml-language-server: $schema=https://www.schemastore.org/yamllint.json
+
+locale: en_US.UTF-8
+
+# Define which files to consider as YAML
+yaml-files:
+    - "*.yaml"
+    - "*.yml"
+    - ".yamllint"
+    - ".yamllint.yaml"
+    - ".yamllint.yml"
+    - "docker-compose*.yml"
+    - "docker-compose*.yaml"
+    - "**/*.yaml"
+    - "**/*.yml"
+
+# Files and directories to ignore
+ignore: |
+    node_modules
+    **/node_modules/*
+    **/node_modules/**
+    dist/
+    coverage/
+    build/
+    release/
+    .vscode/
+    .idea/
+    *.min.js
+    *.min.css
+    *.bundle.js
+    docs/Packages/**
+    # CI/CD files with known issues
+    docs/docusaurus/docs/documents/docs/Packages/**
+    **/.stryker-tmp/**
+
+rules:
+    # Enable anchor rules for better YAML structure
+    anchors:
+        forbid-undeclared-aliases: true
+        forbid-duplicated-anchors: true
+        forbid-unused-anchors: false
+
+    # Braces configuration for flow mappings
+    braces:
+        level: warning
+        max-spaces-inside: 5
+        min-spaces-inside: 0
+        forbid: false
+        min-spaces-inside-empty: -1
+        max-spaces-inside-empty: -1
+
+    # Brackets configuration for flow sequences
+    brackets:
+        level: warning
+        max-spaces-inside: 20
+        min-spaces-inside: 0
+        min-spaces-inside-empty: -1
+        max-spaces-inside-empty: -1
+        forbid: false
+
+    # Colons configuration
+    colons:
+        level: warning
+        max-spaces-before: 0
+        max-spaces-after: 1
+
+    # Commas configuration
+    commas:
+        level: warning
+        max-spaces-before: 0
+        max-spaces-after: 1
+        min-spaces-after: 1
+
+    # Disable comment rules for flexibility
+    comments:
+        require-starting-space: true
+        ignore-shebangs: true
+        min-spaces-from-content: 1
+    comments-indentation: disable
+
+    # Document start/end configuration
+    document-start: false
+    document-end: false
+
+    # Empty lines configuration
+    empty-lines:
+        level: warning
+        max: 2
+        max-start: 1
+        max-end: 1
+
+    # Enable important rules for data integrity
+    empty-values:
+        forbid-in-block-mappings: false
+        forbid-in-flow-mappings: true
+        forbid-in-block-sequences: true
+
+    # Hyphen configuration
+    hyphens:
+        level: warning
+        max-spaces-after: 1
+
+    # Indentation configuration for consistency
+    indentation:
+        level: warning
+        spaces: 4
+        indent-sequences: consistent
+        check-multi-line-strings: false
+
+    # Key rules for structure
+    key-duplicates:
+        forbid-duplicated-merge-keys: true
+    key-ordering: false
+
+    # Line length for readability (relaxed for modern screens)
+    line-length:
+        level: warning
+        max: 200
+        allow-non-breakable-words: true
+        allow-non-breakable-inline-mappings: true
+
+    # File ending requirements
+    new-line-at-end-of-file: enable
+
+    float-values:
+        forbid-inf: false
+        forbid-nan: false
+        forbid-scientific-notation: false
+        require-numeral-before-decimal: false
+
+    octal-values: enable
+
+    quoted-strings:
+        allow-quoted-quotes: false
+        check-keys: false
+        quote-type: double
+        required: false
+
+    # New lines configuration (force consistent Unix newlines across platforms)
+    new-lines:
+        type: unix
+
+    # Disable truthy for flexibility with CI/CD configs
+    truthy:
+        check-keys: false
+        allowed-values: ["yes", "no", "true", "false", "on", "off"]
+
+    # Enable trailing spaces check
+    trailing-spaces: enable

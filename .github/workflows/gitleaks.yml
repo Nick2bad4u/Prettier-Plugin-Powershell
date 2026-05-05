@@ -1,6 +1,7 @@
+# yaml-language-server: $schema=https://www.schemastore.org/github-workflow.json
 name: Gitleaks Scan
-run-name: >-
-    Gitleaks • ${{ github.event_name }} • ${{ github.ref_name }}
+
+run-name: Gitleaks Scan • ${{ github.ref_name }} @${{ github.actor }}
 
 on:
     pull_request:
@@ -8,12 +9,9 @@ on:
         types:
             - checks_requested
     push:
-    schedule:
-        - cron: "0 6 * * 0"
     workflow_dispatch:
-
-permissions:
-    contents: read
+    schedule:
+        - cron: "12 4 * * *" # run once a day at 4:12 AM
 
 concurrency:
     group: gitleaks-${{ github.ref }}
@@ -24,9 +22,11 @@ jobs:
         name: Gitleaks
         runs-on: ubuntu-latest
         timeout-minutes: 20
+        permissions:
+            contents: read
         steps:
             - name: Harden the runner (Audit all outbound calls)
-              uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d # v2.16.1
+              uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
               with:
                   egress-policy: audit
 
@@ -34,8 +34,10 @@ jobs:
               uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
               with:
                   fetch-depth: 0
-            - name: Run Gitleaks scan
+
+            - name: Run gitleaks scan
               uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GITLEAKS_CONFIG: .gitleaks.toml
                   # GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }} # Uncomment if using in an organization

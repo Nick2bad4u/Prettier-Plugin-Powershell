@@ -1,0 +1,19 @@
+# Default ownership for the entire repository.
+* @Nick2bad4u
+
+# Specific ownership for certain paths.
+
+# The .github/ directory contains GitHub-specific files, such as issue templates and workflows.
+.github/ @Nick2bad4u
+
+# The docs/ directory contains documentation files for the project.
+docs/ @Nick2bad4u
+
+# The src/ directory contains the source code for the project.
+src/ @Nick2bad4u
+
+# The test/ directory contains test files for the project.
+test/ @Nick2bad4u
+
+# The .vscode/ directory contains Visual Studio Code configuration files.
+.vscode/ @Nick2bad4u
