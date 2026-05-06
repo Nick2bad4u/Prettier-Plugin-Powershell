@@ -7,6 +7,8 @@ tests/test_files/**/*.unformatted.ps1
 tests/test_files/**/*.test.ps1
 tests/test_files/**/*.test.psm1
 tests/test_files/**/*.test.psd1
+tests/test_files/Test-File-8.unformatted.psd1
+tests/test_files/Test-File-9.unformatted.psd1
 tests/test_files/weird-*.test.*
 
 # Utility scripts invoked by tests for syntax validation

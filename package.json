@@ -148,7 +148,8 @@
         "test:debug": "vitest --inspect-brk",
         "test:fuzz": "pwsh -NoLogo -NoProfile -Command \"$env:POWERSHELL_PROPERTY_RUNS=2000; npm run test\"",
         "test:watch": "vitest",
-        "typecheck": "tsc --project tsconfig.json --noEmit",
+        "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.eslint.json --noEmit && tsc -p tsconfig.js.json --noEmit",
+        "typecheck:all": "npm run typecheck",
         "update-deps": "npx ncu -i --install never && npm update --force && npm install --force"
     },
     "dependencies": {

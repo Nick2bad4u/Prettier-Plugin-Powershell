@@ -1,3 +1,5 @@
+import type { UnknownRecord } from "type-fest";
+
 import { isFinite, objectHasOwn, safeCastTo } from "ts-extras";
 
 /**
@@ -182,49 +184,23 @@ export function cloneNode<T extends BaseNode>(node: Readonly<T>): T {
         loc: { ...node.loc },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Clone helper must access optional structural arrays by runtime key.
-    if (objectHasOwn(cloned, "body") && Array.isArray((cloned as any).body)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Clone helper must access optional structural arrays by runtime key.
-        (cloned as any).body = [...(cloned as any).body];
-    }
+    const clonedRecord = cloned as unknown as UnknownRecord;
+    const cloneArrayField = (field: string): void => {
+        if (!objectHasOwn(clonedRecord, field)) {
+            return;
+        }
+        const value = clonedRecord[field];
+        if (Array.isArray(value)) {
+            clonedRecord[field] = [...value];
+        }
+    };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Clone helper must access optional structural arrays by runtime key.
-    if (objectHasOwn(cloned, "parts") && Array.isArray((cloned as any).parts)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Clone helper must access optional structural arrays by runtime key.
-        (cloned as any).parts = [...(cloned as any).parts];
-    }
-
-    if (
-        objectHasOwn(cloned, "segments") &&
-        Array.isArray((cloned as any).segments)
-    ) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Clone helper must access optional structural arrays by runtime key.
-        (cloned as any).segments = [...(cloned as any).segments];
-    }
-
-    if (
-        objectHasOwn(cloned, "elements") &&
-        Array.isArray((cloned as any).elements)
-    ) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Clone helper must access optional structural arrays by runtime key.
-        (cloned as any).elements = [...(cloned as any).elements];
-    }
-
-    if (
-        objectHasOwn(cloned, "entries") &&
-        Array.isArray((cloned as any).entries)
-    ) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Clone helper must access optional structural arrays by runtime key.
-        (cloned as any).entries = [...(cloned as any).entries];
-    }
-
-    if (
-        objectHasOwn(cloned, "parameters") &&
-        Array.isArray((cloned as any).parameters)
-    ) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Clone helper must access optional structural arrays by runtime key.
-        (cloned as any).parameters = [...(cloned as any).parameters];
-    }
+    cloneArrayField("body");
+    cloneArrayField("parts");
+    cloneArrayField("segments");
+    cloneArrayField("elements");
+    cloneArrayField("entries");
+    cloneArrayField("parameters");
 
     return cloned;
 }

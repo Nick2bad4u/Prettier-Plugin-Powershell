@@ -191,7 +191,7 @@ function normalizeStringLiteral(
  * markers) that should be removed before expression normalization.
  *
  * Uses a fictional discriminant (`BacktickContinuationNode`) so that
- * `Exclude<ExpressionPartNode, BacktickContinuationNode>` =
+ * `Exclude<ExpressionPartNode, BacktickContinuationNode>` equals
  * `ExpressionPartNode` (no real union member has type: "BacktickContinuation"),
  * preserving the full element type in the filtered result.
  */

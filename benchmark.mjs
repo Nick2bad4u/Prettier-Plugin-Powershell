@@ -1,6 +1,8 @@
 import { performance } from "node:perf_hooks";
 
-const { format } = await import("prettier");
+const { format } = /** @type {{ format: typeof import("prettier").format }} */ (
+    await import("prettier")
+);
 const pluginPath = "./dist/index.cjs";
 
 const buildScript = (functionCount) =>
