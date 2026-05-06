@@ -91,6 +91,13 @@ interface SplitOptions<TState = Record<string, never>> {
     splitOnNewline?: (context: SplitContext<TState>) => boolean;
 }
 
+interface StatementParseState {
+    lineContinuation: boolean;
+    segments: Token[][];
+    structureStack: string[];
+    trailingComment?: CommentNode;
+}
+
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- node.loc is mutated to extend the location
 function extendNodeLocation(node: { loc: SourceLocation }, end: number): void {
     if (end > node.loc.end) {
@@ -219,21 +226,6 @@ class Parser {
         const firstToken = arrayFirst(this.tokens);
         const start = isDefined(firstToken) ? firstToken.start : 0;
 
-        const appendNode = (
-            node: null | Readonly<ScriptBodyNode> | undefined
-        ) => {
-            if (!isPresent(node)) {
-                return;
-            }
-
-            const last = arrayAt(body, -1);
-            if (isDefined(last) && shouldMergeNodes(last, node)) {
-                mergeNodes(last, node);
-            } else {
-                body.push(node);
-            }
-        };
-
         while (!this.isEOF()) {
             const token = this.peek();
 
@@ -241,56 +233,17 @@ class Parser {
                 break;
             }
 
-            if (
-                setHas(terminators, token.value) &&
-                token.type === "punctuation"
-            ) {
+            if (this.shouldStopAtTerminator(token, terminators)) {
                 break;
             }
 
-            if (classifyStatementTerminator(token, 0) === "semicolon") {
-                this.advance();
-                const nextToken = this.peek();
-                if (
-                    nextToken?.type === "comment" &&
-                    this.isInlineComment(nextToken)
-                ) {
-                    const commentNode = this.createCommentNode(
-                        this.advance(),
-                        true
-                    );
-                    appendNode(commentNode);
-                }
-                continue;
-            }
-
-            if (token.type === "newline") {
-                const blank = this.consumeBlankLines();
-                appendNode(blank);
-                continue;
-            }
-
-            if (token.type === "comment" || token.type === "block-comment") {
-                const commentToken = this.advance();
-                const commentNode = this.createCommentNode(commentToken, false);
-                if (
-                    body.length > 0 &&
-                    this.attachCommentToPreviousScriptBlock(body, commentNode)
-                ) {
-                    continue;
-                }
-                appendNode(commentNode);
-                continue;
-            }
-
-            if (this.isFunctionDeclaration()) {
-                appendNode(this.parseFunction());
+            if (this.consumeTopLevelToken(body, token) === "continue") {
                 continue;
             }
 
             const statement = this.parseStatement();
             if (statement) {
-                appendNode(statement);
+                this.appendScriptNode(body, statement);
             } else {
                 // Avoid infinite loops
                 this.advance();
@@ -313,6 +266,24 @@ class Parser {
             throw new Error("Unexpected end of token stream");
         }
         return token;
+    }
+
+    private appendScriptNode(
+        // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- ScriptBodyNode array is intentionally mutated while parsing
+        body: ScriptBodyNode[],
+        node: null | Readonly<ScriptBodyNode> | undefined
+    ): void {
+        if (!isPresent(node)) {
+            return;
+        }
+
+        const last = arrayAt(body, -1);
+        if (isDefined(last) && shouldMergeNodes(last, node)) {
+            mergeNodes(last, node);
+            return;
+        }
+
+        body.push(node);
     }
 
     /**
@@ -410,6 +381,167 @@ class Parser {
             loc: { end, start },
             type: "BlankLine",
         } satisfies BlankLineNode;
+    }
+
+    private consumeStatementBlockComment(
+        // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Parser state is intentionally mutated during statement consumption
+        state: StatementParseState
+    ): "break" | "continue" {
+        if (isEmpty(state.structureStack)) {
+            return "break";
+        }
+
+        this.pushTokenToCurrentSegment(state.segments, this.advance());
+        return "continue";
+    }
+
+    private consumeStatementComment(
+        token: Readonly<Token>,
+        // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Parser state is intentionally mutated during statement consumption
+        state: StatementParseState
+    ): "break" | "continue" {
+        if (isEmpty(state.structureStack) && this.isInlineComment(token)) {
+            state.trailingComment = this.createCommentNode(
+                this.advance(),
+                true
+            );
+        }
+
+        if (isEmpty(state.structureStack)) {
+            return "break";
+        }
+
+        this.pushTokenToCurrentSegment(state.segments, this.advance());
+        return "continue";
+    }
+
+    private consumeStatementNewline(
+        // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Parser state is intentionally mutated during statement consumption
+        state: StatementParseState
+    ): "break" | "continue" {
+        if (state.lineContinuation) {
+            this.advance();
+            state.lineContinuation = false;
+            return "continue";
+        }
+
+        /* c8 ignore next */
+        if (state.structureStack.length > 0) {
+            this.pushTokenToCurrentSegment(state.segments, this.advance());
+            return "continue";
+        }
+
+        if (this.isPipelineContinuationAfterNewline()) {
+            this.advance();
+            return "continue";
+        }
+
+        return "break";
+    }
+
+    private consumeStatementPipe(
+        // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Parser state is intentionally mutated during statement consumption
+        state: StatementParseState
+    ): "continue" {
+        if (state.structureStack.length > 0) {
+            this.pushTokenToCurrentSegment(state.segments, this.advance());
+            state.lineContinuation = false;
+            return "continue";
+        }
+
+        this.advance();
+        state.segments.push([]);
+        state.lineContinuation = false;
+        return "continue";
+    }
+
+    private consumeStatementToken(
+        token: Readonly<Token>,
+        // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Parser state is intentionally mutated during statement consumption
+        state: StatementParseState
+    ): "break" | "continue" | "none" {
+        const terminatorType = classifyStatementTerminator(
+            token,
+            state.structureStack.length
+        );
+
+        if (
+            terminatorType === "semicolon" ||
+            terminatorType === "closing-brace" ||
+            terminatorType === "closing-paren"
+        ) {
+            return "break";
+        }
+
+        if (terminatorType === "newline") {
+            return this.consumeStatementNewline(state);
+        }
+
+        if (token.type === "comment") {
+            return this.consumeStatementComment(token, state);
+        }
+
+        if (token.type === "block-comment") {
+            return this.consumeStatementBlockComment(state);
+        }
+
+        if (token.type === "operator" && token.value === "|") {
+            return this.consumeStatementPipe(state);
+        }
+
+        /* c8 ignore next */
+        if (token.type === "unknown" && token.value === "`") {
+            this.advance();
+            state.lineContinuation = true;
+            return "continue";
+        }
+
+        return "none";
+    }
+
+    private consumeTopLevelToken(
+        // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- ScriptBodyNode array is intentionally mutated while parsing
+        body: ScriptBodyNode[],
+        token: Readonly<Token>
+    ): "continue" | "statement" {
+        if (classifyStatementTerminator(token, 0) === "semicolon") {
+            this.advance();
+            const nextToken = this.peek();
+            if (
+                nextToken?.type === "comment" &&
+                this.isInlineComment(nextToken)
+            ) {
+                this.appendScriptNode(
+                    body,
+                    this.createCommentNode(this.advance(), true)
+                );
+            }
+            return "continue";
+        }
+
+        if (token.type === "newline") {
+            this.appendScriptNode(body, this.consumeBlankLines());
+            return "continue";
+        }
+
+        if (token.type === "comment" || token.type === "block-comment") {
+            const commentNode = this.createCommentNode(this.advance(), false);
+            if (
+                body.length > 0 &&
+                this.attachCommentToPreviousScriptBlock(body, commentNode)
+            ) {
+                return "continue";
+            }
+            this.appendScriptNode(body, commentNode);
+            return "continue";
+        }
+
+        if (this.isFunctionDeclaration()) {
+            this.appendScriptNode(body, this.parseFunction());
+            return "continue";
+        }
+
+        return "statement";
     }
 
     private createCommentNode(
@@ -565,11 +697,11 @@ class Parser {
     }
 
     private parseStatement(): null | PipelineNode {
-        const segments: Token[][] = [[]];
-        let trailingComment: CommentNode | undefined = undefined;
-
-        const structureStack: string[] = [];
-        let lineContinuation = false;
+        const state: StatementParseState = {
+            lineContinuation: false,
+            segments: [[]],
+            structureStack: [],
+        };
 
         while (!this.isEOF()) {
             const token = this.peek();
@@ -577,114 +709,26 @@ class Parser {
             if (!isDefined(token)) {
                 break;
             }
-            const terminatorType = classifyStatementTerminator(
-                token,
-                structureStack.length
-            );
 
-            if (terminatorType === "newline") {
-                if (lineContinuation) {
-                    this.advance();
-                    lineContinuation = false;
-                    continue;
-                }
-                /* c8 ignore next */
-                if (structureStack.length > 0) {
-                    const newlineToken = this.advance();
-                    const lastSegment = arrayAt(segments, -1);
-                    if (lastSegment) {
-                        lastSegment.push(newlineToken);
-                    }
-                    continue;
-                }
-                if (
-                    isEmpty(structureStack) &&
-                    this.isPipelineContinuationAfterNewline()
-                ) {
-                    this.advance();
-                    continue;
-                }
+            const action = this.consumeStatementToken(token, state);
+            if (action === "break") {
                 break;
             }
-
-            if (terminatorType === "semicolon") {
-                break;
-            }
-
-            if (
-                terminatorType === "closing-brace" ||
-                terminatorType === "closing-paren"
-            ) {
-                break;
-            }
-
-            if (token.type === "comment") {
-                if (isEmpty(structureStack) && this.isInlineComment(token)) {
-                    trailingComment = this.createCommentNode(
-                        this.advance(),
-                        true
-                    );
-                }
-                if (isEmpty(structureStack)) {
-                    break;
-                }
-                // Inside a structure - include the comment as part of the statement
-                const currentSegment = arrayAt(segments, -1);
-                if (currentSegment) {
-                    currentSegment.push(this.advance());
-                }
+            if (action === "continue") {
                 continue;
             }
 
-            if (token.type === "block-comment") {
-                if (isEmpty(structureStack)) {
-                    break;
-                }
-                // Inside a structure - include the block comment
-                const currentSegment = arrayAt(segments, -1);
-                if (currentSegment) {
-                    currentSegment.push(this.advance());
-                }
-                continue;
-            }
-
-            if (token.type === "operator" && token.value === "|") {
-                if (structureStack.length > 0) {
-                    const currentSegment = arrayAt(segments, -1);
-                    if (currentSegment) {
-                        currentSegment.push(this.advance());
-                    }
-                    lineContinuation = false;
-                    continue;
-                }
-
-                this.advance();
-                segments.push([]);
-                lineContinuation = false;
-                continue;
-            }
-
-            /* c8 ignore next */
-            if (token.type === "unknown" && token.value === "`") {
-                this.advance();
-                lineContinuation = true;
-                continue;
-            }
-
-            const currentSegment = arrayAt(segments, -1);
-            if (currentSegment) {
-                currentSegment.push(this.advance());
-            }
-            lineContinuation = false;
+            this.pushTokenToCurrentSegment(state.segments, this.advance());
+            state.lineContinuation = false;
 
             if (isOpeningToken(token)) {
-                structureStack.push(token.value);
+                state.structureStack.push(token.value);
             } else if (isClosingToken(token)) {
-                structureStack.pop();
+                state.structureStack.pop();
             }
         }
 
-        const filteredSegments = segments.filter(
+        const filteredSegments = state.segments.filter(
             (segment) => segment.length > 0
         );
         if (isEmpty(filteredSegments)) {
@@ -710,8 +754,8 @@ class Parser {
             type: "Pipeline",
         };
 
-        if (trailingComment) {
-            pipelineNode.trailingComment = trailingComment;
+        if (state.trailingComment) {
+            pipelineNode.trailingComment = state.trailingComment;
         }
 
         return pipelineNode;
@@ -732,6 +776,24 @@ class Parser {
             token = this.peek(offset);
         }
         return token;
+    }
+
+    private pushTokenToCurrentSegment(
+        // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Nested token arrays are intentionally mutated while parsing
+        segments: Token[][],
+        token: Readonly<Token>
+    ): void {
+        const currentSegment = arrayAt(segments, -1);
+        if (currentSegment) {
+            currentSegment.push(token);
+        }
+    }
+
+    private shouldStopAtTerminator(
+        token: Readonly<Token>,
+        terminators: ReadonlySet<string>
+    ): boolean {
+        return token.type === "punctuation" && setHas(terminators, token.value);
     }
 }
 
@@ -785,18 +847,7 @@ function buildExpressionFromTokens(
     tokens: readonly Token[],
     source = ""
 ): ExpressionNode {
-    const firstToken = tokens.find((token) => token.type !== "newline");
-    let lastToken: Token | undefined = undefined;
-    for (let index = tokens.length - 1; index >= 0; index -= 1) {
-        const candidate = tokens[index];
-        if (!isDefined(candidate)) {
-            continue;
-        }
-        if (candidate.type !== "newline") {
-            lastToken = candidate;
-            break;
-        }
-    }
+    const { firstToken, lastToken } = findExpressionBoundaryTokens(tokens);
     if (!firstToken || !lastToken) {
         return {
             loc: {
@@ -812,74 +863,14 @@ function buildExpressionFromTokens(
     let index = 0;
 
     while (index < tokens.length) {
-        const token = tokens[index];
-        if (!isDefined(token)) {
+        const parsedPart = parseExpressionPartFromToken(tokens, index, source);
+        if (!parsedPart) {
             index += 1;
             continue;
         }
 
-        if (token.type === "newline") {
-            index += 1;
-            continue;
-        }
-
-        if (token.type === "operator" && token.value === "@{") {
-            const { nextIndex, node } = parseHashtablePart(
-                tokens,
-                index,
-                source
-            );
-            parts.push(node);
-            index = nextIndex;
-            continue;
-        }
-
-        if (
-            (token.type === "operator" && token.value === "@(") ||
-            (token.type === "punctuation" && token.value === "[")
-        ) {
-            const { nextIndex, node } = parseArrayPart(tokens, index, source);
-            parts.push(node);
-            index = nextIndex;
-            continue;
-        }
-
-        if (token.type === "punctuation" && token.value === "{") {
-            const { nextIndex, node } = parseScriptBlockPart(
-                tokens,
-                index,
-                source
-            );
-            parts.push(node);
-            index = nextIndex;
-            continue;
-        }
-
-        if (token.type === "punctuation" && token.value === "(") {
-            const { nextIndex, node } = parseParenthesisPart(
-                tokens,
-                index,
-                source
-            );
-            parts.push(node);
-            index = nextIndex;
-            continue;
-        }
-
-        if (token.type === "heredoc") {
-            parts.push(createHereStringNode(token));
-            index += 1;
-            continue;
-        }
-
-        if (token.type === "attribute") {
-            parts.push(createTextNode(token));
-            index += 1;
-            continue;
-        }
-
-        parts.push(createTextNode(token));
-        index += 1;
+        parts.push(parsedPart.node);
+        index = parsedPart.nextIndex;
     }
 
     const lastPart = arrayAt(parts, -1);
@@ -893,6 +884,72 @@ function buildExpressionFromTokens(
         parts,
         type: "Expression",
     } satisfies ExpressionNode;
+}
+
+function findExpressionBoundaryTokens(
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+    tokens: readonly Token[]
+): { firstToken?: Token; lastToken?: Token } {
+    const firstToken = tokens.find((token) => token.type !== "newline");
+    let lastToken: Token | undefined = undefined;
+
+    for (let index = tokens.length - 1; index >= 0; index -= 1) {
+        const candidate = tokens[index];
+        if (!isDefined(candidate) || candidate.type === "newline") {
+            continue;
+        }
+
+        lastToken = candidate;
+        break;
+    }
+
+    return {
+        ...(firstToken ? { firstToken } : {}),
+        ...(lastToken ? { lastToken } : {}),
+    };
+}
+
+function parseExpressionPartFromToken(
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+    tokens: readonly Token[],
+    index: number,
+    source: string
+): undefined | { nextIndex: number; node: ExpressionPartNode } {
+    const token = tokens[index];
+    if (!isDefined(token) || token.type === "newline") {
+        return undefined;
+    }
+
+    if (token.type === "operator" && token.value === "@{") {
+        return parseHashtablePart(tokens, index, source);
+    }
+
+    if (
+        (token.type === "operator" && token.value === "@(") ||
+        (token.type === "punctuation" && token.value === "[")
+    ) {
+        return parseArrayPart(tokens, index, source);
+    }
+
+    if (token.type === "punctuation" && token.value === "{") {
+        return parseScriptBlockPart(tokens, index, source);
+    }
+
+    if (token.type === "punctuation" && token.value === "(") {
+        return parseParenthesisPart(tokens, index, source);
+    }
+
+    if (token.type === "heredoc") {
+        return {
+            nextIndex: index + 1,
+            node: createHereStringNode(token),
+        };
+    }
+
+    return {
+        nextIndex: index + 1,
+        node: createTextNode(token),
+    };
 }
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
@@ -917,34 +974,8 @@ function buildHashtableEntry(
     tokens: readonly Token[],
     source = ""
 ): HashtableEntryNode {
-    // Separate comments from other tokens
-    const leadingComments: Token[] = [];
-    const trailingComments: Token[] = [];
-    const otherTokens: Token[] = [];
-
-    let equalsIndex = -1;
-    let foundEquals = false;
-
-    for (const token of tokens) {
-        if (token.type === "comment" || token.type === "block-comment") {
-            // Comments before the = are leading, after are trailing
-            if (foundEquals) {
-                trailingComments.push(token);
-            } else {
-                leadingComments.push(token);
-            }
-        } else {
-            if (
-                token.type === "operator" &&
-                token.value === "=" &&
-                !foundEquals
-            ) {
-                equalsIndex = otherTokens.length;
-                foundEquals = true;
-            }
-            otherTokens.push(token);
-        }
-    }
+    const { equalsIndex, leadingComments, otherTokens, trailingComments } =
+        partitionHashtableEntryTokens(tokens);
 
     const keyTokens =
         equalsIndex === -1 ? otherTokens : otherTokens.slice(0, equalsIndex);
@@ -973,50 +1004,22 @@ function buildHashtableEntry(
 
     // Add comments if present
     if (leadingComments.length > 0) {
-        entry.leadingComments = leadingComments.map((token) => ({
-            inline: false,
-            loc: { end: token.end, start: token.start },
-            style:
-                token.type === "block-comment"
-                    ? ("block" as const)
-                    : ("line" as const),
-            type: "Comment" as const,
-            value: token.value,
-        }));
+        entry.leadingComments = leadingComments.map((token) =>
+            createCommentNodeFromToken(token, false)
+        );
     }
 
     if (trailingComments.length > 0) {
-        const trailingNodes: CommentNode[] = [];
-        let referenceEnd =
+        const referenceEnd =
             arrayAt(valueTokens, -1)?.end ??
             arrayAt(keyTokens, -1)?.end ??
             arrayFirst(tokens)?.start ??
             0;
-
-        for (const token of trailingComments) {
-            const inline =
-                token.type === "comment" &&
-                isInlineSpacing(source, referenceEnd, token.start);
-
-            trailingNodes.push({
-                inline,
-                loc: { end: token.end, start: token.start },
-                style:
-                    token.type === "block-comment"
-                        ? ("block" as const)
-                        : ("line" as const),
-                type: "Comment" as const,
-                value: token.value,
-            });
-
-            referenceEnd = token.end;
-        }
-
-        if (trailingNodes.length > 1) {
-            for (const comment of trailingNodes) {
-                comment.inline = false;
-            }
-        }
+        const trailingNodes = buildTrailingCommentNodes(
+            trailingComments,
+            source,
+            referenceEnd
+        );
 
         if (trailingNodes.length > 0) {
             entry.trailingComments = trailingNodes;
@@ -1024,6 +1027,73 @@ function buildHashtableEntry(
     }
 
     return entry;
+}
+
+function buildTrailingCommentNodes(
+    trailingComments: readonly Token[],
+    source: string,
+    referenceStart: number
+): CommentNode[] {
+    const trailingNodes: CommentNode[] = [];
+    let referenceEnd = referenceStart;
+
+    for (const token of trailingComments) {
+        const inline =
+            token.type === "comment" &&
+            isInlineSpacing(source, referenceEnd, token.start);
+
+        trailingNodes.push(createCommentNodeFromToken(token, inline));
+        referenceEnd = token.end;
+    }
+
+    if (trailingNodes.length > 1) {
+        for (const comment of trailingNodes) {
+            comment.inline = false;
+        }
+    }
+
+    return trailingNodes;
+}
+
+function captureElseContinuationTokens(
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+    tokens: readonly Token[],
+    index: number,
+    prefix: readonly Token[]
+): { elseTokens: Token[]; nextIndex: number; terminated: boolean } {
+    const elseTokens: Token[] = [...prefix];
+    const stack: string[] = [];
+    let nextIndex = index;
+
+    for (; nextIndex < tokens.length; nextIndex += 1) {
+        const token = tokens[nextIndex];
+        if (!isDefined(token)) {
+            continue;
+        }
+
+        elseTokens.push(token);
+        if (token.type === "punctuation" && token.value === "{") {
+            stack.push("{");
+            continue;
+        }
+
+        if (token.type === "punctuation" && token.value === "}") {
+            if (isEmpty(stack)) {
+                continue;
+            }
+
+            stack.pop();
+            if (isEmpty(stack)) {
+                return {
+                    elseTokens,
+                    nextIndex: nextIndex + 1,
+                    terminated: true,
+                };
+            }
+        }
+    }
+
+    return { elseTokens, nextIndex, terminated: false };
 }
 
 function classifyStatementTerminator(
@@ -1098,6 +1168,48 @@ function collectStructureTokens(
     return { contentTokens, endIndex: tokens.length };
 }
 
+function consumeElseContinuationPrefix(
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+    tokens: readonly Token[]
+): { index: number; prefix: Token[] } {
+    let index = 0;
+    const prefix: Token[] = [];
+
+    while (index < tokens.length) {
+        const currentToken = tokens[index];
+        if (!isDefined(currentToken)) {
+            index += 1;
+            continue;
+        }
+
+        if (
+            currentToken.type !== "newline" &&
+            currentToken.type !== "comment" &&
+            currentToken.type !== "block-comment"
+        ) {
+            break;
+        }
+
+        prefix.push(currentToken);
+        index += 1;
+    }
+
+    return { index, prefix };
+}
+
+function createCommentNodeFromToken(
+    token: Readonly<Token>,
+    inline: boolean
+): CommentNode {
+    return {
+        inline,
+        loc: { end: token.end, start: token.start },
+        style: token.type === "block-comment" ? "block" : "line",
+        type: "Comment",
+        value: token.value,
+    } satisfies CommentNode;
+}
+
 function createHereStringNode(token: Readonly<Token>): HereStringNode {
     const quote = token.quote ?? "double";
     return {
@@ -1149,24 +1261,7 @@ function extractElseContinuation(
     // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
     tokens: readonly Token[]
 ): null | { elseTokens: Token[]; remainingTokens: Token[] } {
-    let index = 0;
-    const prefix: Token[] = [];
-    while (index < tokens.length) {
-        const currentToken = tokens[index];
-        if (!isDefined(currentToken)) {
-            index += 1;
-            continue;
-        }
-        if (
-            currentToken.type !== "newline" &&
-            currentToken.type !== "comment" &&
-            currentToken.type !== "block-comment"
-        ) {
-            break;
-        }
-        prefix.push(currentToken);
-        index += 1;
-    }
+    const { index, prefix } = consumeElseContinuationPrefix(tokens);
 
     const keywordToken = tokens[index];
     if (keywordToken?.type !== "keyword") {
@@ -1177,36 +1272,41 @@ function extractElseContinuation(
         return null;
     }
 
-    const captured: Token[] = [...prefix];
-    const stack: string[] = [];
-    for (; index < tokens.length; index += 1) {
-        const token = tokens[index];
-        if (!isDefined(token)) {
-            continue;
-        }
-        captured.push(token);
-        if (token.type === "punctuation" && token.value === "{") {
-            stack.push("{");
-        } else if (token.type === "punctuation" && token.value === "}") {
-            if (isEmpty(stack)) {
-                continue;
-            }
-            stack.pop();
-            if (isEmpty(stack)) {
-                index += 1;
-                break;
-            }
-        }
-    }
-
-    if (stack.length > 0) {
+    const captured = captureElseContinuationTokens(tokens, index, prefix);
+    if (!captured.terminated) {
         return null;
     }
 
     return {
-        elseTokens: captured,
-        remainingTokens: tokens.slice(index),
+        elseTokens: captured.elseTokens,
+        remainingTokens: tokens.slice(captured.nextIndex),
     };
+}
+
+function getTopLevelSeparatorDecision<TState>(
+    token: Readonly<Token>,
+    topLevel: boolean,
+    context: SplitContext<TState>,
+    options: SplitOptions<TState>
+): "consume" | "flush" | "none" {
+    if (!topLevel) {
+        return "none";
+    }
+
+    if (token.type === "newline") {
+        return options.splitOnNewline?.(context) === true ? "flush" : "consume";
+    }
+
+    if (
+        token.type === "punctuation" &&
+        options.delimiterValues?.includes(token.value) === true
+    ) {
+        return (options.shouldSplitOnDelimiter?.(context) ?? true)
+            ? "flush"
+            : "consume";
+    }
+
+    return "none";
 }
 
 function parseArrayPart(
@@ -1373,6 +1473,63 @@ function parseStatementForTest(tokens: readonly Token[]): null | PipelineNode {
         parseStatement: () => null | PipelineNode;
     };
     return internal.parseStatement();
+}
+
+function partitionHashtableEntryTokens(
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token model is mutable and used per parser conventions
+    tokens: readonly Token[]
+): {
+    equalsIndex: number;
+    leadingComments: Token[];
+    otherTokens: Token[];
+    trailingComments: Token[];
+} {
+    const leadingComments: Token[] = [];
+    const trailingComments: Token[] = [];
+    const otherTokens: Token[] = [];
+    let equalsIndex = -1;
+    let foundEquals = false;
+
+    for (const token of tokens) {
+        if (token.type === "comment" || token.type === "block-comment") {
+            if (foundEquals) {
+                trailingComments.push(token);
+            } else {
+                leadingComments.push(token);
+            }
+            continue;
+        }
+
+        if (token.type === "operator" && token.value === "=" && !foundEquals) {
+            equalsIndex = otherTokens.length;
+            foundEquals = true;
+        }
+        otherTokens.push(token);
+    }
+
+    return { equalsIndex, leadingComments, otherTokens, trailingComments };
+}
+
+function pushTopLevelToken(
+    token: Readonly<Token>,
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Split buffer is intentionally mutated while tokenizing structures
+    current: Token[],
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Stack is intentionally mutated while tracking nesting
+    stack: string[]
+): void {
+    if (isOpeningToken(token)) {
+        stack.push(token.value);
+        current.push(token);
+        return;
+    }
+
+    if (isClosingToken(token)) {
+        stack.pop();
+        current.push(token);
+        return;
+    }
+
+    current.push(token);
 }
 
 function resolveStructureEnd(
@@ -1543,21 +1700,17 @@ function splitTopLevelTokens<TState = Record<string, never>>(
             topLevel,
         };
 
-        if (token.type === "newline" && topLevel) {
-            if (options.splitOnNewline?.(context) === true) {
-                flush();
-            }
+        const separatorDecision = getTopLevelSeparatorDecision(
+            token,
+            topLevel,
+            context,
+            options
+        );
+        if (separatorDecision === "flush") {
+            flush();
             continue;
         }
-
-        if (
-            topLevel &&
-            token.type === "punctuation" &&
-            options.delimiterValues?.includes(token.value) === true
-        ) {
-            if (options.shouldSplitOnDelimiter?.(context) ?? true) {
-                flush();
-            }
+        if (separatorDecision === "consume") {
             continue;
         }
 
@@ -1568,15 +1721,7 @@ function splitTopLevelTokens<TState = Record<string, never>>(
 
         options.onBeforeAddToken?.(context);
 
-        if (isOpeningToken(token)) {
-            stack.push(token.value);
-            current.push(token);
-        } else if (isClosingToken(token)) {
-            stack.pop();
-            current.push(token);
-        } else {
-            current.push(token);
-        }
+        pushTopLevelToken(token, current, stack);
 
         options.onAfterAddToken?.({
             current,
