@@ -268,6 +268,7 @@ class Parser {
         return token;
     }
 
+    // eslint-disable-next-line @typescript-eslint/class-methods-use-this -- Kept as instance method to preserve class member ordering and parser flow consistency
     private appendScriptNode(
         // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- ScriptBodyNode array is intentionally mutated while parsing
         body: ScriptBodyNode[],
@@ -778,6 +779,7 @@ class Parser {
         return token;
     }
 
+    // eslint-disable-next-line @typescript-eslint/class-methods-use-this -- Kept as instance method to preserve class member ordering and parser flow consistency
     private pushTokenToCurrentSegment(
         // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Nested token arrays are intentionally mutated while parsing
         segments: Token[][],
@@ -789,6 +791,7 @@ class Parser {
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/class-methods-use-this -- Kept as instance method to preserve class member ordering and parser flow consistency
     private shouldStopAtTerminator(
         token: Readonly<Token>,
         terminators: ReadonlySet<string>
@@ -1030,7 +1033,7 @@ function buildHashtableEntry(
 }
 
 function buildTrailingCommentNodes(
-    trailingComments: readonly Token[],
+    trailingComments: readonly Readonly<Token>[],
     source: string,
     referenceStart: number
 ): CommentNode[] {
@@ -1059,7 +1062,7 @@ function captureElseContinuationTokens(
     // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
     tokens: readonly Token[],
     index: number,
-    prefix: readonly Token[]
+    prefix: readonly Readonly<Token>[]
 ): { elseTokens: Token[]; nextIndex: number; terminated: boolean } {
     const elseTokens: Token[] = [...prefix];
     const stack: string[] = [];
@@ -1286,7 +1289,9 @@ function extractElseContinuation(
 function getTopLevelSeparatorDecision<TState>(
     token: Readonly<Token>,
     topLevel: boolean,
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Split callbacks intentionally rely on mutable context contracts
     context: SplitContext<TState>,
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Split callbacks intentionally rely on mutable option callback signatures
     options: SplitOptions<TState>
 ): "consume" | "flush" | "none" {
     if (!topLevel) {
