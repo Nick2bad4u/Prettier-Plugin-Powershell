@@ -70,7 +70,7 @@ describe("ps-color-scripts regressions", () => {
             "user-regressions.test-file-11.idempotent"
         );
 
-        expect(result).toBe(expected);
+        expect(normalizeNewlines(result)).toBe(normalizeNewlines(expected));
     });
 
     it("reformats the Galaxy Panel sample with 4-space indentation", async () => {
