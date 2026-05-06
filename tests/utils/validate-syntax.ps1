@@ -43,17 +43,33 @@ if ($StreamMode) {
     $stdin = [Console]::OpenStandardInput()
     $stdout = [Console]::OpenStandardOutput()
 
+    # Read-Exact: reliably fills a buffer of exactly $Count bytes.
+    # .NET Stream.Read() may return fewer bytes than requested on a single call
+    # (especially on Linux/macOS where underlying reads are POSIX-level), so
+    # we loop until the full buffer is filled or EOF is reached.
+    function Read-Exact {
+        param(
+            [System.IO.Stream] $Stream,
+            [int] $Count
+        )
+        $buffer = New-Object byte[] $Count
+        $offset = 0
+        while ($offset -lt $Count) {
+            $read = $Stream.Read($buffer, $offset, $Count - $offset)
+            if ($read -eq 0) {
+                return $null  # EOF / closed stream
+            }
+            $offset += $read
+        }
+        return , $buffer
+    }
+
     try {
         while ($true) {
             # Read 4-byte length prefix
-            $lengthBytes = New-Object byte[] 4
-            $bytesRead = $stdin.Read( $lengthBytes, 0, 4 )
-            if ($bytesRead -eq 0) {
+            $lengthBytes = Read-Exact -Stream $stdin -Count 4
+            if ($null -eq $lengthBytes) {
                 break
-            }
-            if ($bytesRead -ne 4) {
-                Write-Error 'Invalid length prefix'
-                exit 10
             }
 
             $messageLength = [BitConverter]::ToInt32( $lengthBytes, 0 )
@@ -63,10 +79,9 @@ if ($StreamMode) {
             }
 
             # Read identifier length (4 bytes)
-            $idLengthBytes = New-Object byte[] 4
-            $bytesRead = $stdin.Read( $idLengthBytes, 0, 4 )
-            if ($bytesRead -ne 4) {
-                Write-Error 'Invalid identifier length prefix'
+            $idLengthBytes = Read-Exact -Stream $stdin -Count 4
+            if ($null -eq $idLengthBytes) {
+                Write-Error 'Unexpected EOF reading identifier length prefix'
                 exit 12
             }
 
@@ -77,20 +92,18 @@ if ($StreamMode) {
             }
 
             # Read identifier
-            $idBytes = New-Object byte[] $idLength
-            $bytesRead = $stdin.Read( $idBytes, 0, $idLength )
-            if ($bytesRead -ne $idLength) {
-                Write-Error 'Failed to read identifier'
+            $idBytes = Read-Exact -Stream $stdin -Count $idLength
+            if ($null -eq $idBytes) {
+                Write-Error 'Unexpected EOF reading identifier'
                 exit 14
             }
             $identifier = $utf8.GetString($idBytes)
 
             # Read script content
             $contentLength = $messageLength - $idLength - 4
-            $contentBytes = New-Object byte[] $contentLength
-            $bytesRead = $stdin.Read( $contentBytes, 0, $contentLength )
-            if ($bytesRead -ne $contentLength) {
-                Write-Error 'Failed to read script content'
+            $contentBytes = Read-Exact -Stream $stdin -Count $contentLength
+            if ($null -eq $contentBytes) {
+                Write-Error 'Unexpected EOF reading script content'
                 exit 15
             }
             $content = $utf8.GetString($contentBytes)
