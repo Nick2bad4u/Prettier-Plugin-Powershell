@@ -20,11 +20,19 @@ const languages: SupportLanguage[] = [
     },
 ] as const;
 
+/**
+ * PowerShell pragma marker recognised by both `hasPragma` and `insertPragma`. A
+ * line comment `# @format` or `# @prettier` anywhere in the file (not just the
+ * first line) signals that this file should be formatted. The `m` flag makes
+ * `^` match after every newline so the pragma can live on any line.
+ */
+const PRAGMA_PATTERN = /^#[\t ]*@(?:format|prettier)\b/mu;
+
 const parsers: Plugin["parsers"] = {
     powershell: {
         astFormat: "powershell-ast",
-        hasPragma() {
-            return false;
+        hasPragma(text: string) {
+            return PRAGMA_PATTERN.test(text);
         },
         locEnd,
         locStart,

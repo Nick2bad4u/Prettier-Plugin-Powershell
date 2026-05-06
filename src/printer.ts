@@ -235,10 +235,23 @@ function shouldSkipPart(part: unknown): part is BacktickContinuationNode {
  * - And much more!
  */
 export const powerShellPrinter: Printer<ScriptNode> = {
+    /**
+     * Inserts a `# @format` pragma comment at the top of the file so that
+     * Prettier's `--insert-pragma` / `insertPragma: true` option works for
+     * PowerShell files.
+     */
+    insertPragma(text: string): string {
+        return `# @format\n${text}`;
+    },
+
     print(
         path: AstPath<ScriptNode>,
-
-        options: ParserOptions
+        options: ParserOptions,
+        // _print is provided by Prettier for path-based recursive printing;
+        // this plugin uses printNode() for recursion instead, so the callback
+        // is accepted but intentionally unused.
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars, unused-imports/no-unused-vars -- Prettier v3 Printer<T>.print requires this 3rd parameter; plugin recurses via printNode() directly
+        _print: (selector: AstPath<ScriptNode>) => Doc
     ): Doc {
         const node = safeCastTo<
             ExpressionPartNode | ScriptBodyNode | ScriptNode | undefined
