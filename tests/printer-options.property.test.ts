@@ -8,7 +8,7 @@ import { withProgress } from "./utils/progress.js";
 const { env: testEnv } = process;
 
 const PROPERTY_RUNS = Number.parseInt(
-    testEnv.POWERSHELL_PROPERTY_RUNS ?? "100",
+    testEnv["POWERSHELL_PROPERTY_RUNS"] ?? "100",
     10
 );
 
@@ -279,6 +279,12 @@ function ${second} {
                         fc.asyncProperty(aliasArb, async (alias) => {
                             tracker.advance();
                             const canonical = aliasMap[alias];
+                            if (canonical === undefined) {
+                                throw new Error(
+                                    `Missing canonical mapping for alias '${alias}'`
+                                );
+                            }
+
                             const script = `${alias} $value`;
                             const formatted = await runFormat(script, {
                                 powershellRewriteAliases: true,
@@ -307,6 +313,11 @@ function ${second} {
                         fc.asyncProperty(aliasArb, async (alias) => {
                             tracker.advance();
                             const canonical = aliasMap[alias];
+                            if (canonical === undefined) {
+                                throw new Error(
+                                    `Missing canonical mapping for alias '${alias}'`
+                                );
+                            }
                             const script = `${alias} $value`;
                             const formatted = await runFormat(script, {
                                 powershellRewriteAliases: false,

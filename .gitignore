@@ -191,3 +191,4 @@ tsup.config.bundled_*.mjs
 lint*.txt
 temp/
 !**/.gitkeep
+test-report.junit.xml

@@ -761,6 +761,10 @@ describe("parser advanced coverage", () => {
         expect(table!.entries[1]?.key).toBe("flag");
 
         const nestedValue = table!.entries[2]?.value;
+        expect(nestedValue).toBeDefined();
+        if (nestedValue === undefined) {
+            throw new Error("Expected nested value entry");
+        }
 
         expect(nestedValue.type).toBe("Expression");
         expect(nestedValue.parts?.[0]?.type).toBe("Hashtable");

@@ -5,6 +5,14 @@ const { format } = /** @type {{ format: typeof import("prettier").format }} */ (
 );
 const pluginPath = "./dist/index.cjs";
 
+/**
+ * Generates a PowerShell script with the specified number of test functions.
+ *
+ * @param {number} functionCount - The number of functions to generate in the
+ *   script.
+ *
+ * @returns {string} The generated PowerShell script as a string.
+ */
 const buildScript = (functionCount) =>
     Array.from(
         { length: functionCount },
@@ -12,12 +20,31 @@ const buildScript = (functionCount) =>
             `function Test-${index} { param([string]$Name) Write-Output $Name }`
     ).join("\n");
 
+/**
+ * Formats a PowerShell script source string using Prettier and the plugin.
+ *
+ * @param {string} source - The PowerShell script source to format.
+ *
+ * @returns {Promise<string>} A promise that resolves to the formatted script.
+ */
 const formatOnce = async (source) =>
     format(source, {
         parser: "powershell",
         plugins: [pluginPath],
     });
 
+/**
+ * Runs a benchmark scenario by formatting a generated PowerShell script
+ * multiple times and measuring performance.
+ *
+ * @param {number} functionCount - The number of functions to generate in the
+ *   script.
+ * @param {number} iterations - The number of times to format the script for
+ *   benchmarking.
+ *
+ * @returns {Promise<object>} An object containing average time, function count,
+ *   iterations, script size, and throughput.
+ */
 const runScenario = async (functionCount, iterations) => {
     const script = buildScript(functionCount);
     const sizeKb = Buffer.byteLength(script, "utf8") / 1024;
@@ -32,7 +59,9 @@ const runScenario = async (functionCount, iterations) => {
         })
     );
 
-    const average = Math.sumPrecise(times) / times.length;
+    // eslint-disable-next-line math/prefer-math-sum-precise -- doesn't exist yet
+    const total = times.reduce((a, b) => a + b, 0);
+    const average = total / times.length;
 
     return {
         averageMs: Number(average.toFixed(2)),

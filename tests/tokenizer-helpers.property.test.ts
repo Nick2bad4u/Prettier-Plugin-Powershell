@@ -7,7 +7,7 @@ import { createLocation } from "../src/ast.js";
 import { normalizeHereString } from "../src/tokenizer.js";
 
 const PROPERTY_RUNS = Number.parseInt(
-    globalThis.process.env.POWERSHELL_PROPERTY_RUNS ?? "100",
+    globalThis.process.env["POWERSHELL_PROPERTY_RUNS"] ?? "100",
     10
 );
 
@@ -118,7 +118,11 @@ describe("tokenizer helper function property tests", () => {
                         // Mix \n and \r\n
                         const parts: string[] = [];
                         for (let i = 0; i < lines.length; i++) {
-                            parts.push(lines[i]);
+                            const currentLine = lines[i];
+                            if (currentLine === undefined) {
+                                continue;
+                            }
+                            parts.push(currentLine);
                             if (i < lines.length - 1) {
                                 parts.push(i % 2 === 0 ? "\r\n" : "\n");
                             }

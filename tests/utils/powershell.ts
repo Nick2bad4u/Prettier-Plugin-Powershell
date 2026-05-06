@@ -5,9 +5,9 @@ import { fileURLToPath } from "node:url";
 
 const { env: processEnvironment } = process;
 
-const shouldVerify = processEnvironment.POWERSHELL_VERIFY_SYNTAX !== "0";
-const shouldTrace = processEnvironment.POWERSHELL_SYNTAX_TRACE === "1";
-const maxChecksEnv = processEnvironment.POWERSHELL_MAX_SYNTAX_CHECKS;
+const shouldVerify = processEnvironment["POWERSHELL_VERIFY_SYNTAX"] !== "0";
+const shouldTrace = processEnvironment["POWERSHELL_SYNTAX_TRACE"] === "1";
+const maxChecksEnv = processEnvironment["POWERSHELL_MAX_SYNTAX_CHECKS"];
 
 const resolveChecksRemaining = (): number => {
     if (!shouldVerify) {
@@ -32,7 +32,7 @@ let totalInvocations = 0;
 const { platform } = process;
 
 const powerShellExecutable = (() => {
-    const configuredExecutable = processEnvironment.POWERSHELL_EXECUTABLE;
+    const configuredExecutable = processEnvironment["POWERSHELL_EXECUTABLE"];
 
     if (configuredExecutable !== undefined && configuredExecutable.length > 0) {
         return configuredExecutable;
@@ -53,7 +53,9 @@ const powerShellExecutable = (() => {
     const [firstCandidate] = candidates;
 
     return (
-        candidates.find((candidate) => existsSync(candidate)) ?? firstCandidate
+        candidates.find((candidate) => existsSync(candidate)) ??
+        firstCandidate ??
+        "pwsh"
     );
 })();
 
@@ -285,20 +287,22 @@ function initPersistentProcess(): void {
         );
     }
 
+    const processInstance = persistentProcess;
     if (
-        !persistentProcess.stdin ||
-        !persistentProcess.stdout ||
-        !persistentProcess.stderr
+        processInstance === null ||
+        !processInstance.stdin ||
+        !processInstance.stdout ||
+        !processInstance.stderr
     ) {
         throw new Error("Failed to access PowerShell process stdio");
     }
 
-    void monitorPersistentProcessError(persistentProcess);
-    void monitorPersistentProcessExit(persistentProcess);
-    void monitorPersistentProcessStdout(persistentProcess.stdout);
+    void monitorPersistentProcessError(processInstance);
+    void monitorPersistentProcessExit(processInstance);
+    void monitorPersistentProcessStdout(processInstance.stdout);
 
     if (shouldTrace) {
-        void monitorPersistentProcessStderr(persistentProcess.stderr);
+        void monitorPersistentProcessStderr(processInstance.stderr);
     }
 }
 

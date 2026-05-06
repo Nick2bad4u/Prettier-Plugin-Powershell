@@ -363,6 +363,10 @@ Write-Output "hi"
         const lines = result.split("\n");
 
         expect(lines[0]).toBe("function Foo {");
+        expect(lines[1]).toBeDefined();
+        if (lines[1] === undefined) {
+            throw new Error("Expected second line");
+        }
         expect(lines[1].trim()).toBe("if ($true) {");
     });
 
@@ -386,6 +390,10 @@ Write-Output "hi"
         const lines = result.split("\n");
 
         expect(lines[0]).toBe("FUNCTION Foo {");
+        expect(lines[1]).toBeDefined();
+        if (lines[1] === undefined) {
+            throw new Error("Expected second line");
+        }
         expect(lines[1].trim()).toBe("IF ($true) {");
     });
 

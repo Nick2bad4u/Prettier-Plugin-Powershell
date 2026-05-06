@@ -1,8 +1,8 @@
 const progressEnabled =
-    globalThis.process.env.POWERSHELL_PROPERTY_PROGRESS === "1";
+    globalThis.process.env["POWERSHELL_PROPERTY_PROGRESS"] === "1";
 
 const defaultInterval = Number.parseInt(
-    globalThis.process.env.POWERSHELL_PROPERTY_PROGRESS_INTERVAL ?? "50",
+    globalThis.process.env["POWERSHELL_PROPERTY_PROGRESS_INTERVAL"] ?? "50",
     10
 );
 

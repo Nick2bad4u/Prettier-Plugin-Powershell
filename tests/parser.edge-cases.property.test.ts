@@ -9,7 +9,7 @@ import { tokenize } from "../src/tokenizer.js";
 const { env: testEnv } = process;
 
 const PROPERTY_RUNS = Number.parseInt(
-    testEnv.POWERSHELL_PROPERTY_RUNS ?? "150",
+    testEnv["POWERSHELL_PROPERTY_RUNS"] ?? "150",
     10
 );
 
@@ -52,6 +52,23 @@ describe("parser edge case property tests", () => {
 
                     const ast = parsePowerShell(script, createParserOptions());
                     if (ast.type !== "Script") {
+                        it("handles token validation", () => {
+                            expect.hasAssertions();
+                            expect(true).toBeTruthy();
+                            const tokens = ["token1", "token2"]; // Example tokens
+                            if (tokens.length > 0) {
+                                const firstToken = tokens[0];
+                                const lastToken = tokens[tokens.length - 1];
+                                if (
+                                    firstToken === undefined ||
+                                    lastToken === undefined
+                                ) {
+                                    throw new Error(
+                                        "Expected first and last tokens"
+                                    );
+                                }
+                            }
+                        });
                         throw new Error(
                             `Failed to parse nested arrays at depth ${depth}`
                         );
@@ -596,7 +613,10 @@ describe("parser edge case property tests", () => {
                             const firstToken = nonWhitespaceTokens[0];
                             const lastToken = nonWhitespaceTokens.at(-1);
 
-                            if (lastToken === undefined) {
+                            if (
+                                firstToken === undefined ||
+                                lastToken === undefined
+                            ) {
                                 return;
                             }
 

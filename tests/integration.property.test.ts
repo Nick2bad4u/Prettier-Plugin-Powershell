@@ -11,7 +11,7 @@ import { withProgress } from "./utils/progress.js";
 const { env: testEnv } = process;
 
 const PROPERTY_RUNS = Number.parseInt(
-    testEnv.POWERSHELL_PROPERTY_RUNS ?? "100",
+    testEnv["POWERSHELL_PROPERTY_RUNS"] ?? "100",
     10
 );
 
@@ -499,8 +499,13 @@ describe("integration property tests", () => {
                                     tabWidth: 2,
                                 } as never);
 
-                                const { locEnd, locStart } =
-                                    plugin.parsers!.powershell;
+                                const parser = plugin.parsers?.["powershell"];
+                                if (parser === undefined) {
+                                    throw new Error(
+                                        "PowerShell parser not available"
+                                    );
+                                }
+                                const { locEnd, locStart } = parser;
 
                                 const start = locStart(ast);
                                 const end = locEnd(ast);
@@ -539,10 +544,15 @@ describe("integration property tests", () => {
                             ),
                             (script) => {
                                 tracker.advance();
-                                const { hasPragma } =
-                                    plugin.parsers!.powershell;
+                                const parser = plugin.parsers?.["powershell"];
+                                if (parser === undefined) {
+                                    throw new Error(
+                                        "PowerShell parser not available"
+                                    );
+                                }
+                                const { hasPragma } = parser;
 
-                                if (hasPragma!(script)) {
+                                if (hasPragma?.(script) === true) {
                                     throw new Error(
                                         "hasPragma should always return false"
                                     );

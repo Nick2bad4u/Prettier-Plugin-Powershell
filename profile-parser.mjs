@@ -3,6 +3,13 @@ import { performance } from "node:perf_hooks";
 const { format } = await import("prettier");
 const pluginPath = "./dist/index.cjs";
 
+/**
+ * Builds a PowerShell pipeline script with the specified number of segments.
+ *
+ * @param {number} segments - The number of pipeline segments to generate.
+ *
+ * @returns {string} The generated PowerShell script as a string.
+ */
 const buildPipelineScript = (segments) =>
     Array.from(
         { length: segments },

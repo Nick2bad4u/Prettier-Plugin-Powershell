@@ -10,7 +10,7 @@ import { withProgress } from "./utils/progress.js";
 const { env: testEnv } = process;
 
 const PROPERTY_RUNS = Number.parseInt(
-    testEnv.POWERSHELL_PROPERTY_RUNS ?? "100",
+    testEnv["POWERSHELL_PROPERTY_RUNS"] ?? "100",
     10
 );
 

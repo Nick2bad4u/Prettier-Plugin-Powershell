@@ -14,7 +14,7 @@ import { isPowerShellParsable } from "./utils/powershell.js";
 import { withProgress } from "./utils/progress.js";
 
 const PROPERTY_RUNS = Number.parseInt(
-    globalThis.process.env.POWERSHELL_PROPERTY_RUNS ?? "150",
+    globalThis.process.env["POWERSHELL_PROPERTY_RUNS"] ?? "150",
     10
 );
 
@@ -130,7 +130,7 @@ describe("powershell parser property-based tests", () => {
         expect.hasAssertions();
         expect(true).toBeTruthy();
 
-        if (globalThis.process.env.CI === "true") {
+        if (globalThis.process.env["CI"] === "true") {
             return;
         }
 

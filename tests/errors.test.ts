@@ -157,6 +157,10 @@ describe("error Handling System", () => {
             const warnings = detectIssues(source);
 
             const warning = warnings[0];
+            expect(warning).toBeDefined();
+            if (warning === undefined) {
+                throw new Error("Expected warning entry");
+            }
 
             expect(warning.suggestion).toBeTruthy();
             expect(warning.suggestion).toContain("Write-Output");
@@ -170,7 +174,13 @@ describe("error Handling System", () => {
             const source = `Write-Host "test"`;
             const warnings = detectIssues(source);
 
-            const message = warnings[0].toString();
+            const warning = warnings[0];
+            expect(warning).toBeDefined();
+            if (warning === undefined) {
+                throw new Error("Expected warning entry");
+            }
+
+            const message = warning.toString();
 
             expect(message).toContain("Warning");
             expect(message).toContain("anti-pattern");
@@ -184,6 +194,10 @@ describe("error Handling System", () => {
             const warnings = detectIssues(source);
 
             const warning = warnings[0];
+            expect(warning).toBeDefined();
+            if (warning === undefined) {
+                throw new Error("Expected warning entry");
+            }
 
             expect(warning.line).toBe(2);
             expect(warning.column).toBeGreaterThan(0);
@@ -210,8 +224,16 @@ describe("error Handling System", () => {
             const source = `Write-Host "1"\nWrite-Host "2"`;
             const warnings = detectIssues(source);
 
-            expect(warnings[0].line).toBe(1);
-            expect(warnings[1].line).toBe(2);
+            const firstWarning = warnings[0];
+            const secondWarning = warnings[1];
+            expect(firstWarning).toBeDefined();
+            expect(secondWarning).toBeDefined();
+            if (firstWarning === undefined || secondWarning === undefined) {
+                throw new Error("Expected warning entries");
+            }
+
+            expect(firstWarning.line).toBe(1);
+            expect(secondWarning.line).toBe(2);
         });
     });
 });

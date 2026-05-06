@@ -8,6 +8,10 @@ import { cwd, exit } from "node:process";
  * unavailable in the environment, this script logs a clear skip message and
  * exits successfully so broader lint pipelines can continue.
  */
+
+/**
+ * @returns {number}
+ */
 function runActionlint() {
     const args = ["-shellcheck="];
 
@@ -18,7 +22,8 @@ function runActionlint() {
         stdio: "inherit",
     });
 
-    if (result.error?.code === "ENOENT") {
+    const spawnError = result.error;
+    if (spawnError && "code" in spawnError && spawnError.code === "ENOENT") {
         console.warn(
             "[lint:actions] actionlint not found in PATH; skipping workflow lint."
         );

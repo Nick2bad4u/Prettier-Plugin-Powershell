@@ -6,7 +6,7 @@ import { tokenize } from "../src/tokenizer.js";
 const { env: testEnv } = process;
 
 const PROPERTY_RUNS = Number.parseInt(
-    testEnv.POWERSHELL_PROPERTY_RUNS ?? "100",
+    testEnv["POWERSHELL_PROPERTY_RUNS"] ?? "100",
     10
 );
 
@@ -175,6 +175,9 @@ describe("tokenizer property-based tests", () => {
                 for (let i = 0; i < tokens.length - 1; i++) {
                     const current = tokens[i];
                     const next = tokens[i + 1];
+                    if (current === undefined || next === undefined) {
+                        continue;
+                    }
                     if (current.end > next.start) {
                         throw new Error(
                             `Token ${i} ends after token ${i + 1} starts: ${current.end} > ${next.start}`
@@ -237,6 +240,9 @@ describe("tokenizer property-based tests", () => {
 
                 for (const [i, t1] of tokens1.entries()) {
                     const t2 = tokens2[i];
+                    if (t2 === undefined) {
+                        throw new Error(`Token ${i} missing in second run`);
+                    }
                     if (
                         t1.type !== t2.type ||
                         t1.value !== t2.value ||
@@ -311,9 +317,13 @@ describe("tokenizer property-based tests", () => {
                         `Expected single token for keyword, got ${tokens.length}`
                     );
                 }
-                if (tokens[0].type !== "keyword") {
+                const firstToken = tokens[0];
+                if (firstToken === undefined) {
+                    throw new Error("Expected single token for keyword");
+                }
+                if (firstToken.type !== "keyword") {
                     throw new Error(
-                        `Expected keyword token, got ${tokens[0].type}`
+                        `Expected keyword token, got ${firstToken.type}`
                     );
                 }
             }),

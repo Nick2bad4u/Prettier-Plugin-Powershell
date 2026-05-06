@@ -56,6 +56,7 @@ try {
 
     console.log("✓ Fixed .d.cts exports syntax for CJS compatibility");
 } catch (error) {
-    console.error("Error fixing .d.cts file:", error.message);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Error fixing .d.cts file:", message);
     process.exit(1);
 }

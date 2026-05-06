@@ -13,7 +13,7 @@ import {
 import { withProgress } from "./utils/progress.js";
 
 const PROPERTY_RUNS = Number.parseInt(
-    globalThis.process.env.POWERSHELL_PROPERTY_RUNS ?? "100",
+    globalThis.process.env["POWERSHELL_PROPERTY_RUNS"] ?? "100",
     10
 );
 

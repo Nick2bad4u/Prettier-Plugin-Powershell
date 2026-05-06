@@ -47,28 +47,29 @@ interface SampledScript {
 const { env: testEnv } = process;
 
 const PROPERTY_RUNS = Number.parseInt(
-    testEnv.POWERSHELL_PROPERTY_RUNS ?? "25",
+    testEnv["POWERSHELL_PROPERTY_RUNS"] ?? "25",
     10
 );
-const ENABLE_GITHUB_SAMPLES = testEnv.POWERSHELL_ENABLE_GITHUB_SAMPLES === "1";
-const CACHE_GITHUB_SAMPLES = testEnv.POWERSHELL_CACHE_GITHUB_SAMPLES === "1";
+const ENABLE_GITHUB_SAMPLES =
+    testEnv["POWERSHELL_ENABLE_GITHUB_SAMPLES"] === "1";
+const CACHE_GITHUB_SAMPLES = testEnv["POWERSHELL_CACHE_GITHUB_SAMPLES"] === "1";
 const GITHUB_QUERY =
-    testEnv.POWERSHELL_GITHUB_QUERY ??
+    testEnv["POWERSHELL_GITHUB_QUERY"] ??
     "extension:ps1 language:PowerShell size:1000..50000";
 const GITHUB_SAMPLE_COUNT = Number.parseInt(
-    testEnv.POWERSHELL_GITHUB_SAMPLE_COUNT ?? "8",
+    testEnv["POWERSHELL_GITHUB_SAMPLE_COUNT"] ?? "8",
     10
 );
 const MAX_CANDIDATES = Number.parseInt(
-    testEnv.POWERSHELL_GITHUB_MAX_CANDIDATES ?? "50",
+    testEnv["POWERSHELL_GITHUB_MAX_CANDIDATES"] ?? "50",
     10
 );
 const MAX_LENGTH = Number.parseInt(
-    testEnv.POWERSHELL_GITHUB_MAX_LENGTH ?? "200000",
+    testEnv["POWERSHELL_GITHUB_MAX_LENGTH"] ?? "200000",
     10
 );
 const MIN_LENGTH = Number.parseInt(
-    testEnv.POWERSHELL_GITHUB_MIN_LENGTH ?? "500",
+    testEnv["POWERSHELL_GITHUB_MIN_LENGTH"] ?? "500",
     10
 );
 
@@ -80,9 +81,9 @@ const githubHeaders: Record<string, string> = {
     Accept: "application/vnd.github+json",
     "User-Agent": "prettier-plugin-powershell-tests",
 };
-const githubToken = testEnv.GITHUB_TOKEN;
+const githubToken = testEnv["GITHUB_TOKEN"];
 if (githubToken !== undefined && githubToken.length > 0) {
-    githubHeaders.Authorization = `token ${githubToken}`;
+    githubHeaders["Authorization"] = `token ${githubToken}`;
 }
 
 const graphemeSegmenter = new Intl.Segmenter("en", {

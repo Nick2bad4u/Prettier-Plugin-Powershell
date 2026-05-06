@@ -1760,9 +1760,9 @@ describe("coverage - Index exports", () => {
     it("exports plugin with hasPragma function", () => {
         expect.hasAssertions();
 
-        expect(plugin.parsers?.powershell?.hasPragma).toBeDefined();
+        expect(plugin.parsers?.["powershell"]?.hasPragma).toBeDefined();
 
-        const hasPragma = plugin.parsers?.powershell?.hasPragma;
+        const hasPragma = plugin.parsers?.["powershell"]?.hasPragma;
 
         expect(hasPragma?.("")).toBeFalsy();
     });
