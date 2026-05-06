@@ -162,6 +162,60 @@ const scriptArb = fc
     .array(tokenArb, { maxLength: 30, minLength: 1 })
     .map((tokens) => tokens.join(" "));
 
+const assertTokenOrder = (tokens: ReturnType<typeof tokenize>): void => {
+    for (let index = 0; index < tokens.length - 1; index += 1) {
+        const current = tokens[index];
+        const next = tokens[index + 1];
+        if (current === undefined || next === undefined) {
+            continue;
+        }
+        if (current.end > next.start) {
+            throw new Error(
+                `Token ${index} ends after token ${index + 1} starts: ${current.end} > ${next.start}`
+            );
+        }
+    }
+};
+
+const assertTokenRanges = (
+    tokens: ReturnType<typeof tokenize>,
+    script: string
+): void => {
+    for (const token of tokens) {
+        if (token.start < 0) {
+            throw new Error(`Token has negative start: ${token.start}`);
+        }
+        if (token.end < token.start) {
+            throw new Error(
+                `Token end before start: ${token.end} < ${token.start}`
+            );
+        }
+        if (token.end > script.length) {
+            throw new Error(
+                `Token extends beyond script: ${token.end} > ${script.length}`
+            );
+        }
+    }
+};
+
+const assertTokenValuesMatchSource = (
+    tokens: ReturnType<typeof tokenize>,
+    script: string
+): void => {
+    for (const token of tokens) {
+        const extracted = script.slice(token.start, token.end);
+        if (
+            token.type !== "comment" &&
+            token.value !== extracted &&
+            (token.type !== "newline" || !/^[\n\r]+$/v.test(extracted))
+        ) {
+            throw new Error(
+                `Token value mismatch: expected ${JSON.stringify(extracted)}, got ${JSON.stringify(token.value)}`
+            );
+        }
+    }
+};
+
 describe("tokenizer property-based tests", () => {
     it("tokenize never throws and produces valid tokens", () => {
         expect.hasAssertions();
@@ -171,53 +225,9 @@ describe("tokenizer property-based tests", () => {
             fc.property(scriptArb, (script) => {
                 const tokens = tokenize(script);
 
-                // Tokens should be in order
-                for (let i = 0; i < tokens.length - 1; i++) {
-                    const current = tokens[i];
-                    const next = tokens[i + 1];
-                    if (current === undefined || next === undefined) {
-                        continue;
-                    }
-                    if (current.end > next.start) {
-                        throw new Error(
-                            `Token ${i} ends after token ${i + 1} starts: ${current.end} > ${next.start}`
-                        );
-                    }
-                }
-
-                // All tokens should have valid ranges
-                for (const token of tokens) {
-                    if (token.start < 0) {
-                        throw new Error(
-                            `Token has negative start: ${token.start}`
-                        );
-                    }
-                    if (token.end < token.start) {
-                        throw new Error(
-                            `Token end before start: ${token.end} < ${token.start}`
-                        );
-                    }
-                    if (token.end > script.length) {
-                        throw new Error(
-                            `Token extends beyond script: ${token.end} > ${script.length}`
-                        );
-                    }
-                }
-
-                // Token values should match source
-                for (const token of tokens) {
-                    const extracted = script.slice(token.start, token.end);
-                    if (
-                        token.type !== "comment" &&
-                        token.value !== extracted && // Comments are trimmed, so we skip exact match
-                        (token.type !== "newline" ||
-                            !/^[\n\r]+$/v.test(extracted))
-                    ) {
-                        throw new Error(
-                            `Token value mismatch: expected ${JSON.stringify(extracted)}, got ${JSON.stringify(token.value)}`
-                        );
-                    }
-                }
+                assertTokenOrder(tokens);
+                assertTokenRanges(tokens, script);
+                assertTokenValuesMatchSource(tokens, script);
             }),
             { numRuns: PROPERTY_RUNS }
         );

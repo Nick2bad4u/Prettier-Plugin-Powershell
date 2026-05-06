@@ -58,6 +58,41 @@ const normalizeNodeVersion = (version) => {
 const isRecord = (value) => typeof value === "object" && value !== null;
 
 /**
+ * Parse a --version style argument and return the normalized version value.
+ *
+ * @param {readonly string[]} argumentList
+ * @param {number} index
+ *
+ * @returns {{ consumed: number; explicitVersion: string }}
+ */
+const parseVersionArgument = (argumentList, index) => {
+    const argument = argumentList[index];
+
+    if (argument === "--version") {
+        const nextArgument = argumentList[index + 1];
+        if (typeof nextArgument !== "string") {
+            throw new TypeError("Expected a version after --version.");
+        }
+
+        return {
+            consumed: 2,
+            explicitVersion: normalizeNodeVersion(nextArgument),
+        };
+    }
+
+    if (typeof argument === "string" && argument.startsWith("--version=")) {
+        return {
+            consumed: 1,
+            explicitVersion: normalizeNodeVersion(
+                argument.slice("--version=".length)
+            ),
+        };
+    }
+
+    throw new TypeError(`Unknown argument: ${argument}`);
+};
+
+/**
  * Parse command-line arguments.
  *
  * Supported options:
@@ -82,7 +117,7 @@ const parseArguments = (argumentList) => {
     /** @type {string | null} */
     let explicitVersion = null;
 
-    for (let index = 0; index < argumentList.length; index += 1) {
+    for (let index = 0; index < argumentList.length; ) {
         const argument = argumentList[index];
 
         if (typeof argument !== "string") {
@@ -93,34 +128,19 @@ const parseArguments = (argumentList) => {
 
         if (argument === "--check") {
             checkOnly = true;
+            index += 1;
             continue;
         }
 
         if (argument === "--check-current") {
             checkCurrent = true;
-            continue;
-        }
-
-        if (argument === "--version") {
-            const nextArgument = argumentList[index + 1];
-
-            if (typeof nextArgument !== "string") {
-                throw new TypeError("Expected a version after --version.");
-            }
-
-            explicitVersion = normalizeNodeVersion(nextArgument);
             index += 1;
             continue;
         }
 
-        if (argument.startsWith("--version=")) {
-            explicitVersion = normalizeNodeVersion(
-                argument.slice("--version=".length)
-            );
-            continue;
-        }
-
-        throw new TypeError(`Unknown argument: ${argument}`);
+        const parsedVersion = parseVersionArgument(argumentList, index);
+        explicitVersion = parsedVersion.explicitVersion;
+        index += parsedVersion.consumed;
     }
 
     if (checkOnly && checkCurrent) {

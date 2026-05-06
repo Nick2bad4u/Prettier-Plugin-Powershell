@@ -1,3 +1,6 @@
+// eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair -- This file is the main Prettier printer implementation and necessarily contains complex logic that is difficult to break down further without sacrificing readability or performance. We can revisit this if specific issues arise, but for now we will allow complexity in service of a clear and maintainable overall structure.
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- Doc array is intentionally mutated while printing */
+
 import type { AstPath, Doc, ParserOptions, Printer } from "prettier";
 
 import { doc } from "prettier";
@@ -127,6 +130,15 @@ interface BacktickContinuationNode {
     readonly type: "BacktickContinuation";
 }
 
+/**
+ * Indicates the gap-between decision for two adjacent expression parts:
+ *
+ * - `"none"` — no separator (parts are concatenated directly)
+ * - `"space"` — a single space separator
+ * - `"defer"` — fall through to the next rule in the evaluation chain
+ */
+type GapDecision = "defer" | "none" | "space";
+
 function getSymbol(node: null | Readonly<ExpressionPartNode>): null | string {
     if (!node) {
         return null;
@@ -224,9 +236,8 @@ function shouldSkipPart(part: unknown): part is BacktickContinuationNode {
  */
 export const powerShellPrinter: Printer<ScriptNode> = {
     print(
-        // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Prettier API type
         path: AstPath<ScriptNode>,
-        // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Prettier API type
+
         options: ParserOptions
     ): Doc {
         const node = safeCastTo<
@@ -241,7 +252,48 @@ export const powerShellPrinter: Printer<ScriptNode> = {
     },
 };
 
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Doc is a recursive Prettier type that cannot be made deeply readonly
+function appendCommentToLastDoc(
+    docs: Doc[],
+    printed: Doc,
+    indentStatements: boolean,
+    options: Readonly<ResolvedOptions>
+): void {
+    const commentDoc = indentStatements
+        ? indentStatement(printed, options)
+        : printed;
+    const lastIndex = docs.length - 1;
+    const lastDoc = docs[lastIndex];
+    if (!isDefined(lastDoc)) {
+        return;
+    }
+
+    docs[lastIndex] = concatDocs([
+        lastDoc,
+        hardline,
+        commentDoc,
+    ]);
+}
+
+function buildPipelineSegmentsDoc(
+    firstSegmentDoc: Doc,
+    segmentDocs: readonly Doc[]
+): Doc {
+    let result: Doc = firstSegmentDoc;
+
+    if (segmentDocs.length > 1) {
+        const shouldAlwaysBreak = segmentDocs.length > 3;
+        const restDocs = segmentDocs
+            .slice(1)
+            .map((segmentDoc) => [line, ["| ", segmentDoc]]);
+
+        result = shouldAlwaysBreak
+            ? [firstSegmentDoc, indent(restDocs.flat())]
+            : group([firstSegmentDoc, indent(restDocs.flat())]);
+    }
+
+    return result;
+}
+
 function concatDocs(docs: readonly Doc[]): Doc {
     let result: Doc = "";
 
@@ -290,15 +342,123 @@ function determineBlankLines(
     return base;
 }
 
+function evaluateGapRules(
+    previous: Readonly<ExpressionPartNode>,
+    current: Readonly<ExpressionPartNode>,
+    prevSymbol: null | string,
+    currentSymbol: null | string
+): GapDecision {
+    if (isNoGapCurrentPart(previous, current)) {
+        return "none";
+    }
+
+    if (current.type === "Parenthesis") {
+        return spacingBeforeParenthesis(previous);
+    }
+
+    const structuralSpacing = evaluateStructuralSpacing(
+        previous,
+        current,
+        currentSymbol
+    );
+    if (structuralSpacing !== "defer") {
+        return structuralSpacing;
+    }
+
+    return evaluateSymbolSpacing(prevSymbol, currentSymbol);
+}
+
+function evaluateStructuralSpacing(
+    previous: Readonly<ExpressionPartNode>,
+    current: Readonly<ExpressionPartNode>,
+    currentSymbol: null | string
+): GapDecision {
+    if (previous.type === "Parenthesis") {
+        return currentSymbol !== null && setHas(NO_SPACE_BEFORE, currentSymbol)
+            ? "none"
+            : "space";
+    }
+
+    if (
+        current.type === "ScriptBlock" ||
+        current.type === "Hashtable" ||
+        current.type === "ArrayLiteral"
+    ) {
+        return "space";
+    }
+
+    return "defer";
+}
+
+function evaluateSymbolSpacing(
+    prevSymbol: null | string,
+    currentSymbol: null | string
+): GapDecision {
+    if (prevSymbol === null && currentSymbol === null) {
+        return "space";
+    }
+
+    if (prevSymbol === null) {
+        return currentSymbol !== null && setHas(NO_SPACE_BEFORE, currentSymbol)
+            ? "none"
+            : "space";
+    }
+
+    if (setHas(NO_SPACE_AFTER, prevSymbol)) {
+        return "none";
+    }
+
+    if (currentSymbol !== null && setHas(NO_SPACE_BEFORE, currentSymbol)) {
+        return "none";
+    }
+
+    if (
+        currentSymbol !== null &&
+        setHas(SYMBOL_NO_GAP, `${prevSymbol}:${currentSymbol}`)
+    ) {
+        return "none";
+    }
+
+    if (
+        currentSymbol !== null &&
+        setHas(CONCATENATED_OPERATOR_PAIRS, `${prevSymbol}${currentSymbol}`)
+    ) {
+        return "none";
+    }
+
+    return "space";
+}
+
 function gapBetween(
     previous: Readonly<ExpressionPartNode>,
     current: Readonly<ExpressionPartNode>
 ): Doc | null {
     const prevSymbol = getSymbol(previous);
     const currentSymbol = getSymbol(current);
+    const decision = evaluateGapRules(
+        previous,
+        current,
+        prevSymbol,
+        currentSymbol
+    );
+    return decision === "none" ? null : " ";
+}
 
+function indentStatement(
+    docToIndent: Doc,
+    options: Readonly<ResolvedOptions>
+): Doc {
+    const indentUnit =
+        options.indentStyle === "tabs" ? "\t" : " ".repeat(options.indentSize);
+    return safeCastTo<Doc>([indentUnit, align(indentUnit.length, docToIndent)]);
+}
+
+function isNoGapCurrentPart(
+    previous: Readonly<ExpressionPartNode>,
+    current: Readonly<ExpressionPartNode>
+): boolean {
     if (current.type === "ArrayLiteral" && current.kind === "explicit") {
-        return null;
+        return true;
     }
 
     if (
@@ -306,7 +466,7 @@ function gapBetween(
         current.role === "operator" &&
         (current.value === "++" || current.value === "--")
     ) {
-        return null;
+        return true;
     }
 
     if (
@@ -315,110 +475,13 @@ function gapBetween(
         current.type === "Text" &&
         current.role === "operator"
     ) {
-        const combined = previous.value + current.value;
-        if (setHas(CONCATENATED_OPERATOR_PAIRS, combined)) {
-            return null;
-        }
+        return setHas(
+            CONCATENATED_OPERATOR_PAIRS,
+            previous.value + current.value
+        );
     }
 
-    if (current.type === "Parenthesis") {
-        if (previous?.type === "Text") {
-            if (previous.value.toLowerCase() === "param") {
-                return null;
-            }
-            if (previous.role === "keyword") {
-                return " ";
-            }
-            // Operators need space before parenthesis
-            if (previous.role === "operator") {
-                return " ";
-            }
-            // Cmdlets and functions (words) need space before parenthesis
-            // Method calls are handled in printExpression
-            if (previous.role === "word") {
-                return " ";
-            }
-            // PowerShell logical operators need space before parenthesis
-            const prevLower = previous.value.toLowerCase();
-            if (
-                prevLower.startsWith("-") &&
-                (prevLower === "-not" ||
-                    prevLower === "-and" ||
-                    prevLower === "-or" ||
-                    prevLower === "-xor")
-            ) {
-                return " ";
-            }
-            return null;
-        }
-        return " ";
-    }
-
-    if (previous.type === "Parenthesis") {
-        if (currentSymbol !== null && setHas(NO_SPACE_BEFORE, currentSymbol)) {
-            return null;
-        }
-        return " ";
-    }
-
-    if (prevSymbol === null && currentSymbol === null) {
-        return " ";
-    }
-
-    if (prevSymbol === null) {
-        if (currentSymbol !== null && setHas(NO_SPACE_BEFORE, currentSymbol)) {
-            return null;
-        }
-        return " ";
-    }
-
-    if (setHas(NO_SPACE_AFTER, prevSymbol)) {
-        return null;
-    }
-
-    if (currentSymbol !== null && setHas(NO_SPACE_BEFORE, currentSymbol)) {
-        return null;
-    }
-
-    if (
-        prevSymbol !== null &&
-        currentSymbol !== null &&
-        setHas(SYMBOL_NO_GAP, `${prevSymbol}:${currentSymbol}`)
-    ) {
-        return null;
-    }
-
-    if (prevSymbol !== null && currentSymbol !== null) {
-        const pair = `${prevSymbol}${currentSymbol}`;
-        if (setHas(CONCATENATED_OPERATOR_PAIRS, pair)) {
-            return null;
-        }
-    }
-
-    /* c8 ignore next */
-    if (prevSymbol === "=" || currentSymbol === "=") {
-        return " ";
-    }
-
-    if (
-        current.type === "ScriptBlock" ||
-        current.type === "Hashtable" ||
-        current.type === "ArrayLiteral"
-    ) {
-        return " ";
-    }
-
-    return " ";
-}
-
-function indentStatement(
-    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Prettier Doc is a recursive union not modeled as deeply readonly in upstream types
-    docToIndent: Doc,
-    options: Readonly<ResolvedOptions>
-): Doc {
-    const indentUnit =
-        options.indentStyle === "tabs" ? "\t" : " ".repeat(options.indentSize);
-    return safeCastTo<Doc>([indentUnit, align(indentUnit.length, docToIndent)]);
+    return false;
 }
 
 function isParamStatement(node: null | Readonly<ScriptBodyNode>): boolean {
@@ -479,12 +542,33 @@ function looksLikeCommentText(text: string): boolean {
     return hasSpaces && wordCount >= 3;
 }
 
-function printExpression(
-    node: Readonly<ExpressionNode>,
-    options: Readonly<ResolvedOptions>
-): Doc {
-    const docs: Doc[] = [];
+function mergeOperatorPair(
+    current: Readonly<ExpressionPartNode>,
+    next: Readonly<ExpressionPartNode> | undefined
+): ExpressionPartNode | undefined {
+    if (current.type !== "Text" || current.role !== "operator") {
+        return undefined;
+    }
 
+    if (next?.type !== "Text" || next.role !== "operator") {
+        return undefined;
+    }
+
+    const combinedValue = current.value + next.value;
+    if (!setHas(CONCATENATED_OPERATOR_PAIRS, combinedValue)) {
+        return undefined;
+    }
+
+    return {
+        ...current,
+        loc: { end: next.loc.end, start: current.loc.start },
+        value: combinedValue,
+    };
+}
+
+function normalizeExpressionParts(
+    node: Readonly<ExpressionNode>
+): ExpressionPartNode[] {
     const filteredParts = node.parts.filter(not(shouldSkipPart));
     const normalizedParts: ExpressionPartNode[] = [];
 
@@ -493,91 +577,87 @@ function printExpression(
         if (!isDefined(current)) {
             continue;
         }
-        if (current.type === "Text" && current.role === "operator") {
-            const next = filteredParts[index + 1];
-            if (next?.type === "Text" && next.role === "operator") {
-                const combinedValue = current.value + next.value;
-                if (setHas(CONCATENATED_OPERATOR_PAIRS, combinedValue)) {
-                    normalizedParts.push({
-                        ...current,
-                        loc: { end: next.loc.end, start: current.loc.start },
-                        value: combinedValue,
-                    });
-                    index += 1;
-                    continue;
-                }
-            }
+
+        const merged = mergeOperatorPair(current, filteredParts[index + 1]);
+        if (merged) {
+            normalizedParts.push(merged);
+            index += 1;
+            continue;
         }
+
         normalizedParts.push(current);
     }
+
+    return normalizedParts;
+}
+
+function normalizeKeywordAfterMemberAccess(
+    part: Readonly<ExpressionPartNode>,
+    previous: null | Readonly<ExpressionPartNode>
+): ExpressionPartNode {
+    if (
+        part.type === "Text" &&
+        part.role === "keyword" &&
+        previous?.type === "Text" &&
+        (previous.value === "." || previous.value === "::")
+    ) {
+        return {
+            ...part,
+            role: "word",
+        };
+    }
+
+    return part;
+}
+
+function printExpression(
+    node: Readonly<ExpressionNode>,
+    options: Readonly<ResolvedOptions>
+): Doc {
+    const docs: Doc[] = [];
+    const normalizedParts = normalizeExpressionParts(node);
 
     let previous: ExpressionPartNode | null = null;
 
     for (let index = 0; index < normalizedParts.length; index += 1) {
-        let part = normalizedParts[index];
+        const current = normalizedParts[index];
+        let part = current;
         if (!isDefined(part)) {
             continue;
         }
 
-        if (
-            part.type === "Text" &&
-            part.role === "keyword" &&
-            previous?.type === "Text" &&
-            (previous.value === "." || previous.value === "::")
-        ) {
-            part = {
-                ...part,
-                role: "word",
-            };
-        }
+        part = normalizeKeywordAfterMemberAccess(part, previous);
 
-        if (part.type === "Parenthesis" && isParamKeyword(previous)) {
-            docs.push(printParamParenthesis(part, options));
+        const specialDoc = printSpecialExpressionPart(
+            part,
+            previous,
+            normalizedParts,
+            index,
+            options
+        );
+        if (specialDoc) {
+            if (specialDoc.skipSeparator === true) {
+                docs.push(specialDoc.doc);
+            } else {
+                pushExpressionDoc(
+                    docs,
+                    specialDoc.doc,
+                    previous,
+                    part,
+                    options
+                );
+            }
             previous = part;
             continue;
         }
 
-        // Check if this is comment text (not starting with #, but appears to be prose)
-        if (
-            part.type === "Text" &&
-            part.role === "unknown" &&
-            previous &&
-            !part.value.trim().startsWith("#") &&
-            looksLikeCommentText(part.value)
-        ) {
-            // This looks like comment text - treat it as an inline comment
-            docs.push(lineSuffix([" # ", part.value.trim()]));
-            previous = part;
-            continue;
-        }
-
-        if (previous) {
-            // Special case: identifier followed by parenthesis could be method call or cmdlet
-            // Check if the identifier comes after . or :: (method call - no space)
-            if (
-                part.type === "Parenthesis" &&
-                previous.type === "Text" &&
-                index >= 2
-            ) {
-                const beforeWord = normalizedParts[index - 2];
-                if (
-                    beforeWord?.type === "Text" &&
-                    (beforeWord.value === "." || beforeWord.value === "::")
-                ) {
-                    // This is a method call - no space before (
-                    docs.push(printNode(part, options));
-                    previous = part;
-                    continue;
-                }
-            }
-
-            const separator = gapBetween(previous, part);
-            if (separator !== null) {
-                docs.push(separator);
-            }
-        }
-
-        docs.push(printNode(part, options));
+        pushExpressionDoc(
+            docs,
+            printNode(part, options),
+            previous,
+            part,
+            options
+        );
         previous = part;
     }
 
@@ -675,37 +755,14 @@ function printPipeline(
     const segmentDocs = node.segments.map((segment) =>
         printExpression(segment, options)
     );
-
+    const firstSegmentDoc = arrayFirst(segmentDocs);
     let result: Doc = "";
 
-    const firstSegmentDoc = arrayFirst(segmentDocs);
     if (!isEmpty(segmentDocs) && isDefined(firstSegmentDoc)) {
-        let pipelineDoc: Doc = firstSegmentDoc;
-
-        if (segmentDocs.length > 1) {
-            const shouldAlwaysBreak = segmentDocs.length > 3;
-
-            const restDocs = segmentDocs
-                .slice(1)
-                .map((segmentDoc) => [line, ["| ", segmentDoc]]);
-
-            // For long pipelines, force line breaks; shorter ones may fit on one line.
-            pipelineDoc = shouldAlwaysBreak
-                ? [firstSegmentDoc, indent(restDocs.flat())]
-                : group([firstSegmentDoc, indent(restDocs.flat())]);
-        }
-
-        if (node.trailingComment) {
-            pipelineDoc = node.trailingComment.inline
-                ? [pipelineDoc, lineSuffix([" #", node.trailingComment.value])]
-                : [
-                      pipelineDoc,
-                      hardline,
-                      printComment(node.trailingComment),
-                  ];
-        }
-
-        result = pipelineDoc;
+        result = withPipelineTrailingComment(
+            buildPipelineSegmentsDoc(firstSegmentDoc, segmentDocs),
+            node.trailingComment
+        );
     }
 
     return result;
@@ -737,8 +794,48 @@ function printScriptBlock(
     ]);
 }
 
+function printSpecialExpressionPart(
+    part: Readonly<ExpressionPartNode>,
+    previous: null | Readonly<ExpressionPartNode>,
+    normalizedParts: readonly ExpressionPartNode[],
+    index: number,
+    options: Readonly<ResolvedOptions>
+): null | { doc: Doc; skipSeparator?: boolean } {
+    if (part.type === "Parenthesis" && isParamKeyword(previous)) {
+        return {
+            doc: printParamParenthesis(part, options),
+            skipSeparator: true,
+        };
+    }
+
+    if (
+        part.type === "Text" &&
+        part.role === "unknown" &&
+        isDefined(previous) &&
+        !part.value.trim().startsWith("#") &&
+        looksLikeCommentText(part.value)
+    ) {
+        return { doc: lineSuffix([" # ", part.value.trim()]) };
+    }
+
+    if (
+        part.type === "Parenthesis" &&
+        previous?.type === "Text" &&
+        index >= 2
+    ) {
+        const beforeWord = normalizedParts[index - 2];
+        if (
+            beforeWord?.type === "Text" &&
+            (beforeWord.value === "." || beforeWord.value === "::")
+        ) {
+            return { doc: printNode(part, options), skipSeparator: true };
+        }
+    }
+
+    return null;
+}
+
 function printStatementList(
-    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- ScriptBodyNode contains mutable nested arrays
     body: readonly ScriptBodyNode[],
     options: Readonly<ResolvedOptions>,
     indentStatements: boolean
@@ -766,24 +863,8 @@ function printStatementList(
         }
 
         const printed = printNode(entry, options);
-        if (
-            entry.type === "Comment" &&
-            previous &&
-            entry.loc.start < previous.loc.end &&
-            docs.length > 0
-        ) {
-            const commentDoc = indentStatements
-                ? indentStatement(printed, options)
-                : printed;
-            const lastIndex = docs.length - 1;
-            const lastDoc = docs[lastIndex];
-            if (isDefined(lastDoc)) {
-                docs[lastIndex] = concatDocs([
-                    lastDoc,
-                    hardline,
-                    commentDoc,
-                ]);
-            }
+        if (shouldAppendCommentToPreviousDoc(entry, previous, docs.length)) {
+            appendCommentToLastDoc(docs, printed, indentStatements, options);
             previous = entry;
             pendingBlankLines = 0;
             continue;
@@ -797,6 +878,85 @@ function printStatementList(
     }
 
     return concatDocs(docs);
+}
+
+function pushExpressionDoc(
+    docs: Doc[],
+    nextDoc: Doc,
+    previous: null | Readonly<ExpressionPartNode>,
+    part: Readonly<ExpressionPartNode>,
+    options: Readonly<ResolvedOptions>
+): void {
+    if (previous !== null) {
+        const separator = gapBetween(previous, part);
+        if (separator !== null) {
+            docs.push(separator);
+        }
+    }
+
+    docs.push(nextDoc ?? printNode(part, options));
+}
+
+function shouldAppendCommentToPreviousDoc(
+    entry: Readonly<ScriptBodyNode>,
+    previous: null | Readonly<ScriptBodyNode>,
+    docsLength: number
+): boolean {
+    return (
+        entry.type === "Comment" &&
+        previous !== null &&
+        entry.loc.start < previous.loc.end &&
+        docsLength > 0
+    );
+}
+
+function spacingBeforeParenthesis(
+    previous: Readonly<ExpressionPartNode>
+): GapDecision {
+    if (previous.type !== "Text") {
+        return "space";
+    }
+
+    if (previous.value.toLowerCase() === "param") {
+        return "none";
+    }
+
+    if (previous.role === "keyword" || previous.role === "operator") {
+        return "space";
+    }
+
+    if (previous.role === "word") {
+        return "space";
+    }
+
+    const prevLower = previous.value.toLowerCase();
+    const isLogicalOperator =
+        prevLower.startsWith("-") &&
+        (prevLower === "-not" ||
+            prevLower === "-and" ||
+            prevLower === "-or" ||
+            prevLower === "-xor");
+
+    return isLogicalOperator ? "space" : "none";
+}
+
+function withPipelineTrailingComment(
+    pipelineDoc: Doc,
+    trailingComment: Readonly<CommentNode> | undefined
+): Doc {
+    let result: Doc = pipelineDoc;
+
+    if (trailingComment) {
+        result = trailingComment.inline
+            ? [pipelineDoc, lineSuffix([" #", trailingComment.value])]
+            : [
+                  pipelineDoc,
+                  hardline,
+                  printComment(trailingComment),
+              ];
+    }
+
+    return result;
 }
 
 const KEYWORD_CASE_TRANSFORMS: Record<string, (value: string) => string> = {
@@ -869,6 +1029,40 @@ function extractCommentText(node: Readonly<ExpressionNode>): null | string {
     return `# ${trimmed}`;
 }
 
+function flushPendingAttributes(
+    elementDocs: Doc[],
+
+    pendingAttributes: Doc[],
+    nextDoc?: Doc
+): Doc[] {
+    if (isEmpty(pendingAttributes)) {
+        if (isDefined(nextDoc)) {
+            elementDocs.push(nextDoc);
+        }
+        return pendingAttributes;
+    }
+
+    const attributeDoc: Doc =
+        pendingAttributes.length === 1
+            ? (arrayFirst(pendingAttributes) ??
+              join(hardline, pendingAttributes))
+            : join(hardline, pendingAttributes);
+
+    if (isDefined(nextDoc)) {
+        elementDocs.push(
+            group([
+                attributeDoc,
+                hardline,
+                nextDoc,
+            ])
+        );
+    } else {
+        elementDocs.push(attributeDoc);
+    }
+
+    return [];
+}
+
 function isAttributeExpression(node: Readonly<ExpressionNode>): boolean {
     if (isEmpty(node.parts)) {
         return false;
@@ -902,6 +1096,12 @@ function isCommentExpression(node: Readonly<ExpressionNode>): boolean {
     }
 
     return looksLikeCommentText(trimmed);
+}
+
+function isPrintableParamElement(
+    element: Readonly<ExpressionNode> | undefined
+): element is Readonly<ExpressionNode> {
+    return isDefined(element) && !isCommentExpression(element);
 }
 
 function isSimpleExpression(node: Readonly<ExpressionNode>): boolean {
@@ -1082,6 +1282,25 @@ function printHereString(node: Readonly<HereStringNode>): Doc {
     return dedentToRoot(node.value);
 }
 
+function printParamElementWithTrailingComment(
+    element: Readonly<ExpressionNode>,
+    nextElement: Readonly<ExpressionNode> | undefined,
+    options: Readonly<ResolvedOptions>
+): { consumedTrailingComment: boolean; doc: Doc } {
+    let printed: Doc = printExpression(element, options);
+    if (!isDefined(nextElement) || !isCommentExpression(nextElement)) {
+        return { consumedTrailingComment: false, doc: printed };
+    }
+
+    const commentText = extractCommentText(nextElement);
+    if (commentText === null) {
+        return { consumedTrailingComment: false, doc: printed };
+    }
+
+    printed = [printed, lineSuffix([" ", commentText])];
+    return { consumedTrailingComment: true, doc: printed };
+}
+
 function printParamParenthesis(
     node: Readonly<ParenthesisNode>,
     options: Readonly<ResolvedOptions>
@@ -1107,39 +1326,10 @@ function printParamParenthesis(
     const elementDocs: Doc[] = [];
     let pendingAttributes: Doc[] = [];
 
-    const flushAttributes = (
-        // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Doc is a recursive Prettier type
-        nextDoc?: Doc
-    ) => {
-        if (pendingAttributes.length > 0) {
-            const attributeDoc: Doc =
-                pendingAttributes.length === 1
-                    ? (arrayFirst(pendingAttributes) ??
-                      join(hardline, pendingAttributes))
-                    : join(hardline, pendingAttributes);
-
-            if (isDefined(nextDoc)) {
-                elementDocs.push(
-                    group([
-                        attributeDoc,
-                        hardline,
-                        nextDoc,
-                    ])
-                );
-            } else {
-                elementDocs.push(attributeDoc);
-            }
-            pendingAttributes = [];
-        } else if (isDefined(nextDoc)) {
-            elementDocs.push(nextDoc);
-        }
-    };
-
     for (let index = 0; index < node.elements.length; index += 1) {
         const element = node.elements[index];
 
-        // Skip comment-only expressions - they'll be handled as trailing comments
-        if (!isDefined(element) || isCommentExpression(element)) {
+        if (!isPrintableParamElement(element)) {
             continue;
         }
 
@@ -1148,22 +1338,23 @@ function printParamParenthesis(
             continue;
         }
 
-        let printed = printExpression(element, options);
-
-        // Check if the next element is a comment - if so, attach it inline
-        const nextElement = node.elements[index + 1];
-        if (isDefined(nextElement) && isCommentExpression(nextElement)) {
-            const commentText = extractCommentText(nextElement);
-            if (commentText !== null) {
-                printed = [printed, lineSuffix([" ", commentText])];
-                index += 1; // Skip the comment element since we've consumed it
-            }
+        const printedResult = printParamElementWithTrailingComment(
+            element,
+            node.elements[index + 1],
+            options
+        );
+        if (printedResult.consumedTrailingComment) {
+            index += 1;
         }
 
-        flushAttributes(printed);
+        pendingAttributes = flushPendingAttributes(
+            elementDocs,
+            pendingAttributes,
+            printedResult.doc
+        );
     }
 
-    flushAttributes();
+    flushPendingAttributes(elementDocs, pendingAttributes);
     const separator: Doc = [",", hardline];
 
     return group(
@@ -1273,7 +1464,6 @@ function printText(
 }
 
 function sortHashtableEntries(
-    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- HashtableEntryNode contains mutable nested arrays
     entries: readonly HashtableEntryNode[]
 ): HashtableEntryNode[] {
     const ordered: HashtableEntryNode[] = [];

@@ -95,7 +95,8 @@
         "tsBuildInfoFile": "./.cache/tsbuildinfo/tsconfig.app.tsbuildinfo",
         "types": [
             "vite/client",
-            "vitest/globals"
+            "vitest/globals",
+            "node"
         ],
         "useDefineForClassFields": true,
         "useUnknownInCatchVariables": true,
