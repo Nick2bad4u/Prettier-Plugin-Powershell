@@ -1,7 +1,7 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
     "name": "prettier-plugin-powershell",
-    "version": "2.1.1",
+    "version": "2.1.2",
     "private": false,
     "description": "Prettier plugin for formatting PowerShell source files with idiomatic defaults.",
     "keywords": [
