@@ -292,7 +292,7 @@ jobs:
                   mkdir -p "$assets_dir"
                   rm -rf "$unpack_dir"
 
-                  npm pack --json --pack-destination "$assets_dir" > "$pack_metadata_path"
+                  npm pack --ignore-scripts --json --pack-destination "$assets_dir" > "$pack_metadata_path"
 
                   tarball_filename=$(node -e "const fs = require('node:fs'); const packMetadata = JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); process.stdout.write(packMetadata[0].filename);" "$pack_metadata_path")
                   tarball_path="${assets_dir}/${tarball_filename}"
