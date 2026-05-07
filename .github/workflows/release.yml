@@ -292,7 +292,7 @@ jobs:
                   mkdir -p "$assets_dir"
                   rm -rf "$unpack_dir"
 
-                  npm pack --json --ignore-scripts --pack-destination "$assets_dir" > "$pack_metadata_path"
+                  npm pack --json --pack-destination "$assets_dir" > "$pack_metadata_path"
 
                   tarball_filename=$(node -e "const fs = require('node:fs'); const packMetadata = JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); process.stdout.write(packMetadata[0].filename);" "$pack_metadata_path")
                   tarball_path="${assets_dir}/${tarball_filename}"
@@ -348,4 +348,3 @@ jobs:
                     echo "- GitHub release: [${{ steps.version.outputs.tag }}](${{ steps.version.outputs.github_release_url }})"
                     echo "- Release assets: \`${{ steps.release_assets.outputs.tarball_name }}\`, \`${{ steps.release_assets.outputs.zip_name }}\`"
                   } >> "$GITHUB_STEP_SUMMARY"
-
