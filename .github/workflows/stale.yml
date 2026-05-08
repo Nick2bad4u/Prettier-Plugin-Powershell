@@ -24,6 +24,9 @@ on:
             - edited
     workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
     stale:
         name: Mark Stale Issues And Pull Requests

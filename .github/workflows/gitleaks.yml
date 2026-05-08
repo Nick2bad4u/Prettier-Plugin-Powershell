@@ -17,6 +17,9 @@ concurrency:
     group: gitleaks-${{ github.ref }}
     cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
     scan:
         name: Gitleaks
