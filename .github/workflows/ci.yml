@@ -67,6 +67,7 @@ jobs:
 
             - name: Upload bundle analysis to Codecov
               if: ${{ matrix.os == 'ubuntu-latest' && !cancelled() && env.CODECOV_TOKEN != '' }}
+              continue-on-error: true
               run: npx @codecov/bundle-analyzer ./dist --bundle-name=${{ github.repository }} --upload-token="${CODECOV_TOKEN}"
               env:
                   GITHUB_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
