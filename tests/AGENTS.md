@@ -43,43 +43,47 @@ applyTo: "test/**"
 ## Writing Tests
 
 ### 1. Structure
+
 - Every rule test file must follow this pattern:
+
   ```ts
-  import { getPluginRule } from './_internal/ruleTester';
+  import { getPluginRule } from "./_internal/ruleTester";
   import {
-    createTypedRuleTester,
-    readTypedFixture,
-    typedFixturePath,
-  } from './_internal/typed-rule-tester';
+   createTypedRuleTester,
+   readTypedFixture,
+   typedFixturePath,
+  } from "./_internal/typed-rule-tester";
 
   const ruleTester = createTypedRuleTester();
-  const validFixtureName = 'my-rule.valid.ts';
-  const invalidFixtureName = 'my-rule.invalid.ts';
+  const validFixtureName = "my-rule.valid.ts";
+  const invalidFixtureName = "my-rule.invalid.ts";
 
-  ruleTester.run('my-rule', getPluginRule('my-rule'), {
-    valid: [
-      {
-        code: readTypedFixture(validFixtureName),
-        filename: typedFixturePath(validFixtureName),
-      },
-    ],
-    invalid: [
-      {
-        code: readTypedFixture(invalidFixtureName),
-        filename: typedFixturePath(invalidFixtureName),
-        errors: [{ messageId: 'someMessageId' }],
-      },
-    ],
+  ruleTester.run("my-rule", getPluginRule("my-rule"), {
+   valid: [
+    {
+     code: readTypedFixture(validFixtureName),
+     filename: typedFixturePath(validFixtureName),
+    },
+   ],
+   invalid: [
+    {
+     code: readTypedFixture(invalidFixtureName),
+     filename: typedFixturePath(invalidFixtureName),
+     errors: [{ messageId: "someMessageId" }],
+    },
+   ],
   });
   ```
 
 ### 2. Valid Cases (`valid`)
-- Include code that *should not* trigger the rule.
-- **False Positive Prevention:** purposefully include code that looks *similar* to the target pattern but is technically correct/safe.
+
+- Include code that _should not_ trigger the rule.
+- **False Positive Prevention:** purposefully include code that looks _similar_ to the target pattern but is technically correct/safe.
 - **Type Awareness:** Test with `any`, `unknown`, and `never` to ensure the rule doesn't crash or report incorrectly on these types.
 
 ### 3. Invalid Cases (`invalid`)
-- Include code that *must* trigger the rule.
+
+- Include code that _must_ trigger the rule.
 - **Errors:** Verify the exact `messageId` or error message structure.
 - **Path-aware typed tests:** Include `filename` via `typedFixturePath(...)` so type-aware behavior mirrors real file resolution.
 - **Output (Autofix):**
@@ -89,6 +93,7 @@ applyTo: "test/**"
 - **Options:** If the rule has options, add test cases explicitly setting them.
 
 ### 4. Property-Based Testing (`fast-check`)
+
 - Use `fast-check` to generate random AST structures or code snippets when the rule logic is complex (e.g., handling operator precedence or deep nesting).
 - **Example Strategy:**
   - Generate random strings to test regex-based rules.
@@ -104,7 +109,7 @@ applyTo: "test/**"
 - **Strict Typing:** All test cases should use the generic types provided by `RuleTester` to ensure `options` and `messageIds` match the rule definition.
 - **Multiline Code:** Use template literals (backticks) for code readability.
   - Avoid excessive indentation in the template literal; use `.trim()` or a utility helper if needed to normalize whitespace.
-- **Comments:** Put a comment above complex test cases explaining *what* specific edge case is being tested (e.g., `// Should ignore generic constraints`).
+- **Comments:** Put a comment above complex test cases explaining _what_ specific edge case is being tested (e.g., `// Should ignore generic constraints`).
 - **Plugin Wiring:** Keep tests coupled to public plugin wiring by using `getPluginRule(...)` instead of importing rule modules directly in rule test files.
 - **Performance:**
   - `RuleTester` runs strictly. If a test hangs, check for infinite loops in the rule's traversal or fixer.
@@ -118,48 +123,48 @@ applyTo: "test/**"
 ## Example: Typed Rule Test
 
 ```ts
-import { getPluginRule } from './_internal/ruleTester';
+import { getPluginRule } from "./_internal/ruleTester";
 import {
-  createTypedRuleTester,
-  readTypedFixture,
-  typedFixturePath,
-} from './_internal/typed-rule-tester';
+ createTypedRuleTester,
+ readTypedFixture,
+ typedFixturePath,
+} from "./_internal/typed-rule-tester";
 
 const ruleTester = createTypedRuleTester();
-const validFixtureName = 'no-unsafe-push.valid.ts';
-const invalidFixtureName = 'no-unsafe-push.invalid.ts';
+const validFixtureName = "no-unsafe-push.valid.ts";
+const invalidFixtureName = "no-unsafe-push.invalid.ts";
 
-ruleTester.run('no-unsafe-push', getPluginRule('no-unsafe-push'), {
-  valid: [
-    {
-      code: readTypedFixture(validFixtureName),
-      filename: typedFixturePath(validFixtureName),
-    },
-  ],
-  invalid: [
-    {
-      code: readTypedFixture(invalidFixtureName),
-      filename: typedFixturePath(invalidFixtureName),
-      errors: [{ messageId: 'unsafePush' }],
-    }
-  ],
+ruleTester.run("no-unsafe-push", getPluginRule("no-unsafe-push"), {
+ valid: [
+  {
+   code: readTypedFixture(validFixtureName),
+   filename: typedFixturePath(validFixtureName),
+  },
+ ],
+ invalid: [
+  {
+   code: readTypedFixture(invalidFixtureName),
+   filename: typedFixturePath(invalidFixtureName),
+   errors: [{ messageId: "unsafePush" }],
+  },
+ ],
 });
 ```
 
 ## Example: Property-Based Test (Fast-Check)
 
 ```ts
-import * as fc from 'fast-check';
-import { checkSpecificLogic } from '../rules/utils/my-helper';
+import * as fc from "fast-check";
+import { checkSpecificLogic } from "../rules/utils/my-helper";
 
-test('utility function handles all string inputs', () => {
-  fc.assert(
-    fc.property(fc.string(), (text) => {
-      // Ensure the helper never throws on arbitrary input
-      const result = checkSpecificLogic(text);
-      return typeof result === 'boolean';
-    })
-  );
+test("utility function handles all string inputs", () => {
+ fc.assert(
+  fc.property(fc.string(), (text) => {
+   // Ensure the helper never throws on arbitrary input
+   const result = checkSpecificLogic(text);
+   return typeof result === "boolean";
+  })
+ );
 });
 ```
 

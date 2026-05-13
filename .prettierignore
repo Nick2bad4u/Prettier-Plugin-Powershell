@@ -13,3 +13,6 @@ tests/test_files/weird-*.test.*
 
 # Utility scripts invoked by tests for syntax validation
 tests/utils/validate-syntax.ps1
+
+# Keep TOML spacing aligned with eslint TOML rules.
+.gitleaks.toml

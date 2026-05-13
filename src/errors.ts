@@ -3,21 +3,21 @@ import { arrayAt, arrayJoin, isDefined, stringSplit } from "ts-extras";
 /**
  * Shape describing one anti-pattern detection rule.
  */
-export type AntiPatternSpec = {
+export interface AntiPatternSpec {
     message: string;
     pattern: RegExp;
     suggestion?: string;
     type: WarningType;
-};
+}
 
 /**
  * Deprecated syntax detection rule.
  */
-export type DeprecatedSyntaxSpec = {
+export interface DeprecatedSyntaxSpec {
     message: string;
     modern: string;
     pattern: RegExp;
-};
+}
 
 /**
  * Classification categories used by non-fatal parser and style warnings.
@@ -211,21 +211,21 @@ export function createParseError(
 export const ANTI_PATTERNS: AntiPatternSpec[] = [
     {
         message: "Avoid Write-Host; use Write-Output instead",
-        pattern: /write-host/gi,
+        pattern: /\bwrite-host\b/giv,
         suggestion:
             "Write-Host bypasses the pipeline. Use Write-Output for objects or Write-Information for informational messages.",
         type: "anti-pattern",
     },
     {
         message: "Avoid Invoke-Expression; it's a security risk",
-        pattern: /invoke-expression/gi,
+        pattern: /\binvoke-expression\b/giv,
         suggestion:
             "Use safer alternatives like & operator, dot-sourcing, or proper function calls.",
         type: "anti-pattern",
     },
     {
         message: "Consider using $? in combination with proper error handling",
-        pattern: /\$\?/g,
+        pattern: /\$\?/gv,
         suggestion:
             "Use try/catch blocks or -ErrorAction for better error control.",
         type: "best-practice",
@@ -233,7 +233,7 @@ export const ANTI_PATTERNS: AntiPatternSpec[] = [
     {
         message: "Use -First parameter on cmdlet instead of Select-Object",
         pattern:
-            /get-\w+\s*\|\s*where-object.*\|\s*select-object\s+-first\s+1/gi,
+            /\bget-[\p{L}\p{N}_]+\s*\|\s*where-object[^\n\r]*\|\s*select-object\s+-first\s+1/giv,
         suggestion:
             "Many cmdlets support -First parameter for better performance.",
         type: "performance",
@@ -241,7 +241,7 @@ export const ANTI_PATTERNS: AntiPatternSpec[] = [
     {
         message:
             "Consider using ForEach-Object in pipeline for memory efficiency",
-        pattern: /foreach\s*\(\s*\$\w+\s+in\s+get-/gi,
+        pattern: /\bforeach\s*\(\s*\$[\p{L}\p{N}_]+\s+in\s+get-/giv,
         suggestion: "Get-X | ForEach-Object { } processes items one at a time.",
         type: "performance",
     },
@@ -254,12 +254,12 @@ export const DEPRECATED_SYNTAX: DeprecatedSyntaxSpec[] = [
     {
         message: "Subexpression operator is fine, but ensure proper nesting",
         modern: "$(...) subexpressions",
-        pattern: /\$\(/g,
+        pattern: /\$\(/gv,
     },
     {
         message: "Consider assigning to $null instead of [void] for clarity",
         modern: "$null = ...",
-        pattern: /\[void/gi,
+        pattern: /\[void/giv,
     },
 ];
 

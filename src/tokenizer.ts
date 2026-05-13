@@ -175,26 +175,26 @@ const POWERSHELL_OPERATOR_LOOKUP: Readonly<Record<string, true | undefined>> =
 
 // Cached regex patterns for performance
 // These are defined at module level to avoid recreation in the tokenize loop
-const WHITESPACE_PATTERN = /\s/u;
-const IDENTIFIER_START_PATTERN = /\p{L}|_/u;
-const UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}\-:_]$/u;
-const HEX_DIGIT_PATTERN = /[\da-f]/i;
-const BINARY_DIGIT_PATTERN = /[01]/;
-const DECIMAL_DIGIT_PATTERN = /\d/;
-const NUMBER_SUFFIX_PATTERN = /[dflu]/i;
-const UNICODE_IDENTIFIER_START_PATTERN = /[\p{L}_]/u;
-const UNICODE_IDENTIFIER_CHAR_PATTERN = /[\p{L}\p{N}\-_]/u;
-const UNICODE_IDENTIFIER_AFTER_DASH_PATTERN = /[\p{L}-]/u;
-const NUMBER_INT_SUFFIX_PATTERN = /[lu]/i;
-const MERGED_REDIRECTION_TARGET_PATTERN = /[1-6]/;
-const STREAM_REDIRECTION_START_PATTERN = /[*2-6]/;
-const MERGED_ONE_REDIRECTION_TARGET_PATTERN = /[2-6]/;
+const WHITESPACE_PATTERN = /\s/v;
+const IDENTIFIER_START_PATTERN = /\p{L}|_/v;
+const UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}\-:_]$/v;
+const HEX_DIGIT_PATTERN = /[\da-f]/iv;
+const BINARY_DIGIT_PATTERN = /[01]/v;
+const DECIMAL_DIGIT_PATTERN = /\d/v;
+const NUMBER_SUFFIX_PATTERN = /[dflu]/iv;
+const UNICODE_IDENTIFIER_START_PATTERN = /[\p{L}_]/v;
+const UNICODE_IDENTIFIER_CHAR_PATTERN = /[\p{L}\p{N}\-_]/v;
+const UNICODE_IDENTIFIER_AFTER_DASH_PATTERN = /[\p{L}\-]/v;
+const NUMBER_INT_SUFFIX_PATTERN = /[lu]/iv;
+const MERGED_REDIRECTION_TARGET_PATTERN = /[1-6]/v;
+const STREAM_REDIRECTION_START_PATTERN = /[*2-6]/v;
+const MERGED_ONE_REDIRECTION_TARGET_PATTERN = /[2-6]/v;
 
-type CodePointInfo = {
+interface CodePointInfo {
     codePoint: number;
     text: string;
     width: number;
-};
+}
 
 type ReadCodePoint = (position: number) => CodePointInfo | null;
 
@@ -376,6 +376,8 @@ const readQuotedString = (
             }
             scanIndex += 1;
             break;
+        } else {
+            // Unescaped, non-delimiter character inside quoted literal.
         }
         scanIndex += 1;
     }

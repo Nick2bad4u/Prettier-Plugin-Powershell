@@ -28,7 +28,7 @@ describe("progress utilities", () => {
 
             const tracker = createProgressTracker("test");
 
-            expect(typeof tracker.complete).toBe("function");
+            expect(tracker.complete).toBeTypeOf("function");
 
             tracker.complete(); // Should not throw
         });

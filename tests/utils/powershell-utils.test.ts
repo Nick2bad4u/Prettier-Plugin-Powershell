@@ -244,10 +244,9 @@ const mockChildProcessModule = (spawnMock: unknown): void => {
 
 const { env: testEnv } = process;
 const originalEnv = { ...testEnv };
+type TestEnvironment = Readonly<Record<string, string | undefined>>;
 
-const replaceTestEnvironment = (
-    overrides: Readonly<NodeJS.ProcessEnv>
-): void => {
+const replaceTestEnvironment = (overrides: TestEnvironment): void => {
     for (const key of Object.keys(testEnv)) {
         testEnv[key] = undefined;
     }
@@ -412,7 +411,7 @@ describe("powershell syntax utilities", () => {
         });
 
         const spawnMock = vi.fn<() => never>(() => {
-            const error = new Error("not found") as NodeJS.ErrnoException;
+            const error = new Error("not found") as Error & { code?: string };
             error.code = "ENOENT";
             throw error;
         });

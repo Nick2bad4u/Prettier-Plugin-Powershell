@@ -246,6 +246,38 @@ const PRESET_DEFAULTS: Record<PresetOption, PresetDefaults> = {
     none: {},
 };
 
+const PRESET_OPTIONS = new Set<PresetOption>(["invoke-formatter", "none"]);
+const INDENT_STYLE_OPTIONS = new Set<IndentStyleOption>(["spaces", "tabs"]);
+const TRAILING_COMMA_OPTIONS = new Set<TrailingCommaOption>([
+    "all",
+    "multiline",
+    "none",
+]);
+const BRACE_STYLE_OPTIONS = new Set<BraceStyleOption>(["1tbs", "allman"]);
+const KEYWORD_CASE_OPTIONS = new Set<KeywordCaseOption>([
+    "lower",
+    "pascal",
+    "preserve",
+    "upper",
+]);
+
+function readChoiceOption<T extends string>(
+    options: Readonly<ParserOptions>,
+    key: string,
+    allowedValues: ReadonlySet<T>
+): T | undefined {
+    const value = options[key];
+    if (typeof value !== "string") {
+        return undefined;
+    }
+    for (const allowed of allowedValues) {
+        if (value === allowed) {
+            return allowed;
+        }
+    }
+    return undefined;
+}
+
 /**
  * Applies preset defaults for missing options only.
  *
@@ -280,15 +312,18 @@ export function resolveOptions(
     options: Readonly<ParserOptions>
 ): ResolvedOptions {
     const preset =
-        (options["powershellPreset"] as PresetOption | undefined) ?? "none";
+        readChoiceOption(options, "powershellPreset", PRESET_OPTIONS) ?? "none";
     applyPresetDefaults(options, preset);
 
     // Use a mutable alias for Prettier's core settings we must write back.
     const mutableOptions = safeCastTo<ParserOptions>(options);
 
     const indentStyle =
-        (options["powershellIndentStyle"] as IndentStyleOption | undefined) ??
-        "spaces";
+        readChoiceOption(
+            options,
+            "powershellIndentStyle",
+            INDENT_STYLE_OPTIONS
+        ) ?? "spaces";
     const rawIndentOverride = options["powershellIndentSize"];
     const normalizedIndentOverride = Number(rawIndentOverride);
     const normalizedTabWidth = options.tabWidth;
@@ -298,15 +333,19 @@ export function resolveOptions(
         indentSize = Math.floor(normalizedIndentOverride);
     } else if (isFinite(normalizedTabWidth) && normalizedTabWidth > 0) {
         indentSize = Math.floor(normalizedTabWidth);
+    } else {
+        // Keep the default indentation width.
     }
 
     mutableOptions.useTabs = indentStyle === "tabs";
     mutableOptions.tabWidth = indentSize;
 
     const trailingComma =
-        (options["powershellTrailingComma"] as
-            | TrailingCommaOption
-            | undefined) ?? "none";
+        readChoiceOption(
+            options,
+            "powershellTrailingComma",
+            TRAILING_COMMA_OPTIONS
+        ) ?? "none";
     const sortHashtableKeys = Boolean(options["powershellSortHashtableKeys"]);
     const rawBlankLines = Number(
         options["powershellBlankLinesBetweenFunctions"] ?? 1
@@ -322,16 +361,22 @@ export function resolveOptions(
         blankLineAfterParam = false;
     }
     const braceStyle =
-        (options["powershellBraceStyle"] as BraceStyleOption | undefined) ??
-        "1tbs";
+        readChoiceOption(
+            options,
+            "powershellBraceStyle",
+            BRACE_STYLE_OPTIONS
+        ) ?? "1tbs";
     const lineWidth = Math.max(
         40,
         Math.min(200, Number(options["powershellLineWidth"] ?? 120))
     );
     const preferSingleQuote = options["powershellPreferSingleQuote"] === true;
     const keywordCase =
-        (options["powershellKeywordCase"] as KeywordCaseOption | undefined) ??
-        "lower";
+        readChoiceOption(
+            options,
+            "powershellKeywordCase",
+            KEYWORD_CASE_OPTIONS
+        ) ?? "lower";
     const rewriteAliases = options["powershellRewriteAliases"] === true;
     const rewriteWriteHost = options["powershellRewriteWriteHost"] === true;
 

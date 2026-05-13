@@ -11,32 +11,29 @@ safe, and maintainable scripts. It aligns with Microsoft’s PowerShell cmdlet d
 
 ## Naming Conventions
 
--   **Verb-Noun Format:**
+- **Verb-Noun Format:**
+  - Use approved PowerShell verbs (Get-Verb)
+  - Use singular nouns
+  - PascalCase for both verb and noun
+  - Avoid special characters and spaces
 
-    -   Use approved PowerShell verbs (Get-Verb)
-    -   Use singular nouns
-    -   PascalCase for both verb and noun
-    -   Avoid special characters and spaces
+- **Parameter Names:**
+  - Use PascalCase
+  - Choose clear, descriptive names
+  - Use singular form unless always multiple
+  - Follow PowerShell standard names
 
--   **Parameter Names:**
+- **Variable Names:**
+  - Use PascalCase for public variables
+  - Use camelCase for private variables
+  - Avoid abbreviations
+  - Use meaningful names
 
-    -   Use PascalCase
-    -   Choose clear, descriptive names
-    -   Use singular form unless always multiple
-    -   Follow PowerShell standard names
-
--   **Variable Names:**
-
-    -   Use PascalCase for public variables
-    -   Use camelCase for private variables
-    -   Avoid abbreviations
-    -   Use meaningful names
-
--   **Alias Avoidance:**
-    -   Use full cmdlet names
-    -   Avoid using aliases in scripts (e.g., use Get-ChildItem instead of gci)
-    -   Document any custom aliases
-    -   Use full parameter names
+- **Alias Avoidance:**
+  - Use full cmdlet names
+  - Avoid using aliases in scripts (e.g., use Get-ChildItem instead of gci)
+  - Document any custom aliases
+  - Use full parameter names
 
 ### Example
 
@@ -60,32 +57,29 @@ function Get-UserProfile {
 
 ## Parameter Design
 
--   **Standard Parameters:**
+- **Standard Parameters:**
+  - Use common parameter names (`Path`, `Name`, `Force`)
+  - Follow built-in cmdlet conventions
+  - Use aliases for specialized terms
+  - Document parameter purpose
 
-    -   Use common parameter names (`Path`, `Name`, `Force`)
-    -   Follow built-in cmdlet conventions
-    -   Use aliases for specialized terms
-    -   Document parameter purpose
+- **Parameter Names:**
+  - Use singular form unless always multiple
+  - Choose clear, descriptive names
+  - Follow PowerShell conventions
+  - Use PascalCase formatting
 
--   **Parameter Names:**
+- **Type Selection:**
+  - Use common .NET types
+  - Implement proper validation
+  - Consider ValidateSet for limited options
+  - Enable tab completion where possible
 
-    -   Use singular form unless always multiple
-    -   Choose clear, descriptive names
-    -   Follow PowerShell conventions
-    -   Use PascalCase formatting
-
--   **Type Selection:**
-
-    -   Use common .NET types
-    -   Implement proper validation
-    -   Consider ValidateSet for limited options
-    -   Enable tab completion where possible
-
--   **Switch Parameters:**
-    -   Use [switch] for boolean flags
-    -   Avoid $true/$false parameters
-    -   Default to $false when omitted
-    -   Use clear action names
+- **Switch Parameters:**
+  - Use [switch] for boolean flags
+  - Avoid $true/$false parameters
+  - Default to $false when omitted
+  - Use clear action names
 
 ### Example
 
@@ -116,32 +110,29 @@ function Set-ResourceConfiguration {
 
 ## Pipeline and Output
 
--   **Pipeline Input:**
+- **Pipeline Input:**
+  - Use `ValueFromPipeline` for direct object input
+  - Use `ValueFromPipelineByPropertyName` for property mapping
+  - Implement Begin/Process/End blocks for pipeline handling
+  - Document pipeline input requirements
 
-    -   Use `ValueFromPipeline` for direct object input
-    -   Use `ValueFromPipelineByPropertyName` for property mapping
-    -   Implement Begin/Process/End blocks for pipeline handling
-    -   Document pipeline input requirements
+- **Output Objects:**
+  - Return rich objects, not formatted text
+  - Use PSCustomObject for structured data
+  - Avoid Write-Host for data output
+  - Enable downstream cmdlet processing
 
--   **Output Objects:**
+- **Pipeline Streaming:**
+  - Output one object at a time
+  - Use process block for streaming
+  - Avoid collecting large arrays
+  - Enable immediate processing
 
-    -   Return rich objects, not formatted text
-    -   Use PSCustomObject for structured data
-    -   Avoid Write-Host for data output
-    -   Enable downstream cmdlet processing
-
--   **Pipeline Streaming:**
-
-    -   Output one object at a time
-    -   Use process block for streaming
-    -   Avoid collecting large arrays
-    -   Enable immediate processing
-
--   **PassThru Pattern:**
-    -   Default to no output for action cmdlets
-    -   Implement `-PassThru` switch for object return
-    -   Return modified/created object with `-PassThru`
-    -   Use verbose/warning for status updates
+- **PassThru Pattern:**
+  - Default to no output for action cmdlets
+  - Implement `-PassThru` switch for object return
+  - Return modified/created object with `-PassThru`
+  - Use verbose/warning for status updates
 
 ### Example
 
@@ -190,37 +181,34 @@ function Update-ResourceStatus {
 
 ## Error Handling and Safety
 
--   **ShouldProcess Implementation:**
+- **ShouldProcess Implementation:**
+  - Use `[CmdletBinding(SupportsShouldProcess = $true)]`
+  - Set appropriate `ConfirmImpact` level
+  - Call `$PSCmdlet.ShouldProcess()` for system changes
+  - Use `ShouldContinue()` for additional confirmations
 
-    -   Use `[CmdletBinding(SupportsShouldProcess = $true)]`
-    -   Set appropriate `ConfirmImpact` level
-    -   Call `$PSCmdlet.ShouldProcess()` for system changes
-    -   Use `ShouldContinue()` for additional confirmations
+- **Message Streams:**
+  - `Write-Verbose` for operational details with `-Verbose`
+  - `Write-Warning` for warning conditions
+  - `Write-Error` for non-terminating errors
+  - `throw` for terminating errors
+  - Avoid `Write-Host` except for user interface text
 
--   **Message Streams:**
+- **Error Handling Pattern:**
+  - Use try/catch blocks for error management
+  - Set appropriate ErrorAction preferences
+  - Return meaningful error messages
+  - Use ErrorVariable when needed
+  - Include proper terminating vs non-terminating error handling
+  - In advanced functions with `[CmdletBinding()]`, prefer `$PSCmdlet.WriteError()` over `Write-Error`
+  - In advanced functions with `[CmdletBinding()]`, prefer `$PSCmdlet.ThrowTerminatingError()` over `throw`
+  - Construct proper ErrorRecord objects with category, target, and exception details
 
-    -   `Write-Verbose` for operational details with `-Verbose`
-    -   `Write-Warning` for warning conditions
-    -   `Write-Error` for non-terminating errors
-    -   `throw` for terminating errors
-    -   Avoid `Write-Host` except for user interface text
-
--   **Error Handling Pattern:**
-
-    -   Use try/catch blocks for error management
-    -   Set appropriate ErrorAction preferences
-    -   Return meaningful error messages
-    -   Use ErrorVariable when needed
-    -   Include proper terminating vs non-terminating error handling
-    -   In advanced functions with `[CmdletBinding()]`, prefer `$PSCmdlet.WriteError()` over `Write-Error`
-    -   In advanced functions with `[CmdletBinding()]`, prefer `$PSCmdlet.ThrowTerminatingError()` over `throw`
-    -   Construct proper ErrorRecord objects with category, target, and exception details
-
--   **Non-Interactive Design:**
-    -   Accept input via parameters
-    -   Avoid `Read-Host` in scripts
-    -   Support automation scenarios
-    -   Document all required inputs
+- **Non-Interactive Design:**
+  - Accept input via parameters
+  - Avoid `Read-Host` in scripts
+  - Support automation scenarios
+  - Document all required inputs
 
 ### Example
 
@@ -291,37 +279,34 @@ function Remove-UserAccount {
 
 ## Documentation and Style
 
--   **Comment-Based Help:** Include comment-based help for any public-facing function or cmdlet. Inside the function, add a `<# ... #>` help comment with at least:
+- **Comment-Based Help:** Include comment-based help for any public-facing function or cmdlet. Inside the function, add a `<# ... #>` help comment with at least:
+  - `.SYNOPSIS` Brief description
+  - `.DESCRIPTION` Detailed explanation
+  - `.EXAMPLE` sections with practical usage
+  - `.PARAMETER` descriptions
+  - `.OUTPUTS` Type of output returned
+  - `.NOTES` Additional information
 
-    -   `.SYNOPSIS` Brief description
-    -   `.DESCRIPTION` Detailed explanation
-    -   `.EXAMPLE` sections with practical usage
-    -   `.PARAMETER` descriptions
-    -   `.OUTPUTS` Type of output returned
-    -   `.NOTES` Additional information
+- **Consistent Formatting:**
+  - Follow consistent PowerShell style
+  - Use proper indentation (4 spaces recommended)
+  - Opening braces on same line as statement
+  - Closing braces on new line
+  - Use line breaks after pipeline operators
+  - PascalCase for function and parameter names
+  - Avoid unnecessary whitespace
 
--   **Consistent Formatting:**
+- **Pipeline Support:**
+  - Implement Begin/Process/End blocks for pipeline functions
+  - Use ValueFromPipeline where appropriate
+  - Support pipeline input by property name
+  - Return proper objects, not formatted text
 
-    -   Follow consistent PowerShell style
-    -   Use proper indentation (4 spaces recommended)
-    -   Opening braces on same line as statement
-    -   Closing braces on new line
-    -   Use line breaks after pipeline operators
-    -   PascalCase for function and parameter names
-    -   Avoid unnecessary whitespace
-
--   **Pipeline Support:**
-
-    -   Implement Begin/Process/End blocks for pipeline functions
-    -   Use ValueFromPipeline where appropriate
-    -   Support pipeline input by property name
-    -   Return proper objects, not formatted text
-
--   **Avoid Aliases:** Use full cmdlet names and parameters
-    -   Avoid using aliases in scripts (e.g., use Get-ChildItem instead of gci); aliases are acceptable for interactive shell use.
-    -   Use `Where-Object` instead of `?` or `where`
-    -   Use `ForEach-Object` instead of `%`
-    -   Use `Get-ChildItem` instead of `ls` or `dir`
+- **Avoid Aliases:** Use full cmdlet names and parameters
+  - Avoid using aliases in scripts (e.g., use Get-ChildItem instead of gci); aliases are acceptable for interactive shell use.
+  - Use `Where-Object` instead of `?` or `where`
+  - Use `ForEach-Object` instead of `%`
+  - Use `Get-ChildItem` instead of `ls` or `dir`
 
 ## Full Example: End-to-End Cmdlet Pattern
 

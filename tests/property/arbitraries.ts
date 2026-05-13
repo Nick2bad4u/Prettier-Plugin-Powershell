@@ -4,6 +4,7 @@ const letters = "abcdefghijklmnopqrstuvwxyz";
 const lettersUpper = letters.toUpperCase();
 const digits = "0123456789";
 const symbolChars = "-_";
+const HEREDOC_CLOSERS = new Set(['"@', "'@"]);
 const graphemeSegmenter = new Intl.Segmenter("en", {
     granularity: "grapheme",
 });
@@ -307,8 +308,6 @@ const hereStringAssignmentArb: fc.Arbitrary<string> = fc
 const hereStringCommandArb: fc.Arbitrary<string> = hereStringLiteralArb.map(
     (literal) => `Write-Output ${literal}`
 );
-
-const HEREDOC_CLOSERS = new Set(['"@', "'@"]);
 
 const indent = (content: string, spaces = 2): string => {
     const padding = " ".repeat(spaces);

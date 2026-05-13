@@ -364,10 +364,7 @@ Write-Output "hi"
 
         expect(lines[0]).toBe("function Foo {");
         expect(lines[1]).toBeDefined();
-        if (lines[1] === undefined) {
-            throw new Error("Expected second line");
-        }
-        expect(lines[1].trim()).toBe("if ($true) {");
+        expect(lines[1]?.trim()).toBe("if ($true) {");
     });
 
     it("preserves keyword casing when configured", async () => {
@@ -391,10 +388,7 @@ Write-Output "hi"
 
         expect(lines[0]).toBe("FUNCTION Foo {");
         expect(lines[1]).toBeDefined();
-        if (lines[1] === undefined) {
-            throw new Error("Expected second line");
-        }
-        expect(lines[1].trim()).toBe("IF ($true) {");
+        expect(lines[1]?.trim()).toBe("IF ($true) {");
     });
 
     it("normalises whitespace and removes trailing semicolons", async () => {

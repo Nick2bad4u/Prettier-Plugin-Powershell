@@ -9,7 +9,7 @@ applyTo: "docs/**"
 
 ## Your Goal for ESLint Rule Documentation
 
-- Your goal is to make every ESLint rule documentation file (`docs/rules/<rule-id>.md`) totally self-contained, allowing a developer to understand *why* the rule exists, *what* it flags, and *how* to fix it without looking at the source code.
+- Your goal is to make every ESLint rule documentation file (`docs/rules/<rule-id>.md`) totally self-contained, allowing a developer to understand _why_ the rule exists, _what_ it flags, and _how_ to fix it without looking at the source code.
 - For adjacent docs in `docs/rules/` such as guides, preset pages, `overview.md`, or `getting-started.md`, keep the same tone and accuracy standards, but do not force rule-only sections where they do not fit.
 - You adhere strictly to the `typescript-eslint` and standard ESLint documentation style guides.
 
@@ -21,20 +21,20 @@ applyTo: "docs/**"
 
 Rule documentation files in `docs/rules/<rule-id>.md` should follow this structure closely:
 
-1.  **Title:** The bare rule ID as the H1 header (e.g., `# prefer-type-fest-arrayable`).
-2.  **Description:** A short, one-sentence description of what the rule does.
-3.  **Meta Badges (Optional):** Badges for `Recommended`, `Fixable`, or `Type Checked` only if the repository’s current docs pattern uses them.
-4.  **Rule Details:** An explanation of the problem the rule solves. Why is this pattern bad?
-5.  **Examples:**
-    - Use `❌ Incorrect` and `✅ Correct` headers.
-    - **Crucial:** Always include code blocks with specific comments explaining *why* a line is incorrect.
-    - If the rule is configurable, show examples for different configurations.
-6.  **Options (if applicable):**
-    - A TypeScript interface definition of the options object.
-    - Default values clearly marked.
-    - Examples for each option.
-7.  **When Not To Use It:** specific scenarios where disabling this rule is acceptable.
-8.  **Further Reading:** Links to MDN, TypeScript docs, or relevant specs.
+1. **Title:** The bare rule ID as the H1 header (e.g., `# prefer-type-fest-arrayable`).
+2. **Description:** A short, one-sentence description of what the rule does.
+3. **Meta Badges (Optional):** Badges for `Recommended`, `Fixable`, or `Type Checked` only if the repository’s current docs pattern uses them.
+4. **Rule Details:** An explanation of the problem the rule solves. Why is this pattern bad?
+5. **Examples:**
+   - Use `❌ Incorrect` and `✅ Correct` headers.
+   - **Crucial:** Always include code blocks with specific comments explaining _why_ a line is incorrect.
+   - If the rule is configurable, show examples for different configurations.
+6. **Options (if applicable):**
+   - A TypeScript interface definition of the options object.
+   - Default values clearly marked.
+   - Examples for each option.
+7. **When Not To Use It:** specific scenarios where disabling this rule is acceptable.
+8. **Further Reading:** Links to MDN, TypeScript docs, or relevant specs.
 
   </structure>
 
@@ -58,8 +58,8 @@ Rule documentation files in `docs/rules/<rule-id>.md` should follow this structu
 ## Writing Guidelines
 
 - **The "Why":** Never just say "Don't do X." Explain the consequence.
-  - *Bad:* "Don't use `any`."
-  - *Good:* "Using `any` bypasses the TypeScript type checker, which can lead to runtime errors that strict typing would otherwise catch."
+  - _Bad:_ "Don't use `any`."
+  - _Good:_ "Using `any` bypasses the TypeScript type checker, which can lead to runtime errors that strict typing would otherwise catch."
 - **The "Fix":** If the rule is `fixable`, explicitly state what the auto-fixer does (e.g., "The auto-fixer will replace `var` with `let`.").
 - **Type Information:** If the rule requires type information (`parserServices`), add a specific note at the top of the docs:
   > ⚠️ This rule requires type information to run. It will not work without `projectService` (or equivalent typed parser setup) configured.
@@ -72,7 +72,7 @@ Rule documentation files in `docs/rules/<rule-id>.md` should follow this structu
 
 ## Example Doc
 
-```markdown
+````markdown
 # prefer-ts-extras-array-find-last-index
 
 Prefer [`arrayFindLastIndex`](https://github.com/sindresorhus/ts-extras/blob/main/source/array-find-last-index.ts) from `ts-extras` over `array.findLastIndex(...)`.
@@ -106,6 +106,7 @@ This rule reports `array.findLastIndex(predicate)` call sites when `arrayFindLas
 ```ts
 const index = monitors.findLastIndex((entry) => entry.id === targetId);
 ```
+````
 
 ## ✅ Correct
 

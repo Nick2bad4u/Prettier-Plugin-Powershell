@@ -26,7 +26,7 @@ const languages: SupportLanguage[] = [
  * first line) signals that this file should be formatted. The `m` flag makes
  * `^` match after every newline so the pragma can live on any line.
  */
-const PRAGMA_PATTERN = /^#[\t ]*@(?:format|prettier)\b/mu;
+const PRAGMA_PATTERN = /^#[\t ]*@(?:format|prettier)\b/mv;
 
 const parsers: Plugin["parsers"] = {
     powershell: {

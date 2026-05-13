@@ -1,8 +1,8 @@
-import nick2bad4u from "eslint-config-nick2bad4u";
+import nickTwoBadFourU from "eslint-config-nick2bad4u";
 
 /** @type {import("eslint").Linter.Config[]} */
 const config = [
-    ...nick2bad4u.configs.all,
+    ...nickTwoBadFourU.configs.all,
 
     // Exclude Jekyll template fragments from ESLint.
     // These HTML includes/layouts use Liquid syntax and HTML comments that
@@ -12,13 +12,13 @@ const config = [
         ignores: ["_includes/**", "_layouts/**"],
     },
 
-    // Parser/printer rely heavily on hoisted function declarations for readability.
-    // Treat function declarations as safe while retaining checks for variables/classes.
+    // Use the TypeScript-aware rule for .ts files and keep variable/class checks.
+    // Function declarations are intentionally hoisted in parser/printer internals.
     {
-        files: ["src/parser.ts", "src/printer.ts"],
+        files: ["**/*.ts"],
         rules: {
             "@typescript-eslint/no-use-before-define": [
-                "warn",
+                "error",
                 {
                     classes: true,
                     functions: false,
@@ -26,6 +26,7 @@ const config = [
                     variables: true,
                 },
             ],
+            "no-use-before-define": "off",
         },
     },
 

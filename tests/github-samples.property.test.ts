@@ -72,6 +72,11 @@ const MIN_LENGTH = Number.parseInt(
     testEnv["POWERSHELL_GITHUB_MIN_LENGTH"] ?? "500",
     10
 );
+const fallbackSamplePaths = [
+    "fixtures/github-fallback-simple.ps1",
+    "fixtures/sample-unformatted.ps1",
+    "fixtures/sample-formatted.ps1",
+];
 
 const cacheDir = fileURLToPath(
     new URL("fixtures/github-cache/", import.meta.url)
@@ -387,12 +392,6 @@ const addGitHubSamples = async (
         }
     }
 };
-
-const fallbackSamplePaths = [
-    "fixtures/github-fallback-simple.ps1",
-    "fixtures/sample-unformatted.ps1",
-    "fixtures/sample-formatted.ps1",
-];
 
 describe("real-world GitHub PowerShell samples", () => {
     const samples: SampledScript[] = [];

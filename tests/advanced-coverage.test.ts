@@ -27,14 +27,14 @@ import * as astRuntime from "../src/ast.js";
 import { runtimeExports } from "../src/ast.js";
 import { resolveOptions } from "../src/options.js";
 import {
-    __parserTestUtils,
+    parserTestUtils,
     locEnd,
     locStart,
     parsePowerShell,
 } from "../src/parser.js";
 import plugin from "../src/plugin.js";
 import {
-    __printerTestUtils,
+    printerTestUtils,
     createPrinter,
     powerShellPrinter,
 } from "../src/printer.js";
@@ -114,9 +114,9 @@ const {
     printPipeline,
     shouldSkipPart,
     trailingCommaDoc,
-} = __printerTestUtils;
+} = printerTestUtils;
 
-const parserUtils = __parserTestUtils as unknown as ParserTestUtils;
+const parserUtils = parserTestUtils as unknown as ParserTestUtils;
 
 const { hardline, line } = prettier.doc.builders;
 
@@ -761,13 +761,10 @@ describe("parser advanced coverage", () => {
         expect(table!.entries[1]?.key).toBe("flag");
 
         const nestedValue = table!.entries[2]?.value;
-        expect(nestedValue).toBeDefined();
-        if (nestedValue === undefined) {
-            throw new Error("Expected nested value entry");
-        }
 
-        expect(nestedValue.type).toBe("Expression");
-        expect(nestedValue.parts?.[0]?.type).toBe("Hashtable");
+        expect(nestedValue).toBeDefined();
+        expect(nestedValue?.type).toBe("Expression");
+        expect(nestedValue?.parts?.[0]?.type).toBe("Hashtable");
     });
 
     it("parses explicit arrays and records explicit kind metadata", () => {
@@ -1347,7 +1344,7 @@ describe("printer internal helpers", () => {
             ],
             { hasComma: false, hasNewline: true }
         );
-        const doc = __printerTestUtils.printNode(node, resolvedOptions);
+        const doc = printerTestUtils.printNode(node, resolvedOptions);
 
         expect(containsHardline(doc)).toBeTruthy();
     });
@@ -1362,7 +1359,7 @@ describe("printer internal helpers", () => {
             ],
             { hasComma: false, hasNewline: false }
         );
-        const doc = __printerTestUtils.printNode(node, resolvedOptions);
+        const doc = printerTestUtils.printNode(node, resolvedOptions);
 
         expect(containsHardline(doc)).toBeTruthy();
     });
@@ -1377,7 +1374,7 @@ describe("printer internal helpers", () => {
             ],
             { hasComma: true, hasNewline: false }
         );
-        const doc = __printerTestUtils.printNode(node, resolvedOptions);
+        const doc = printerTestUtils.printNode(node, resolvedOptions);
 
         expect(containsHardline(doc)).toBeFalsy();
         expect(containsLine(doc)).toBeTruthy();
@@ -1393,7 +1390,7 @@ describe("printer internal helpers", () => {
             ],
             { hasComma: true, hasNewline: true }
         );
-        const doc = __printerTestUtils.printNode(node, resolvedOptions);
+        const doc = printerTestUtils.printNode(node, resolvedOptions);
 
         expect(containsHardline(doc)).toBeTruthy();
     });
@@ -1467,10 +1464,7 @@ describe("printer internal helpers", () => {
             type: "Hashtable",
         };
 
-        const doc = __printerTestUtils.printNode(
-            hashtableNode,
-            resolvedOptions
-        );
+        const doc = printerTestUtils.printNode(hashtableNode, resolvedOptions);
 
         expect(doc).toBeDefined();
     });
@@ -1546,16 +1540,16 @@ describe("printer internal helpers", () => {
         };
 
         expect(
-            __printerTestUtils.printScript(scriptNode, resolvedOptions)
+            printerTestUtils.printScript(scriptNode, resolvedOptions)
         ).toBeDefined();
     });
 
     it("concatDocs handles empty arrays and concatenation", () => {
         expect.hasAssertions();
 
-        expect(__printerTestUtils.concatDocs([])).toBe("");
+        expect(printerTestUtils.concatDocs([])).toBe("");
 
-        const combined = __printerTestUtils.concatDocs(["a", "b"]);
+        const combined = printerTestUtils.concatDocs(["a", "b"]);
 
         expect(Array.isArray(combined)).toBeTruthy();
     });
@@ -1569,7 +1563,7 @@ describe("printer internal helpers", () => {
                 powershellIndentStyle: "tabs",
             })
         );
-        const indented = __printerTestUtils.indentStatement("body", tabOptions);
+        const indented = printerTestUtils.indentStatement("body", tabOptions);
 
         expect(Array.isArray(indented)).toBeTruthy();
         expect((indented as Doc[])[0]).toBe("\t");
@@ -1584,7 +1578,7 @@ describe("printer internal helpers", () => {
         } as unknown as ScriptBodyNode;
 
         expect(
-            __printerTestUtils.printNode(unknownNode, resolvedOptions)
+            printerTestUtils.printNode(unknownNode, resolvedOptions)
         ).toBeDefined();
     });
 
@@ -1599,7 +1593,7 @@ describe("printer internal helpers", () => {
         Reflect.set(mutatedOptions, "keywordCase", "unexpected");
         const keywordNode = makeTextNode("While", "keyword");
 
-        expect(__printerTestUtils.printNode(keywordNode, mutatedOptions)).toBe(
+        expect(printerTestUtils.printNode(keywordNode, mutatedOptions)).toBe(
             "While"
         );
     });
@@ -1612,7 +1606,7 @@ describe("printer internal helpers", () => {
         );
         const keywordNode = makeTextNode("function", "keyword");
 
-        expect(__printerTestUtils.printNode(keywordNode, pascalOptions)).toBe(
+        expect(printerTestUtils.printNode(keywordNode, pascalOptions)).toBe(
             "Function"
         );
     });
@@ -1625,7 +1619,7 @@ describe("printer internal helpers", () => {
         );
         const emptyKeyword = makeTextNode("", "keyword");
 
-        expect(__printerTestUtils.printNode(emptyKeyword, pascalOptions)).toBe(
+        expect(printerTestUtils.printNode(emptyKeyword, pascalOptions)).toBe(
             ""
         );
     });
@@ -1638,7 +1632,7 @@ describe("printer internal helpers", () => {
         );
         const aliasNode = makeTextNode("write", "word");
 
-        expect(__printerTestUtils.printNode(aliasNode, aliasOptions)).toBe(
+        expect(printerTestUtils.printNode(aliasNode, aliasOptions)).toBe(
             "Write-Output"
         );
     });
@@ -1658,7 +1652,7 @@ describe("printer internal helpers", () => {
             loc: { end: 0, start: 0 },
             type: "BlankLine",
         };
-        const doc = __printerTestUtils.printStatementList(
+        const doc = printerTestUtils.printStatementList(
             [blankLine, pipeline],
             resolvedOptions,
             true
@@ -1675,7 +1669,7 @@ describe("printer internal helpers", () => {
 function Beta {}`,
             createOptions()
         );
-        const doc = __printerTestUtils.printStatementList(
+        const doc = printerTestUtils.printStatementList(
             script.body,
             resolvedOptions,
             false
@@ -1692,7 +1686,7 @@ function Beta {}`,
 Write-Host "hi"`,
             createOptions()
         );
-        const doc = __printerTestUtils.printStatementList(
+        const doc = printerTestUtils.printStatementList(
             script.body,
             resolvedOptions,
             false
@@ -1709,7 +1703,7 @@ Write-Host "hi"`,
 function Delta {}`,
             createOptions()
         );
-        const doc = __printerTestUtils.printStatementList(
+        const doc = printerTestUtils.printStatementList(
             script.body,
             resolvedOptions,
             false
@@ -1736,7 +1730,7 @@ function Delta {}`,
             loc: { end: 0, start: 0 },
             type: "BlankLine",
         };
-        const doc = __printerTestUtils.printStatementList(
+        const doc = printerTestUtils.printStatementList(
             [
                 firstPipeline,
                 blank,
@@ -1762,7 +1756,7 @@ function Delta {}`,
             segments: [makeExpressionNode([makeTextNode("Beta", "word")])],
             type: "Pipeline",
         };
-        const doc = __printerTestUtils.printStatementList(
+        const doc = printerTestUtils.printStatementList(
             [firstPipeline, secondPipeline],
             resolvedOptions,
             false
@@ -1803,11 +1797,11 @@ function Delta {}`,
         expressionNode.loc = loc;
 
         expect(
-            __printerTestUtils.printNode(expressionNode, resolvedOptions)
+            printerTestUtils.printNode(expressionNode, resolvedOptions)
         ).not.toBe("");
 
         const blankNode: ScriptBodyNode = { count: 2, loc, type: "BlankLine" };
-        const blankDoc = __printerTestUtils.printNode(
+        const blankDoc = printerTestUtils.printNode(
             blankNode,
             resolvedOptions
         ) as Doc[];
@@ -1823,7 +1817,7 @@ function Delta {}`,
         };
 
         expect(
-            __printerTestUtils.printNode(commentNode, resolvedOptions)
+            printerTestUtils.printNode(commentNode, resolvedOptions)
         ).toContain("#");
 
         const arrayNode: ArrayLiteralNode = {
@@ -1833,9 +1827,9 @@ function Delta {}`,
             type: "ArrayLiteral",
         };
 
-        expect(
-            __printerTestUtils.printNode(arrayNode, resolvedOptions)
-        ).not.toBe("");
+        expect(printerTestUtils.printNode(arrayNode, resolvedOptions)).not.toBe(
+            ""
+        );
 
         const emptyHashtable: HashtableNode = {
             entries: [],
@@ -1845,7 +1839,7 @@ function Delta {}`,
 
         expect(
             JSON.stringify(
-                __printerTestUtils.printNode(emptyHashtable, resolvedOptions)
+                printerTestUtils.printNode(emptyHashtable, resolvedOptions)
             )
         ).toContain("@{}");
 
@@ -1857,9 +1851,9 @@ function Delta {}`,
             value: makeExpressionNode([makeTextNode("1", "number")]),
         };
 
-        expect(
-            __printerTestUtils.printNode(entryNode, resolvedOptions)
-        ).not.toBe("");
+        expect(printerTestUtils.printNode(entryNode, resolvedOptions)).not.toBe(
+            ""
+        );
 
         const skippedPartsExpression: ExpressionNode = {
             loc,
@@ -1871,10 +1865,7 @@ function Delta {}`,
         };
 
         expect(
-            __printerTestUtils.printNode(
-                skippedPartsExpression,
-                resolvedOptions
-            )
+            printerTestUtils.printNode(skippedPartsExpression, resolvedOptions)
         ).not.toBe("");
     });
 });

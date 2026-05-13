@@ -1,4 +1,4 @@
-import type { UnknownRecord } from "type-fest";
+import type { UnknownArray, UnknownRecord } from "type-fest";
 
 import { isFinite, objectHasOwn, safeCastTo } from "ts-extras";
 
@@ -184,6 +184,7 @@ export function cloneNode<T extends BaseNode>(node: Readonly<T>): T {
         loc: { ...node.loc },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- cloneNode intentionally treats concrete AST nodes as mutable records for keyed array-field cloning
     const clonedRecord = cloned as unknown as UnknownRecord;
     const cloneArrayField = (field: string): void => {
         if (!objectHasOwn(clonedRecord, field)) {
@@ -191,7 +192,8 @@ export function cloneNode<T extends BaseNode>(node: Readonly<T>): T {
         }
         const value = clonedRecord[field];
         if (Array.isArray(value)) {
-            clonedRecord[field] = [...value];
+            const arrayValue = safeCastTo<UnknownArray>(value);
+            clonedRecord[field] = [...arrayValue];
         }
     };
 

@@ -57,6 +57,8 @@ const FALLBACK_OPERATOR_TOKENS = new Set([
     "|",
     "|=",
 ]);
+const BLOCK_COMMENT_TOKEN_TYPE = "block-comment";
+const COMMENT_TOKEN_TYPE = "comment";
 
 interface SplitContext<TState> {
     current: Token[];
@@ -257,6 +259,10 @@ class Parser {
             loc: { end, start },
             type: "Script",
         } satisfies ScriptNode;
+    }
+
+    public parseStatementForTest(): null | PipelineNode {
+        return this.parseStatement();
     }
 
     private advance(): Token {
@@ -478,11 +484,11 @@ class Parser {
             return this.consumeStatementNewline(state);
         }
 
-        if (token.type === "comment") {
+        if (token.type === COMMENT_TOKEN_TYPE) {
             return this.consumeStatementComment(token, state);
         }
 
-        if (token.type === "block-comment") {
+        if (token.type === BLOCK_COMMENT_TOKEN_TYPE) {
             return this.consumeStatementBlockComment(state);
         }
 
@@ -509,7 +515,7 @@ class Parser {
             this.advance();
             const nextToken = this.peek();
             if (
-                nextToken?.type === "comment" &&
+                nextToken?.type === COMMENT_TOKEN_TYPE &&
                 this.isInlineComment(nextToken)
             ) {
                 this.appendScriptNode(
@@ -525,7 +531,10 @@ class Parser {
             return "continue";
         }
 
-        if (token.type === "comment" || token.type === "block-comment") {
+        if (
+            token.type === COMMENT_TOKEN_TYPE ||
+            token.type === BLOCK_COMMENT_TOKEN_TYPE
+        ) {
             const commentNode = this.createCommentNode(this.advance(), false);
             if (
                 body.length > 0 &&
@@ -549,7 +558,8 @@ class Parser {
         token: Readonly<Token>,
         inline: boolean
     ): CommentNode {
-        const style = token.type === "block-comment" ? "block" : "line";
+        const style =
+            token.type === BLOCK_COMMENT_TOKEN_TYPE ? "block" : "line";
         const isInline =
             style === "line" && inline && this.isInlineComment(token);
 
@@ -575,7 +585,7 @@ class Parser {
     }
 
     private isInlineComment(token: Readonly<Token>): boolean {
-        if (token.type !== "comment") {
+        if (token.type !== COMMENT_TOKEN_TYPE) {
             return false;
         }
         // Empty source means no context, treat as not inline
@@ -599,7 +609,7 @@ class Parser {
             if (!isDefined(char)) {
                 return false;
             }
-            if (!/\s/.test(char)) {
+            if (!/\s/v.test(char)) {
                 return true;
             }
             cursor -= 1;
@@ -624,7 +634,7 @@ class Parser {
                 offset += 1;
                 continue;
             }
-            if (next.type === "comment") {
+            if (next.type === COMMENT_TOKEN_TYPE) {
                 return false;
             }
             if (next.type === "operator" && next.value === "|") {
@@ -644,7 +654,7 @@ class Parser {
             if (!isDefined(token)) {
                 break;
             }
-            if (token.type === "comment") {
+            if (token.type === COMMENT_TOKEN_TYPE) {
                 break;
             }
             if (token.type === "punctuation" && token.value === "{") {
@@ -726,6 +736,8 @@ class Parser {
                 state.structureStack.push(token.value);
             } else if (isClosingToken(token)) {
                 state.structureStack.pop();
+            } else {
+                // Non-structural tokens do not modify nesting depth.
             }
         }
 
@@ -894,7 +906,7 @@ function findExpressionBoundaryTokens(
     tokens: readonly Token[]
 ): { firstToken?: Token; lastToken?: Token } {
     const firstToken = tokens.find((token) => token.type !== "newline");
-    let lastToken: Token | undefined = undefined;
+    let lastToken: null | Token = null;
 
     for (let index = tokens.length - 1; index >= 0; index -= 1) {
         const candidate = tokens[index];
@@ -908,7 +920,7 @@ function findExpressionBoundaryTokens(
 
     return {
         ...(firstToken ? { firstToken } : {}),
-        ...(lastToken ? { lastToken } : {}),
+        ...(lastToken === null ? {} : { lastToken }),
     };
 }
 
@@ -1042,7 +1054,7 @@ function buildTrailingCommentNodes(
 
     for (const token of trailingComments) {
         const inline =
-            token.type === "comment" &&
+            token.type === COMMENT_TOKEN_TYPE &&
             isInlineSpacing(source, referenceEnd, token.start);
 
         trailingNodes.push(createCommentNodeFromToken(token, inline));
@@ -1187,8 +1199,8 @@ function consumeElseContinuationPrefix(
 
         if (
             currentToken.type !== "newline" &&
-            currentToken.type !== "comment" &&
-            currentToken.type !== "block-comment"
+            currentToken.type !== COMMENT_TOKEN_TYPE &&
+            currentToken.type !== BLOCK_COMMENT_TOKEN_TYPE
         ) {
             break;
         }
@@ -1207,7 +1219,7 @@ function createCommentNodeFromToken(
     return {
         inline,
         loc: { end: token.end, start: token.start },
-        style: token.type === "block-comment" ? "block" : "line",
+        style: token.type === BLOCK_COMMENT_TOKEN_TYPE ? "block" : "line",
         type: "Comment",
         value: token.value,
     } satisfies CommentNode;
@@ -1248,7 +1260,7 @@ function createTextNode(token: Readonly<Token>): TextNode {
     // downstream printers can recognise it as comment text rather than code.
     // The tokenizer stores the comment text *after* the `#`, including any
     // leading whitespace (e.g. " Black"), so we simply re-prepend `#` here.
-    if (token.type === "comment") {
+    if (token.type === COMMENT_TOKEN_TYPE) {
         value = `#${value}`;
     }
 
@@ -1474,10 +1486,7 @@ function parseScriptBlockPart(
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
 function parseStatementForTest(tokens: readonly Token[]): null | PipelineNode {
     const parser = new Parser(tokens, "");
-    const internal = parser as unknown as {
-        parseStatement: () => null | PipelineNode;
-    };
-    return internal.parseStatement();
+    return parser.parseStatementForTest();
 }
 
 function partitionHashtableEntryTokens(
@@ -1496,7 +1505,10 @@ function partitionHashtableEntryTokens(
     let foundEquals = false;
 
     for (const token of tokens) {
-        if (token.type === "comment" || token.type === "block-comment") {
+        if (
+            token.type === COMMENT_TOKEN_TYPE ||
+            token.type === BLOCK_COMMENT_TOKEN_TYPE
+        ) {
             if (foundEquals) {
                 trailingComments.push(token);
             } else {
@@ -1564,11 +1576,11 @@ function splitArrayElements(tokens: readonly Token[]): Token[][] {
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
 function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
-    type HashtableSplitState = {
+    interface HashtableSplitState {
         hasEquals: boolean;
         justSawEquals: boolean;
         pendingComments: Token[];
-    };
+    }
 
     const rawSegments = splitTopLevelTokens<HashtableSplitState>(tokens, {
         createInitialState: () => ({
@@ -1586,8 +1598,8 @@ function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
             }
             if (
                 token.type !== "newline" &&
-                token.type !== "comment" &&
-                token.type !== "block-comment"
+                token.type !== COMMENT_TOKEN_TYPE &&
+                token.type !== BLOCK_COMMENT_TOKEN_TYPE
             ) {
                 state.justSawEquals = false;
             }
@@ -1606,7 +1618,11 @@ function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
                     const previousSegment = arrayAt(segments, -1);
                     if (previousSegment) {
                         previousSegment.push(...state.pendingComments);
+                    } else {
+                        segments.push([...state.pendingComments]);
                     }
+                } else {
+                    segments.push([...state.pendingComments]);
                 }
                 state.pendingComments = [];
             }
@@ -1617,8 +1633,8 @@ function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
 
         onToken: (context): SplitDecision => {
             if (
-                context.token.type === "comment" ||
-                context.token.type === "block-comment"
+                context.token.type === COMMENT_TOKEN_TYPE ||
+                context.token.type === BLOCK_COMMENT_TOKEN_TYPE
             ) {
                 context.state.pendingComments.push(context.token);
                 return "skip";
@@ -1681,7 +1697,8 @@ function splitTopLevelTokens<TState = Record<string, never>>(
     const stack: string[] = [];
     const state = options.createInitialState
         ? options.createInitialState()
-        : ({} as TState);
+        : // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- default state is only used when callers do not supply typed state
+          ({} as TState);
 
     const flush = (force = false) => {
         if (!force && isEmpty(current)) {
@@ -1768,7 +1785,7 @@ const findTopLevelEquals = (tokens: readonly Token[]): number => {
 /**
  * Internal parser helpers exposed for white-box tests.
  */
-export const __parserTestUtils: {
+export const parserTestUtils: {
     buildExpressionFromTokens: typeof buildExpressionFromTokens;
     buildHashtableEntry: typeof buildHashtableEntry;
     collectStructureTokens: typeof collectStructureTokens;

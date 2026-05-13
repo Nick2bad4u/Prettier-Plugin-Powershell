@@ -265,7 +265,8 @@ function initPersistentProcess(): void {
         );
     } catch (error) {
         if (error instanceof Error) {
-            if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+            const errorWithCode = error as Error & { code?: string };
+            if (errorWithCode.code === "ENOENT") {
                 throw new Error(missingPwshMessage, {
                     cause: error,
                 });

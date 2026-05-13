@@ -6,9 +6,9 @@ import type { AstPath, Doc, ParserOptions, Printer } from "prettier";
 import { doc } from "prettier";
 import {
     arrayFirst,
+    arrayJoin,
     isDefined,
     isEmpty,
-    not,
     objectHasOwn,
     safeCastTo,
     setHas,
@@ -101,13 +101,13 @@ const NO_SPACE_AFTER = new Set([
  * avoid false positives with short variable names or keywords.
  */
 const MINIMUM_COMMENT_LENGTH = 10;
-const SYMBOL_NO_GAP = new Set([
+const SYMBOL_NO_GAP: ReadonlySet<string> = new Set([
     ".:word",
     "::word",
     "word:(",
     "word:[",
 ]);
-const CONCATENATED_OPERATOR_PAIRS = new Set([
+const CONCATENATED_OPERATOR_PAIRS: ReadonlySet<string> = new Set([
     "%=",
     "&=",
     "*=",
@@ -120,15 +120,6 @@ const CONCATENATED_OPERATOR_PAIRS = new Set([
     "^=",
     "|=",
 ]);
-
-/**
- * Fictional discriminant used solely to satisfy ts-extras `not()` type
- * constraints without accidentally removing `TextNode` from the filtered array
- * type. No real AST node ever carries this discriminant value.
- */
-interface BacktickContinuationNode {
-    readonly type: "BacktickContinuation";
-}
 
 /**
  * Indicates the gap-between decision for two adjacent expression parts:
@@ -180,9 +171,9 @@ function normalizeStringLiteral(
     const inner = value.slice(1, -1);
 
     if (
-        /^\(\?[Uimsx]/.test(inner) ||
+        /^\(\?[Uimsx]/v.test(inner) ||
         (inner.includes("[") && inner.includes("]")) ||
-        /\bWrite-(?:Error|Host|Output|Warning)\b/.test(inner)
+        /\bWrite-(?:Error|Host|Output|Warning)\b/v.test(inner)
     ) {
         return value;
     }
@@ -191,31 +182,15 @@ function normalizeStringLiteral(
         return value;
     }
 
-    if (/[\n"$`]/.test(inner)) {
+    if (/[\n"$`]/v.test(inner)) {
         return value;
     }
 
     return `'${inner}'`;
 }
 
-/**
- * Type guard identifying backtick-only text nodes (PowerShell line-continuation
- * markers) that should be removed before expression normalization.
- *
- * Uses a fictional discriminant (`BacktickContinuationNode`) so that
- * `Exclude<ExpressionPartNode, BacktickContinuationNode>` equals
- * `ExpressionPartNode` (no real union member has type: "BacktickContinuation"),
- * preserving the full element type in the filtered result.
- */
-function shouldSkipPart(part: unknown): part is BacktickContinuationNode {
-    if (!isDefined(part) || typeof part !== "object" || part === null) {
-        return false;
-    }
-    // Safe widening: any non-null object can be indexed as a record.
-    const node = part as Record<PropertyKey, unknown>;
-    const type = node["type"];
-    const value = node["value"];
-    return type === "Text" && typeof value === "string" && value.trim() === "`";
+function shouldSkipPart(part: Readonly<ExpressionPartNode>): boolean {
+    return part.type === "Text" && part.value.trim() === "`";
 }
 
 /**
@@ -421,21 +396,27 @@ function evaluateSymbolSpacing(
         return "none";
     }
 
-    if (currentSymbol !== null && setHas(NO_SPACE_BEFORE, currentSymbol)) {
+    if (currentSymbol === null) {
+        return "space";
+    }
+
+    if (setHas(NO_SPACE_BEFORE, currentSymbol)) {
         return "none";
     }
 
-    if (
-        currentSymbol !== null &&
-        setHas(SYMBOL_NO_GAP, `${prevSymbol}:${currentSymbol}`)
-    ) {
+    const spacingKey: string = arrayJoin(
+        [String(prevSymbol), String(currentSymbol)],
+        ":"
+    );
+    if (setHas(SYMBOL_NO_GAP, spacingKey)) {
         return "none";
     }
 
-    if (
-        currentSymbol !== null &&
-        setHas(CONCATENATED_OPERATOR_PAIRS, `${prevSymbol}${currentSymbol}`)
-    ) {
+    const combinedOperator: string = arrayJoin(
+        [String(prevSymbol), String(currentSymbol)],
+        ""
+    );
+    if (setHas(CONCATENATED_OPERATOR_PAIRS, combinedOperator)) {
         return "none";
     }
 
@@ -544,14 +525,14 @@ function looksLikeCommentText(text: string): boolean {
         trimmed.includes("=") ||
         trimmed.includes("->") ||
         trimmed.includes("::") ||
-        /\b(?:foreach|function|if|param|while)\b/i.test(trimmed)
+        /\b(?:foreach|function|if|param|while)\b/iv.test(trimmed)
     ) {
         return false;
     }
 
     // If it contains spaces and looks like natural language, it's likely a comment
     const hasSpaces = trimmed.includes(" ");
-    const wordCount = (trimmed.match(/\S+/gu) ?? []).length;
+    const wordCount = (trimmed.match(/\S+/gv) ?? []).length;
     return hasSpaces && wordCount >= 3;
 }
 
@@ -582,7 +563,8 @@ function mergeOperatorPair(
 function normalizeExpressionParts(
     node: Readonly<ExpressionNode>
 ): ExpressionPartNode[] {
-    const filteredParts = node.parts.filter(not(shouldSkipPart));
+    // eslint-disable-next-line typefest/prefer-ts-extras-not -- direct predicate keeps array element typing precise under noUncheckedIndexedAccess
+    const filteredParts = node.parts.filter((part) => !shouldSkipPart(part));
     const normalizedParts: ExpressionPartNode[] = [];
 
     for (let index = 0; index < filteredParts.length; index += 1) {
@@ -652,25 +634,13 @@ function printExpression(
             if (specialDoc.skipSeparator === true) {
                 docs.push(specialDoc.doc);
             } else {
-                pushExpressionDoc(
-                    docs,
-                    specialDoc.doc,
-                    previous,
-                    part,
-                    options
-                );
+                pushExpressionDoc(docs, specialDoc.doc, previous, part);
             }
             previous = part;
             continue;
         }
 
-        pushExpressionDoc(
-            docs,
-            printNode(part, options),
-            previous,
-            part,
-            options
-        );
+        pushExpressionDoc(docs, printNode(part, options), previous, part);
         previous = part;
     }
 
@@ -897,8 +867,7 @@ function pushExpressionDoc(
     docs: Doc[],
     nextDoc: Doc,
     previous: null | Readonly<ExpressionPartNode>,
-    part: Readonly<ExpressionPartNode>,
-    options: Readonly<ResolvedOptions>
+    part: Readonly<ExpressionPartNode>
 ): void {
     if (previous !== null) {
         const separator = gapBetween(previous, part);
@@ -907,7 +876,7 @@ function pushExpressionDoc(
         }
     }
 
-    docs.push(nextDoc ?? printNode(part, options));
+    docs.push(nextDoc);
 }
 
 function shouldAppendCommentToPreviousDoc(
@@ -1128,7 +1097,7 @@ function isSimpleExpression(node: Readonly<ExpressionNode>): boolean {
     if (part.role === "keyword") {
         return false;
     }
-    return !/[\n\r]/.test(part.value);
+    return !/[\n\r]/v.test(part.value);
 }
 
 function printArray(
@@ -1249,7 +1218,7 @@ function printHashtableEntry(
     const startsWithKeyword =
         firstPart?.type === "Text" &&
         firstPart.role === "keyword" &&
-        /^(?:for|foreach|if|switch|while)$/i.test(firstPart.value);
+        /^(?:for|foreach|if|switch|while)$/iv.test(firstPart.value);
 
     let entryDoc: Doc = startsWithKeyword
         ? group([
@@ -1528,7 +1497,7 @@ function trailingCommaDoc(
 /**
  * Internal printer helpers exposed for white-box tests.
  */
-export const __printerTestUtils: {
+export const printerTestUtils: {
     concatDocs: typeof concatDocs;
     gapBetween: typeof gapBetween;
     getSymbol: typeof getSymbol;
