@@ -1,9 +1,13 @@
 // eslint-disable-next-line @eslint-community/eslint-comments/disable-enable-pair -- This file is the main Prettier printer implementation and necessarily contains complex logic that is difficult to break down further without sacrificing readability or performance. We can revisit this if specific issues arise, but for now we will allow complexity in service of a clear and maintainable overall structure.
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- Doc array is intentionally mutated while printing */
 
-import type { AstPath, Doc, ParserOptions, Printer } from "prettier";
-
-import { doc } from "prettier";
+import {
+    type AstPath,
+    type Doc,
+    doc,
+    type ParserOptions,
+    type Printer,
+} from "prettier";
 import {
     arrayFirst,
     arrayJoin,
@@ -219,15 +223,7 @@ export const powerShellPrinter: Printer<ScriptNode> = {
         return `# @format\n${text}`;
     },
 
-    print(
-        path: AstPath<ScriptNode>,
-        options: ParserOptions,
-        // _print is provided by Prettier for path-based recursive printing;
-        // this plugin uses printNode() for recursion instead, so the callback
-        // is accepted but intentionally unused.
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars, unused-imports/no-unused-vars -- Prettier v3 Printer<T>.print requires this 3rd parameter; plugin recurses via printNode() directly
-        _print: (selector: AstPath<ScriptNode>) => Doc
-    ): Doc {
+    print(path: AstPath<ScriptNode>, options: ParserOptions): Doc {
         const node = safeCastTo<
             ExpressionPartNode | ScriptBodyNode | ScriptNode | undefined
         >(path.node);

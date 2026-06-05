@@ -798,12 +798,13 @@ const consumeAtOperatorToken = (
         return null;
     }
 
+    const nextChar = source.charAt(index + 1);
     const end = index + 2;
     push({
         end,
         start: index,
         type: "operator",
-        value: `@${source[index + 1]}`,
+        value: `@${nextChar}`,
     });
     return end;
 };
@@ -1126,37 +1127,6 @@ const consumeUnknownToken = (
     return end;
 };
 
-const consumeTokenAt = (
-    source: string,
-    length: number,
-    index: number,
-    readCodePoint: ReadCodePoint,
-    push: PushToken
-): number =>
-    consumeNewlineToken(source, length, index, push) ??
-    consumeWhitespace(source, index) ??
-    consumeBlockCommentToken(source, length, index, push) ??
-    consumeLineCommentToken(source, length, index, push) ??
-    consumeAttributeToken(source, index, push) ??
-    consumeHereStringToken(source, index, push) ??
-    consumeQuotedStringToken(source, length, index, push) ??
-    consumeAtOperatorToken(source, index, push) ??
-    consumeAtIdentifierToken(source, length, index, readCodePoint, push) ??
-    consumeColonColonToken(source, index, push) ??
-    consumePunctuationToken(source, index, push) ??
-    consumePipeOrEqualsToken(source, index, push) ??
-    consumePipelineChainToken(source, index, push) ??
-    consumeAngleRedirectionToken(source, index, push) ??
-    consumeStreamRedirectionToken(source, index, push) ??
-    consumeAmpersandToken(source, index, push) ??
-    consumeMergeRedirectionOneToken(source, index, push) ??
-    consumeVariableLexemeToken(source, length, index, readCodePoint, push) ??
-    consumeNumberLexemeToken(source, length, index, push) ??
-    consumeStopParsingToken(source, length, index, push) ??
-    consumeIdentifierToken(source, length, index, readCodePoint, push) ??
-    consumeDashIdentifierToken(source, length, index, readCodePoint, push) ??
-    consumeUnknownToken(source, index, push);
-
 /**
  * Tokenizes PowerShell source code into an array of tokens.
  *
@@ -1195,4 +1165,86 @@ export function tokenize(source: string): Token[] {
     }
 
     return tokens;
+}
+
+function consumeLexemeTokenAt(
+    source: string,
+    length: number,
+    index: number,
+    readCodePoint: ReadCodePoint,
+    push: PushToken
+): null | number {
+    return (
+        consumeAtIdentifierToken(source, length, index, readCodePoint, push) ??
+        consumeVariableLexemeToken(
+            source,
+            length,
+            index,
+            readCodePoint,
+            push
+        ) ??
+        consumeNumberLexemeToken(source, length, index, push) ??
+        consumeStopParsingToken(source, length, index, push) ??
+        consumeIdentifierToken(source, length, index, readCodePoint, push) ??
+        consumeDashIdentifierToken(
+            source,
+            length,
+            index,
+            readCodePoint,
+            push
+        ) ??
+        null
+    );
+}
+
+function consumeOperatorTokenAt(
+    source: string,
+    index: number,
+    push: PushToken
+): null | number {
+    return (
+        consumeColonColonToken(source, index, push) ??
+        consumePunctuationToken(source, index, push) ??
+        consumePipeOrEqualsToken(source, index, push) ??
+        consumePipelineChainToken(source, index, push) ??
+        consumeAngleRedirectionToken(source, index, push) ??
+        consumeStreamRedirectionToken(source, index, push) ??
+        consumeAmpersandToken(source, index, push) ??
+        consumeMergeRedirectionOneToken(source, index, push) ??
+        null
+    );
+}
+
+function consumeStructuralTokenAt(
+    source: string,
+    length: number,
+    index: number,
+    push: PushToken
+): null | number {
+    return (
+        consumeNewlineToken(source, length, index, push) ??
+        consumeWhitespace(source, index) ??
+        consumeBlockCommentToken(source, length, index, push) ??
+        consumeLineCommentToken(source, length, index, push) ??
+        consumeAttributeToken(source, index, push) ??
+        consumeHereStringToken(source, index, push) ??
+        consumeQuotedStringToken(source, length, index, push) ??
+        consumeAtOperatorToken(source, index, push) ??
+        null
+    );
+}
+
+function consumeTokenAt(
+    source: string,
+    length: number,
+    index: number,
+    readCodePoint: ReadCodePoint,
+    push: PushToken
+): number {
+    return (
+        consumeStructuralTokenAt(source, length, index, push) ??
+        consumeOperatorTokenAt(source, index, push) ??
+        consumeLexemeTokenAt(source, length, index, readCodePoint, push) ??
+        consumeUnknownToken(source, index, push)
+    );
 }

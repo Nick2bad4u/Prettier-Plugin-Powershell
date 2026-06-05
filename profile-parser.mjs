@@ -44,7 +44,7 @@ const profileParser = async () => {
         })
     );
 
-    console.table(rows);
+    process.stdout.write(`${JSON.stringify(rows, null, 4)}\n`);
 };
 
 await profileParser();

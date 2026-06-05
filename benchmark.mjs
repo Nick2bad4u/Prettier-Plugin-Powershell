@@ -84,4 +84,4 @@ const results = await Promise.all(
     )
 );
 
-console.table(results);
+process.stdout.write(`${JSON.stringify(results, null, 4)}\n`);

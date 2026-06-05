@@ -38,4 +38,4 @@ const profiles = [
 ];
 const output = await Promise.all(profiles.map(async (count) => measure(count)));
 
-console.table(output);
+process.stdout.write(`${JSON.stringify(output, null, 4)}\n`);

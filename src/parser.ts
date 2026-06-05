@@ -29,10 +29,9 @@ import type {
     TextNode,
     TokenRole,
 } from "./ast.js";
-import type { Token } from "./tokenizer.js";
 
 import { resolveOptions } from "./options.js";
-import { tokenize } from "./tokenizer.js";
+import { type Token, tokenize } from "./tokenizer.js";
 
 const FALLBACK_OPERATOR_TOKENS = new Set([
     "!",
@@ -206,6 +205,20 @@ const hasTopLevelComma = (tokens: readonly Token[]): boolean => {
     }
     return false;
 };
+
+interface HashtableEntryCommentContext {
+    readonly keyTokens: readonly Token[];
+    readonly leadingComments: readonly Token[];
+    readonly source: string;
+    readonly tokens: readonly Token[];
+    readonly trailingComments: readonly Token[];
+    readonly valueTokens: readonly Token[];
+}
+
+type HashtableEntryCommentFields = Pick<
+    HashtableEntryNode,
+    "leadingComments" | "trailingComments"
+>;
 
 class Parser {
     private readonly source: string;
@@ -997,10 +1010,9 @@ function buildHashtableEntry(
     const valueTokens =
         equalsIndex === -1 ? [] : otherTokens.slice(equalsIndex + 1);
     const keyExpression = buildExpressionFromTokens(keyTokens, source);
-    const valueExpression =
-        valueTokens.length > 0
-            ? buildExpressionFromTokens(valueTokens, source)
-            : buildExpressionFromTokens([], source);
+    const valueExpression = isEmpty(valueTokens)
+        ? buildExpressionFromTokens([], source)
+        : buildExpressionFromTokens(valueTokens, source);
     const key = extractKeyText(keyTokens);
 
     // Calculate start/end based on non-comment tokens like original logic
@@ -1016,32 +1028,61 @@ function buildHashtableEntry(
         type: "HashtableEntry",
         value: valueExpression,
     };
+    const commentFields = buildHashtableEntryCommentFields({
+        keyTokens,
+        leadingComments,
+        source,
+        tokens,
+        trailingComments,
+        valueTokens,
+    });
 
-    // Add comments if present
-    if (leadingComments.length > 0) {
-        entry.leadingComments = leadingComments.map((token) =>
-            createCommentNodeFromToken(token, false)
-        );
+    return { ...entry, ...commentFields };
+}
+
+function buildHashtableEntryCommentFields(
+    context: Readonly<HashtableEntryCommentContext>
+): Partial<HashtableEntryCommentFields> {
+    const leadingComments = isEmpty(context.leadingComments)
+        ? undefined
+        : context.leadingComments.map((token) =>
+              createCommentNodeFromToken(token, false)
+          );
+    const trailingNodes = buildHashtableEntryTrailingComments(context);
+
+    if (isDefined(leadingComments) && !isEmpty(trailingNodes)) {
+        return { leadingComments, trailingComments: trailingNodes };
     }
 
-    if (trailingComments.length > 0) {
-        const referenceEnd =
-            arrayAt(valueTokens, -1)?.end ??
-            arrayAt(keyTokens, -1)?.end ??
-            arrayFirst(tokens)?.start ??
-            0;
-        const trailingNodes = buildTrailingCommentNodes(
-            trailingComments,
-            source,
-            referenceEnd
-        );
-
-        if (trailingNodes.length > 0) {
-            entry.trailingComments = trailingNodes;
-        }
+    if (isDefined(leadingComments)) {
+        return { leadingComments };
     }
 
-    return entry;
+    if (!isEmpty(trailingNodes)) {
+        return { trailingComments: trailingNodes };
+    }
+
+    return {};
+}
+
+function buildHashtableEntryTrailingComments(
+    context: Readonly<HashtableEntryCommentContext>
+): CommentNode[] {
+    if (isEmpty(context.trailingComments)) {
+        return [];
+    }
+
+    const referenceEnd =
+        arrayAt(context.valueTokens, -1)?.end ??
+        arrayAt(context.keyTokens, -1)?.end ??
+        arrayFirst(context.tokens)?.start ??
+        0;
+
+    return buildTrailingCommentNodes(
+        context.trailingComments,
+        context.source,
+        referenceEnd
+    );
 }
 
 function buildTrailingCommentNodes(
