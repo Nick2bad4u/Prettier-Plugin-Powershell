@@ -1,0 +1,18 @@
+{
+    "$schema": "https://www.schemastore.org/tsconfig.json",
+    "compilerOptions": {
+        "declaration": false,
+        "declarationMap": false,
+        "isolatedDeclarations": false,
+        "noEmit": true,
+        "tsBuildInfoFile": "../.cache/tsbuildinfo/tsconfig.tests.tsbuildinfo"
+    },
+    "exclude": [
+        "fixtures/**"
+    ],
+    "extends": "../tsconfig.json",
+    "include": [
+        "**/*.d.ts",
+        "**/*.ts"
+    ]
+}
