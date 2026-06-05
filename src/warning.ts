@@ -1,6 +1,14 @@
 import { isDefined } from "ts-extras";
 
-import type { WarningType } from "./errors.js";
+/**
+ * Classification categories used by non-fatal parser and style warnings.
+ */
+export type WarningType =
+    | "anti-pattern"
+    | "best-practice"
+    | "deprecated-syntax"
+    | "performance"
+    | "style";
 
 /**
  * Warning class for non-fatal diagnostics.

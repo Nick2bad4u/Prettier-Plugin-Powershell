@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import {
-    getLineAndColumn,
-    PowerShellParseError,
-    type WarningType,
-} from "../src/errors.js";
-import { PowerShellWarning } from "../src/warning.js";
+import { getLineAndColumn, PowerShellParseError } from "../src/errors.js";
+import { PowerShellWarning, type WarningType } from "../src/warning.js";
 
 describe("error and warning classes", () => {
     describe(PowerShellParseError, () => {

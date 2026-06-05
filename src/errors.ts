@@ -1,6 +1,6 @@
 import { arrayAt, arrayJoin, stringSplit } from "ts-extras";
 
-import { PowerShellWarning } from "./warning.js";
+import { PowerShellWarning, type WarningType } from "./warning.js";
 
 /**
  * Shape describing one anti-pattern detection rule.
@@ -20,16 +20,6 @@ export interface DeprecatedSyntaxSpec {
     modern: string;
     pattern: RegExp;
 }
-
-/**
- * Classification categories used by non-fatal parser and style warnings.
- */
-export type WarningType =
-    | "anti-pattern"
-    | "best-practice"
-    | "deprecated-syntax"
-    | "performance"
-    | "style";
 
 /**
  * Custom error class carrying source location metadata for parse failures.
