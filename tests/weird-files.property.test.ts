@@ -86,74 +86,73 @@ describe("weird PowerShell file property tests", () => {
     describe("bom and shebang handling", () => {
         it("handles BOM and shebang combinations", async () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
 
             await withProgress(
                 "weirdFiles.bomShebang",
                 PROPERTY_RUNS,
                 async (tracker) => {
-                    await fc.assert(
-                        fc.asyncProperty(
-                            fc.boolean(),
-                            fc.option(
-                                fc.constantFrom(
-                                    "#!/usr/bin/env pwsh",
-                                    "#!/usr/bin/pwsh",
-                                    "#!/bin/pwsh"
+                    await expect(
+                        fc.assert(
+                            fc.asyncProperty(
+                                fc.boolean(),
+                                fc.option(
+                                    fc.constantFrom(
+                                        "#!/usr/bin/env pwsh",
+                                        "#!/usr/bin/pwsh",
+                                        "#!/bin/pwsh"
+                                    ),
+                                    { nil: undefined }
                                 ),
-                                { nil: undefined }
+                                fc.constantFrom(...baseScripts),
+                                async (includeBom, shebang, script) => {
+                                    tracker.advance();
+                                    const parts: string[] = [];
+                                    if (includeBom) {
+                                        parts.push("\uFEFF");
+                                    }
+                                    if (shebang) {
+                                        parts.push(shebang);
+                                    }
+                                    parts.push(script);
+                                    const combined = parts.join("\n");
+                                    await assertParseAndFormat(combined);
+                                }
                             ),
-                            fc.constantFrom(...baseScripts),
-                            async (includeBom, shebang, script) => {
-                                tracker.advance();
-                                const parts: string[] = [];
-                                if (includeBom) {
-                                    parts.push("\uFEFF");
-                                }
-                                if (shebang) {
-                                    parts.push(shebang);
-                                }
-                                parts.push(script);
-                                const combined = parts.join("\n");
-                                await assertParseAndFormat(combined);
-                            }
-                        ),
-                        { numRuns: PROPERTY_RUNS }
-                    );
+                            { numRuns: PROPERTY_RUNS }
+                        )
+                    ).resolves.toBeUndefined();
                 }
             );
-
-            expect(true).toBeTruthy();
         });
     });
 
     describe("unicode content", () => {
         const unicodeSamples = [
-            "😀",
-            "😎",
-            "é",
-            "ü",
-            "ß",
-            "Ж",
-            "λ",
-            "न",
-            "ع",
-            "你",
-            "好",
-            "あ",
-            "漢",
-            "字",
+            "́", // Combining acute accent alone
             "💡",
             "🧪",
-            "咖",
-            "啡",
-            "ø",
+            "😀",
+            "😎",
             "ç",
-            "א", // Hebrew letter
-            "א̇", // Hebrew letter with combining dot above
-            "́", // Combining acute accent alone
+            "é",
+            "ø",
+            "ß",
             String.fromCodePoint(8206), // Left-to-right mark (LTR)
             String.fromCodePoint(8207), // Right-to-left mark (RLM)
+            "ü",
+            "λ",
+            "Ж",
+            "א", // Hebrew letter
+            "א̇", // Hebrew letter with combining dot above
+            "ع",
+            "न",
+            "あ",
+            "你",
+            "咖",
+            "啡",
+            "好",
+            "字",
+            "漢",
         ] as const;
 
         const unicodeString = fc
@@ -165,53 +164,53 @@ describe("weird PowerShell file property tests", () => {
 
         it("handles unicode in strings and comments", async () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
 
             await withProgress(
                 "weirdFiles.unicodeStrings",
                 PROPERTY_RUNS,
                 async (tracker) => {
-                    await fc.assert(
-                        fc.asyncProperty(unicodeString, async (value) => {
-                            tracker.advance();
-                            const escaped = value.replaceAll("'", "''");
-                            const script = `# ${value}\n$emoji = '${escaped}'\nWrite-Output $emoji`;
-                            await assertParseAndFormat(script);
-                        }),
-                        { numRuns: PROPERTY_RUNS }
-                    );
+                    await expect(
+                        fc.assert(
+                            fc.asyncProperty(unicodeString, async (value) => {
+                                tracker.advance();
+                                const escaped = value.replaceAll("'", "''");
+                                const script = `# ${value}\n$emoji = '${escaped}'\nWrite-Output $emoji`;
+                                await assertParseAndFormat(script);
+                            }),
+                            { numRuns: PROPERTY_RUNS }
+                        )
+                    ).resolves.toBeUndefined();
                 }
             );
-
-            expect(true).toBeTruthy();
         });
 
         it("handles unicode in identifiers", async () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
 
             await withProgress(
                 "weirdFiles.unicodeIdentifiers",
                 PROPERTY_RUNS,
                 async (tracker) => {
-                    await fc.assert(
-                        fc.asyncProperty(unicodeString, async (value) => {
-                            tracker.advance();
-                            const sanitized = value.replaceAll(
-                                /[^\p{L}\p{Nd}_]/gv,
-                                ""
-                            );
-                            const identifier =
-                                sanitized.length > 0 ? sanitized : "Unicode";
-                            const script = `$${identifier} = '${value.replaceAll("'", "''")}'\nWrite-Output $${identifier}`;
-                            await assertParseAndFormat(script);
-                        }),
-                        { numRuns: PROPERTY_RUNS }
-                    );
+                    await expect(
+                        fc.assert(
+                            fc.asyncProperty(unicodeString, async (value) => {
+                                tracker.advance();
+                                const sanitized = value.replaceAll(
+                                    /[^\p{L}\p{Nd}_]/gv,
+                                    ""
+                                );
+                                const identifier =
+                                    sanitized.length > 0
+                                        ? sanitized
+                                        : "Unicode";
+                                const script = `$${identifier} = '${value.replaceAll("'", "''")}'\nWrite-Output $${identifier}`;
+                                await assertParseAndFormat(script);
+                            }),
+                            { numRuns: PROPERTY_RUNS }
+                        )
+                    ).resolves.toBeUndefined();
                 }
             );
-
-            expect(true).toBeTruthy();
         });
     });
 
@@ -225,23 +224,22 @@ describe("weird PowerShell file property tests", () => {
 
         it("parses comment directives and block comments", async () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
 
             await withProgress(
                 "weirdFiles.comments",
                 PROPERTY_RUNS,
                 async (tracker) => {
-                    await fc.assert(
-                        fc.asyncProperty(commentScripts, async (script) => {
-                            tracker.advance();
-                            await assertParseAndFormat(script);
-                        }),
-                        { numRuns: PROPERTY_RUNS }
-                    );
+                    await expect(
+                        fc.assert(
+                            fc.asyncProperty(commentScripts, async (script) => {
+                                tracker.advance();
+                                await assertParseAndFormat(script);
+                            }),
+                            { numRuns: PROPERTY_RUNS }
+                        )
+                    ).resolves.toBeUndefined();
                 }
             );
-
-            expect(true).toBeTruthy();
         });
     });
 
@@ -265,28 +263,27 @@ describe("weird PowerShell file property tests", () => {
 
         it("handles pipelines with unusual whitespace", async () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
 
             await withProgress(
                 "weirdFiles.pipelineWhitespace",
                 PROPERTY_RUNS,
                 async (tracker) => {
-                    await fc.assert(
-                        fc.asyncProperty(
-                            weirdWhitespace,
-                            weirdWhitespace,
-                            async (ws1, ws2) => {
-                                tracker.advance();
-                                const script = `Get-Item${ws1}|${ws2}Select-Object Name`;
-                                await assertParseAndFormat(script);
-                            }
-                        ),
-                        { numRuns: PROPERTY_RUNS }
-                    );
+                    await expect(
+                        fc.assert(
+                            fc.asyncProperty(
+                                weirdWhitespace,
+                                weirdWhitespace,
+                                async (ws1, ws2) => {
+                                    tracker.advance();
+                                    const script = `Get-Item${ws1}|${ws2}Select-Object Name`;
+                                    await assertParseAndFormat(script);
+                                }
+                            ),
+                            { numRuns: PROPERTY_RUNS }
+                        )
+                    ).resolves.toBeUndefined();
                 }
             );
-
-            expect(true).toBeTruthy();
         });
 
         const exoticWhitespaceScripts = fc.constantFrom(
@@ -297,26 +294,25 @@ describe("weird PowerShell file property tests", () => {
 
         it("handles exotic whitespace escape sequences", async () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
 
             await withProgress(
                 "weirdFiles.exoticWhitespace",
                 PROPERTY_RUNS,
                 async (tracker) => {
-                    await fc.assert(
-                        fc.asyncProperty(
-                            exoticWhitespaceScripts,
-                            async (script) => {
-                                tracker.advance();
-                                await assertParseAndFormat(script);
-                            }
-                        ),
-                        { numRuns: PROPERTY_RUNS }
-                    );
+                    await expect(
+                        fc.assert(
+                            fc.asyncProperty(
+                                exoticWhitespaceScripts,
+                                async (script) => {
+                                    tracker.advance();
+                                    await assertParseAndFormat(script);
+                                }
+                            ),
+                            { numRuns: PROPERTY_RUNS }
+                        )
+                    ).resolves.toBeUndefined();
                 }
             );
-
-            expect(true).toBeTruthy();
         });
     });
 });

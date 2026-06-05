@@ -21,6 +21,7 @@ describe("comment Positioning Improvements", () => {
 
             expect(result).toContain("#");
             expect(result).toContain("This is a comment");
+            expect(result).not.toBe("");
         });
 
         it("preserves inline comments in pipelines", async () => {
@@ -67,6 +68,7 @@ describe("comment Positioning Improvements", () => {
             expect(result).toContain("<#");
             expect(result).toContain("This is a block comment");
             expect(result).toContain("#>");
+            expect(result).not.toBe("");
         });
 
         it("handles multi-line block comments", async () => {
@@ -112,6 +114,7 @@ describe("comment Positioning Improvements", () => {
 
             // Inline comments after hashtables work
             expect(result).toContain("# Hashtable comment");
+            expect(result).not.toBe("");
         });
 
         it("preserves comments within hashtable entries", async () => {
@@ -207,7 +210,7 @@ describe("comment Positioning Improvements", () => {
             );
 
             // Should handle gracefully
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
         });
 
         it("preserves comment formatting in long pipelines", async () => {
@@ -238,6 +241,7 @@ describe("comment Positioning Improvements", () => {
             );
 
             expect(result).toContain("# Function comment");
+            expect(result).not.toBe("");
         });
 
         it("maintains comment position in if statements", async () => {
@@ -281,6 +285,7 @@ describe("comment Positioning Improvements", () => {
 
             expect(result).toContain("#region");
             expect(result).toContain("#endregion");
+            expect(result).not.toBe("");
         });
 
         it("preserves TODO comments", async () => {
@@ -325,6 +330,7 @@ describe("comment Positioning Improvements", () => {
             expect(result).toContain("/** Summary of the function */");
             expect(result).toContain("@param foo Description of foo");
             expect(result).toContain("@returns Result description");
+            expect(result).not.toBe("");
         });
 
         it("preserves TSDoc-style content inside block comments", async () => {

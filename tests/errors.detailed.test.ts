@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
     getLineAndColumn,
     PowerShellParseError,
-    PowerShellWarning,
     type WarningType,
 } from "../src/errors.js";
+import { PowerShellWarning } from "../src/warning.js";
 
 describe("error and warning classes", () => {
     describe(PowerShellParseError, () => {
@@ -160,7 +160,7 @@ describe("error and warning classes", () => {
             const stackExpectationMet =
                 !hasCaptureStackTrace || error.stack !== undefined;
 
-            expect(stackExpectationMet).toBeTruthy();
+            expect(stackExpectationMet).toBe(true);
         });
 
         it("constructs correctly when Error.captureStackTrace is unavailable", () => {
@@ -309,6 +309,7 @@ describe("error and warning classes", () => {
             const result = getLineAndColumn("test", 0);
 
             expect(result).toStrictEqual({ column: 1, line: 1 });
+            expect(result).not.toStrictEqual({ column: 0, line: 0 });
         });
 
         it("calculates position in single line", () => {

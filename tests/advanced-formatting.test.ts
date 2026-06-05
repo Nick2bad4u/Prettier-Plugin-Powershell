@@ -19,7 +19,7 @@ describe("advanced Formatting Features", () => {
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("switch");
             expect(result).toContain("default");
         });
@@ -34,7 +34,7 @@ describe("advanced Formatting Features", () => {
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("-Regex");
         });
 
@@ -48,7 +48,7 @@ describe("advanced Formatting Features", () => {
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("-File");
         });
     });
@@ -64,7 +64,7 @@ describe("advanced Formatting Features", () => {
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("$short = 1");
             expect(result).toContain("$veryLongVariableName = 2");
         });
@@ -79,7 +79,7 @@ describe("advanced Formatting Features", () => {
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
         });
     });
 
@@ -95,7 +95,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("class Dog");
             expect(result).toContain("Animal");
         });
@@ -110,7 +110,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("IDisposable");
         });
 
@@ -124,7 +124,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("static");
         });
     });
@@ -140,7 +140,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("[System.IO.Path]");
         });
 
@@ -154,7 +154,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("List[string]");
         });
 
@@ -168,7 +168,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("Dictionary");
         });
     });
@@ -184,7 +184,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("$Param1");
             expect(result).toContain("$Param5");
         });
@@ -199,7 +199,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("-Name");
             expect(result).toContain("-Debug");
         });
@@ -216,7 +216,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain(".SYNOPSIS");
         });
 
@@ -230,7 +230,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain(".SYNOPSIS");
             expect(result).toContain(".EXAMPLE");
         });
@@ -247,7 +247,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("-match");
         });
 
@@ -261,7 +261,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("year");
         });
     });
@@ -277,7 +277,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain('@"');
         });
 
@@ -291,7 +291,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("root");
         });
 
@@ -305,7 +305,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("SELECT");
         });
     });
@@ -321,7 +321,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result.toLowerCase()).toContain("dynamicparam");
         });
     });
@@ -337,7 +337,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("begin");
             expect(result).toContain("process");
             expect(result).toContain("end");
@@ -353,7 +353,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("Get-Process");
             expect(result).toContain("Format-Table");
         });
@@ -370,7 +370,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("?");
             expect(result).toContain(":");
         });
@@ -385,7 +385,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("??");
         });
 
@@ -399,7 +399,7 @@ class Dog : Animal { [string]$Breed; Dog([string]$name, [string]$breed) : base($
                 "advanced-formatting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("..");
         });
     });

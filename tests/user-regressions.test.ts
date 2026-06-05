@@ -50,11 +50,13 @@ describe("ps-color-scripts regressions", () => {
     it("normalizes Invoke-ColorScriptCacheOperation indentation and semicolons", async () => {
         expect.hasAssertions();
 
-        await assertFormatting(
-            "./test_files/Test-File-11.unformatted.ps1",
-            "./test_files/Test-File-11.ps1",
-            "user-regressions.test-file-11"
-        );
+        await expect(
+            assertFormatting(
+                "./test_files/Test-File-11.unformatted.ps1",
+                "./test_files/Test-File-11.ps1",
+                "user-regressions.test-file-11"
+            )
+        ).resolves.toBeUndefined();
     });
 
     it("ensures Test-File-11.ps1 remains idempotent", async () => {
@@ -76,81 +78,97 @@ describe("ps-color-scripts regressions", () => {
     it("reformats the Galaxy Panel sample with 4-space indentation", async () => {
         expect.hasAssertions();
 
-        await assertFormatting(
-            "./test_files/Test-File-10.unformatted.ps1",
-            "./test_files/Test-File-10.ps1",
-            "user-regressions.test-file-10"
-        );
+        await expect(
+            assertFormatting(
+                "./test_files/Test-File-10.unformatted.ps1",
+                "./test_files/Test-File-10.ps1",
+                "user-regressions.test-file-10"
+            )
+        ).resolves.toBeUndefined();
     });
 
     it("preserves static method invocations used for synchronization", async () => {
         expect.hasAssertions();
 
-        await assertFormatting(
-            "./test_files/Test-File-12.unformatted.ps1",
-            "./test_files/Test-File-12.ps1",
-            "user-regressions.test-file-12"
-        );
+        await expect(
+            assertFormatting(
+                "./test_files/Test-File-12.unformatted.ps1",
+                "./test_files/Test-File-12.ps1",
+                "user-regressions.test-file-12"
+            )
+        ).resolves.toBeUndefined();
     });
 
     it("normalizes additional monitor helper variations", async () => {
         expect.hasAssertions();
 
-        await assertFormatting(
-            "./test_files/Test-File-13.unformatted.ps1",
-            "./test_files/Test-File-13.ps1",
-            "user-regressions.test-file-13"
-        );
+        await expect(
+            assertFormatting(
+                "./test_files/Test-File-13.unformatted.ps1",
+                "./test_files/Test-File-13.ps1",
+                "user-regressions.test-file-13"
+            )
+        ).resolves.toBeUndefined();
     });
 
     it("keeps batched static calls stable", async () => {
         expect.hasAssertions();
 
-        await assertFormatting(
-            "./test_files/Test-File-14.unformatted.ps1",
-            "./test_files/Test-File-14.ps1",
-            "user-regressions.test-file-14"
-        );
+        await expect(
+            assertFormatting(
+                "./test_files/Test-File-14.unformatted.ps1",
+                "./test_files/Test-File-14.ps1",
+                "user-regressions.test-file-14"
+            )
+        ).resolves.toBeUndefined();
     });
 
     it("handles keyword-like static method names without misformatting", async () => {
         expect.hasAssertions();
 
-        await assertFormatting(
-            "./test_files/Test-File-15.unformatted.ps1",
-            "./test_files/Test-File-15.ps1",
-            "user-regressions.test-file-15"
-        );
+        await expect(
+            assertFormatting(
+                "./test_files/Test-File-15.unformatted.ps1",
+                "./test_files/Test-File-15.ps1",
+                "user-regressions.test-file-15"
+            )
+        ).resolves.toBeUndefined();
     });
 
     it("handles static calls inside pipelines and chained expressions", async () => {
         expect.hasAssertions();
 
-        await assertFormatting(
-            "./test_files/Test-File-16.unformatted.ps1",
-            "./test_files/Test-File-16.ps1",
-            "user-regressions.test-file-16"
-        );
+        await expect(
+            assertFormatting(
+                "./test_files/Test-File-16.unformatted.ps1",
+                "./test_files/Test-File-16.ps1",
+                "user-regressions.test-file-16"
+            )
+        ).resolves.toBeUndefined();
     });
 
     it("preserves inline color comments in ANSI palette loop script (Test-File-17)", async () => {
         expect.hasAssertions();
 
-        await assertFormatting(
-            "./test_files/Test-File-17.unformatted.ps1",
-            "./test_files/Test-File-17..ps1",
-            "user-regressions.test-file-17"
-        );
+        await expect(
+            assertFormatting(
+                "./test_files/Test-File-17.unformatted.ps1",
+                "./test_files/Test-File-17..ps1",
+                "user-regressions.test-file-17"
+            )
+        ).resolves.toBeUndefined();
     });
 
     it("preserves inline color comments in ANSI palette header script (Test-File-18)", async () => {
         expect.hasAssertions();
 
-        await assertFormatting(
-            "./test_files/Test-File-18.unformatted.ps1",
-            "./test_files/Test-File-18..ps1",
-            "user-regressions.test-file-18"
-        );
+        await expect(
+            assertFormatting(
+                "./test_files/Test-File-18.unformatted.ps1",
+                "./test_files/Test-File-18..ps1",
+                "user-regressions.test-file-18"
+            )
+        ).resolves.toBeUndefined();
     });
 
     it("never corrupts escaped apostrophes in PSD1 metadata", async () => {

@@ -35,11 +35,18 @@ describe("progress logging behaviour", () => {
             const { createProgressTracker } = await loadProgressModule();
             const tracker = createProgressTracker("log-test", 3);
 
-            tracker.advance(); // First run logs
-            tracker.advance(); // no log
-            tracker.advance(); // Final run logs
+            const advances = [
+                tracker.advance(), // First run logs
+                tracker.advance(), // no log
+                tracker.advance(), // Final run logs
+            ];
             tracker.complete();
 
+            expect(advances).toStrictEqual([
+                1,
+                2,
+                3,
+            ]);
             expect(logSpy).toHaveBeenCalledWith("[progress] log-test run 1/3");
             expect(logSpy).toHaveBeenCalledWith("[progress] log-test run 3/3");
             expect(logSpy).toHaveBeenCalledWith(

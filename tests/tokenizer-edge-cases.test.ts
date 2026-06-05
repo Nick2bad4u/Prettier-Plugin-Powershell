@@ -10,8 +10,10 @@ describe("tokenizer edge cases", () => {
         const tokens = tokenize(script);
         const blockComment = tokens.find((t) => t.type === "block-comment");
 
-        expect(blockComment).toBeDefined();
-        expect(blockComment?.value).toBe("<#comment#>");
+        expect(blockComment).toMatchObject({
+            type: "block-comment",
+            value: "<#comment#>",
+        });
     });
 
     it("handles unclosed block comment at end of file", () => {
@@ -21,8 +23,10 @@ describe("tokenizer edge cases", () => {
         const tokens = tokenize(script);
         const blockComment = tokens.find((t) => t.type === "block-comment");
 
-        expect(blockComment).toBeDefined();
-        expect(blockComment?.value).toBe("<#unclosed");
+        expect(blockComment).toMatchObject({
+            type: "block-comment",
+            value: "<#unclosed",
+        });
     });
 
     it("handles backtick at end of string", () => {
@@ -32,8 +36,10 @@ describe("tokenizer edge cases", () => {
         const tokens = tokenize(script);
         const stringToken = tokens.find((t) => t.type === "string");
 
-        expect(stringToken).toBeDefined();
-        expect(stringToken?.value).toBe('"test`"');
+        expect(stringToken).toMatchObject({
+            type: "string",
+            value: '"test`"',
+        });
     });
 
     it("handles backtick at end of file in attribute", () => {
@@ -43,7 +49,10 @@ describe("tokenizer edge cases", () => {
         const tokens = tokenize(script);
         const attrToken = tokens.find((t) => t.type === "attribute");
 
-        expect(attrToken).toBeDefined();
+        expect(attrToken).toMatchObject({
+            type: "attribute",
+            value: '[ValidateScript({"test`"})]',
+        });
     });
 
     it("handles Windows line endings in here-strings correctly", () => {
@@ -53,8 +62,10 @@ describe("tokenizer edge cases", () => {
         const tokens = tokenize(script);
         const heredoc = tokens.find((t) => t.type === "heredoc");
 
-        expect(heredoc).toBeDefined();
-        expect(heredoc?.value).toBe('@"\r\nLine 1\r\nLine 2\r\n"@');
+        expect(heredoc).toMatchObject({
+            type: "heredoc",
+            value: '@"\r\nLine 1\r\nLine 2\r\n"@',
+        });
     });
 
     it("handles UNIX line endings in here-strings correctly", () => {
@@ -64,8 +75,10 @@ describe("tokenizer edge cases", () => {
         const tokens = tokenize(script);
         const heredoc = tokens.find((t) => t.type === "heredoc");
 
-        expect(heredoc).toBeDefined();
-        expect(heredoc?.value).toBe('@"\nLine 1\nLine 2\n"@');
+        expect(heredoc).toMatchObject({
+            type: "heredoc",
+            value: '@"\nLine 1\nLine 2\n"@',
+        });
     });
 
     it("handles decimal point at end of file", () => {
@@ -86,8 +99,10 @@ describe("tokenizer edge cases", () => {
         const tokens = tokenize(script);
         const number = tokens.find((t) => t.type === "number");
 
-        expect(number).toBeDefined();
-        expect(number?.value).toBe("1.5");
+        expect(number).toMatchObject({
+            type: "number",
+            value: "1.5",
+        });
     });
 
     it("handles here-string closing at exact position", () => {
@@ -97,8 +112,10 @@ describe("tokenizer edge cases", () => {
         const tokens = tokenize(script);
         const heredoc = tokens.find((t) => t.type === "heredoc");
 
-        expect(heredoc).toBeDefined();
-        expect(heredoc?.value).toBe('@"\ntest\n"@');
+        expect(heredoc).toMatchObject({
+            type: "heredoc",
+            value: '@"\ntest\n"@',
+        });
     });
 
     it("handles block comment closing at exact last position", () => {
@@ -108,8 +125,10 @@ describe("tokenizer edge cases", () => {
         const tokens = tokenize(script);
         const blockComment = tokens.find((t) => t.type === "block-comment");
 
-        expect(blockComment).toBeDefined();
-        expect(blockComment?.value).toBe("<#test#>");
+        expect(blockComment).toMatchObject({
+            type: "block-comment",
+            value: "<#test#>",
+        });
     });
 
     it("treats zero-width and NBSP characters as whitespace", () => {
@@ -127,8 +146,8 @@ describe("tokenizer edge cases", () => {
         );
 
         expect(keyword?.value.toLowerCase()).toBe("function");
-        expect(identifier).toBeDefined();
-        expect(variable).toBeDefined();
+        expect(identifier).toMatchObject({ type: "identifier", value: "Foo" });
+        expect(variable).toMatchObject({ type: "variable", value: "$x" });
         expect(tokens.filter((t) => t.type === "unknown")).toHaveLength(0);
     });
 
@@ -145,8 +164,11 @@ describe("tokenizer edge cases", () => {
             (t) => t.type === "variable" && t.value === "$scriptBlock"
         );
 
-        expect(callOperator).toBeDefined();
-        expect(variable).toBeDefined();
+        expect(callOperator).toMatchObject({ type: "operator", value: "&" });
+        expect(variable).toMatchObject({
+            type: "variable",
+            value: "$scriptBlock",
+        });
         expect(tokens.filter((t) => t.type === "unknown")).toHaveLength(0);
     });
 
@@ -160,7 +182,10 @@ describe("tokenizer edge cases", () => {
             (t) => t.type === "identifier" && t.value === "@commandArgs"
         );
 
-        expect(splat).toBeDefined();
+        expect(splat).toMatchObject({
+            type: "identifier",
+            value: "@commandArgs",
+        });
         expect(tokens.filter((t) => t.type === "unknown")).toHaveLength(0);
     });
 
@@ -192,7 +217,10 @@ describe("tokenizer edge cases", () => {
             (t) => t.type === "operator" && t.value === ">&3"
         );
 
-        expect(mergeRedirection).toBeDefined();
+        expect(mergeRedirection).toMatchObject({
+            type: "operator",
+            value: ">&3",
+        });
     });
 
     it("treats bare $_ at end of input as the special pipeline variable", () => {

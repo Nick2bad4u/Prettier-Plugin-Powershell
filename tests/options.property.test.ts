@@ -138,12 +138,12 @@ const assertResolvedOptionsAreValid = (
 describe("options property-based tests", () => {
     it("resolveOptions never throws", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(parserOptionsArb, (options) => {
-                // Should not throw
-                resolveOptions(options);
+                const resolved = resolveOptions(options);
+
+                expect(resolved).toHaveProperty("indentStyle");
             }),
             { numRuns: PROPERTY_RUNS }
         );
@@ -151,11 +151,14 @@ describe("options property-based tests", () => {
 
     it("resolveOptions produces valid output", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(parserOptionsArb, (options) => {
-                assertResolvedOptionsAreValid(resolveOptions(options));
+                const resolved = resolveOptions(options);
+
+                assertResolvedOptionsAreValid(resolved);
+
+                expect(resolved.lineWidth).toBeGreaterThanOrEqual(40);
             }),
             { numRuns: PROPERTY_RUNS }
         );
@@ -163,7 +166,6 @@ describe("options property-based tests", () => {
 
     it("resolveOptions respects user preferences when valid", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(
@@ -189,31 +191,13 @@ describe("options property-based tests", () => {
 
                     const resolved = resolveOptions(options);
 
-                    if (resolved.indentStyle !== indentStyle) {
-                        throw new Error(
-                            `indentStyle not preserved: expected ${indentStyle}, got ${resolved.indentStyle}`
-                        );
-                    }
-                    if (resolved.indentSize !== indentSize) {
-                        throw new Error(
-                            `indentSize not preserved: expected ${indentSize}, got ${resolved.indentSize}`
-                        );
-                    }
-                    if (resolved.trailingComma !== trailingComma) {
-                        throw new Error(
-                            `trailingComma not preserved: expected ${trailingComma}, got ${resolved.trailingComma}`
-                        );
-                    }
-                    if (resolved.braceStyle !== braceStyle) {
-                        throw new Error(
-                            `braceStyle not preserved: expected ${braceStyle}, got ${resolved.braceStyle}`
-                        );
-                    }
-                    if (resolved.keywordCase !== keywordCase) {
-                        throw new Error(
-                            `keywordCase not preserved: expected ${keywordCase}, got ${resolved.keywordCase}`
-                        );
-                    }
+                    expect(resolved).toMatchObject({
+                        braceStyle,
+                        indentSize,
+                        indentStyle,
+                        keywordCase,
+                        trailingComma,
+                    });
                 }
             ),
             { numRuns: PROPERTY_RUNS }
@@ -222,38 +206,20 @@ describe("options property-based tests", () => {
 
     it("resolveOptions has sensible defaults", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(fc.constant({}), () => {
                 const resolved = resolveOptions({} as ParserOptions);
 
-                // Check defaults
-                if (resolved.indentStyle !== "spaces") {
-                    throw new Error("Default indentStyle should be spaces");
-                }
-                if (resolved.indentSize !== 4) {
-                    throw new Error(
-                        `Default indentSize should be 4, got ${resolved.indentSize}`
-                    );
-                }
-                if (resolved.trailingComma !== "none") {
-                    throw new Error("Default trailingComma should be none");
-                }
-                if (resolved.braceStyle !== "1tbs") {
-                    throw new Error("Default braceStyle should be 1tbs");
-                }
-                if (resolved.keywordCase !== "lower") {
-                    throw new Error("Default keywordCase should be lower");
-                }
-                if (resolved.lineWidth !== 120) {
-                    throw new Error("Default lineWidth should be 120");
-                }
-                if (resolved.blankLinesBetweenFunctions !== 1) {
-                    throw new Error(
-                        "Default blankLinesBetweenFunctions should be 1"
-                    );
-                }
+                expect(resolved).toMatchObject({
+                    blankLinesBetweenFunctions: 1,
+                    braceStyle: "1tbs",
+                    indentSize: 4,
+                    indentStyle: "spaces",
+                    keywordCase: "lower",
+                    lineWidth: 120,
+                    trailingComma: "none",
+                });
             }),
             { numRuns: PROPERTY_RUNS }
         );
@@ -261,7 +227,6 @@ describe("options property-based tests", () => {
 
     it("applies the invoke-formatter preset when requested", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         const resolved = resolveOptions({
             powershellPreset: "invoke-formatter",
@@ -276,7 +241,6 @@ describe("options property-based tests", () => {
 
     it("lets explicit options override preset defaults", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         const resolved = resolveOptions({
             powershellIndentSize: 2,
@@ -290,7 +254,6 @@ describe("options property-based tests", () => {
 
     it("resolveOptions clamps invalid numeric values", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(
@@ -321,7 +284,6 @@ describe("options property-based tests", () => {
 
     it("resolveOptions clamps blankLinesBetweenFunctions to 0-3", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(fc.integer({ max: 20, min: -10 }), (value) => {
@@ -349,7 +311,6 @@ describe("options property-based tests", () => {
 
     it("resolveOptions clamps lineWidth to 40-200", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(fc.integer({ max: 500, min: -100 }), (value) => {
@@ -373,7 +334,6 @@ describe("options property-based tests", () => {
 
     it("resolveOptions sets useTabs based on indentStyle", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(indentStyleArb, (indentStyle) => {
@@ -393,17 +353,13 @@ describe("options property-based tests", () => {
 
     it("resolveOptions is deterministic", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(parserOptionsArb, (options) => {
                 const resolved1 = resolveOptions({ ...options });
                 const resolved2 = resolveOptions({ ...options });
 
-                // Should produce identical results
-                if (JSON.stringify(resolved1) !== JSON.stringify(resolved2)) {
-                    throw new Error("resolveOptions is not deterministic");
-                }
+                expect(resolved2).toStrictEqual(resolved1);
             }),
             { numRuns: PROPERTY_RUNS }
         );
@@ -411,7 +367,6 @@ describe("options property-based tests", () => {
 
     it("treats unknown preset values as no preset", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         const options = {
             powershellPreset: "unknown-preset-value",

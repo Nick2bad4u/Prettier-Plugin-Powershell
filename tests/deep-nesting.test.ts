@@ -19,7 +19,7 @@ describe("deep Nesting and Complex Structure Handling", () => {
                 "deep-nesting.basic-dsc|skipParse"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result.toLowerCase()).toContain("configuration myconfig");
             expect(result).toContain("Node localhost");
         });
@@ -73,7 +73,7 @@ describe("deep Nesting and Complex Structure Handling", () => {
                 "deep-nesting.deep-dsc|skipParse"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result.toLowerCase()).toContain("configuration complex");
         });
 
@@ -120,7 +120,7 @@ describe("deep Nesting and Complex Structure Handling", () => {
                 "deep-nesting.performance|skipParse"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("deep");
         });
 
@@ -139,7 +139,7 @@ describe("deep Nesting and Complex Structure Handling", () => {
                 "deep-nesting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("Alice");
             expect(result).toContain("Bob");
         });
@@ -154,7 +154,7 @@ describe("deep Nesting and Complex Structure Handling", () => {
                 "deep-nesting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("bottom");
         });
     });
@@ -170,7 +170,7 @@ describe("deep Nesting and Complex Structure Handling", () => {
                 "deep-nesting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("1");
             expect(result).toContain("9");
         });
@@ -185,7 +185,7 @@ describe("deep Nesting and Complex Structure Handling", () => {
                 "deep-nesting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("1");
         });
     });
@@ -201,7 +201,7 @@ describe("deep Nesting and Complex Structure Handling", () => {
                 "deep-nesting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("deep");
         });
 
@@ -215,7 +215,7 @@ describe("deep Nesting and Complex Structure Handling", () => {
                 "deep-nesting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("nested");
         });
 
@@ -229,7 +229,7 @@ describe("deep Nesting and Complex Structure Handling", () => {
                 "deep-nesting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("foreach");
         });
     });
@@ -276,7 +276,7 @@ describe("deep Nesting and Complex Structure Handling", () => {
                 "deep-nesting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("switch");
         });
     });
@@ -298,7 +298,7 @@ describe("deep Nesting and Complex Structure Handling", () => {
                 "deep-nesting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
         });
 
         it("formats deeply nested structure in reasonable time", async () => {
@@ -316,7 +316,7 @@ describe("deep Nesting and Complex Structure Handling", () => {
             );
             const duration = Date.now() - start;
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(duration).toBeLessThan(200); // Should be fast
         });
     });
@@ -332,7 +332,7 @@ describe("deep Nesting and Complex Structure Handling", () => {
                 "deep-nesting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
         });
 
         it("handles mixed empty and filled structures", async () => {
@@ -345,7 +345,7 @@ describe("deep Nesting and Complex Structure Handling", () => {
                 "deep-nesting.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("value");
         });
     });

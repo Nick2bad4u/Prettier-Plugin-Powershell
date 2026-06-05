@@ -51,6 +51,7 @@ describe("abstract syntax tree utility functions", () => {
             const loc = createLocation(5, 15);
 
             expect(loc).toStrictEqual({ end: 15, start: 5 });
+            expect(loc).not.toStrictEqual({ end: 5, start: 15 });
         });
 
         it("handles zero positions", () => {
@@ -80,7 +81,7 @@ describe("abstract syntax tree utility functions", () => {
                 type: "Script",
             };
 
-            expect(isNodeType(node, "Script")).toBeTruthy();
+            expect(isNodeType(node, "Script")).toBe(true);
         });
 
         it("returns false when node type does not match", () => {
@@ -92,7 +93,8 @@ describe("abstract syntax tree utility functions", () => {
                 type: "Script",
             };
 
-            expect(isNodeType(node, "Pipeline")).toBeFalsy();
+            expect(isNodeType(node, "Pipeline")).toBe(false);
+            expect(isNodeType(node, "Pipeline")).not.toBe(true);
         });
 
         it("works with different node types", () => {
@@ -106,8 +108,9 @@ describe("abstract syntax tree utility functions", () => {
                 value: "# test",
             };
 
-            expect(isNodeType(comment, "Comment")).toBeTruthy();
-            expect(isNodeType(comment, "Script")).toBeFalsy();
+            expect(isNodeType(comment, "Comment")).toBe(true);
+            expect(isNodeType(comment, "Script")).toBe(false);
+            expect(isNodeType(comment, "Script")).not.toBe(true);
         });
     });
 
@@ -256,7 +259,7 @@ describe("abstract syntax tree utility functions", () => {
                     type: "Script",
                 };
 
-                expect(isScriptNode(node)).toBeTruthy();
+                expect(isScriptNode(node)).toBe(true);
             });
 
             it("returns false for non-Script nodes", () => {
@@ -270,7 +273,8 @@ describe("abstract syntax tree utility functions", () => {
                     value: "# test",
                 };
 
-                expect(isScriptNode(node)).toBeFalsy();
+                expect(isScriptNode(node)).toBe(false);
+                expect(isScriptNode(node)).not.toBe(true);
             });
         });
 
@@ -284,7 +288,7 @@ describe("abstract syntax tree utility functions", () => {
                     type: "Pipeline",
                 };
 
-                expect(isPipelineNode(node)).toBeTruthy();
+                expect(isPipelineNode(node)).toBe(true);
             });
 
             it("returns false for non-Pipeline nodes", () => {
@@ -296,7 +300,8 @@ describe("abstract syntax tree utility functions", () => {
                     type: "Script",
                 };
 
-                expect(isPipelineNode(node)).toBeFalsy();
+                expect(isPipelineNode(node)).toBe(false);
+                expect(isPipelineNode(node)).not.toBe(true);
             });
         });
 
@@ -315,7 +320,7 @@ describe("abstract syntax tree utility functions", () => {
                     type: "FunctionDeclaration",
                 };
 
-                expect(isFunctionDeclarationNode(node)).toBeTruthy();
+                expect(isFunctionDeclarationNode(node)).toBe(true);
             });
 
             it("returns false for non-FunctionDeclaration nodes", () => {
@@ -327,7 +332,8 @@ describe("abstract syntax tree utility functions", () => {
                     type: "Script",
                 };
 
-                expect(isFunctionDeclarationNode(node)).toBeFalsy();
+                expect(isFunctionDeclarationNode(node)).toBe(false);
+                expect(isFunctionDeclarationNode(node)).not.toBe(true);
             });
         });
 
@@ -341,7 +347,7 @@ describe("abstract syntax tree utility functions", () => {
                     type: "ScriptBlock",
                 };
 
-                expect(isScriptBlockNode(node)).toBeTruthy();
+                expect(isScriptBlockNode(node)).toBe(true);
             });
 
             it("returns false for non-ScriptBlock nodes", () => {
@@ -353,7 +359,8 @@ describe("abstract syntax tree utility functions", () => {
                     type: "Script",
                 };
 
-                expect(isScriptBlockNode(node)).toBeFalsy();
+                expect(isScriptBlockNode(node)).toBe(false);
+                expect(isScriptBlockNode(node)).not.toBe(true);
             });
         });
 
@@ -367,7 +374,7 @@ describe("abstract syntax tree utility functions", () => {
                     type: "Hashtable",
                 };
 
-                expect(isHashtableNode(node)).toBeTruthy();
+                expect(isHashtableNode(node)).toBe(true);
             });
 
             it("returns false for non-Hashtable nodes", () => {
@@ -379,7 +386,8 @@ describe("abstract syntax tree utility functions", () => {
                     type: "Script",
                 };
 
-                expect(isHashtableNode(node)).toBeFalsy();
+                expect(isHashtableNode(node)).toBe(false);
+                expect(isHashtableNode(node)).not.toBe(true);
             });
         });
 
@@ -394,7 +402,7 @@ describe("abstract syntax tree utility functions", () => {
                     type: "ArrayLiteral",
                 };
 
-                expect(isArrayLiteralNode(node)).toBeTruthy();
+                expect(isArrayLiteralNode(node)).toBe(true);
             });
 
             it("returns false for non-ArrayLiteral nodes", () => {
@@ -406,7 +414,8 @@ describe("abstract syntax tree utility functions", () => {
                     type: "Script",
                 };
 
-                expect(isArrayLiteralNode(node)).toBeFalsy();
+                expect(isArrayLiteralNode(node)).toBe(false);
+                expect(isArrayLiteralNode(node)).not.toBe(true);
             });
         });
 
@@ -422,7 +431,7 @@ describe("abstract syntax tree utility functions", () => {
                     value: "# test",
                 };
 
-                expect(isCommentNode(node)).toBeTruthy();
+                expect(isCommentNode(node)).toBe(true);
             });
 
             it("returns false for non-Comment nodes", () => {
@@ -434,7 +443,8 @@ describe("abstract syntax tree utility functions", () => {
                     type: "Script",
                 };
 
-                expect(isCommentNode(node)).toBeFalsy();
+                expect(isCommentNode(node)).toBe(false);
+                expect(isCommentNode(node)).not.toBe(true);
             });
         });
 
@@ -449,7 +459,7 @@ describe("abstract syntax tree utility functions", () => {
                     value: "@'\ntest\n'@",
                 };
 
-                expect(isHereStringNode(node)).toBeTruthy();
+                expect(isHereStringNode(node)).toBe(true);
             });
 
             it("returns false for non-HereString nodes", () => {
@@ -461,7 +471,8 @@ describe("abstract syntax tree utility functions", () => {
                     type: "Script",
                 };
 
-                expect(isHereStringNode(node)).toBeFalsy();
+                expect(isHereStringNode(node)).toBe(false);
+                expect(isHereStringNode(node)).not.toBe(true);
             });
         });
     });

@@ -1,9 +1,7 @@
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
-import type { HereStringNode } from "../src/ast.js";
-
-import { createLocation } from "../src/ast.js";
+import { createLocation, type HereStringNode } from "../src/ast.js";
 import { normalizeHereString } from "../src/tokenizer.js";
 
 const PROPERTY_RUNS = Number.parseInt(
@@ -15,167 +13,226 @@ describe("tokenizer helper function property tests", () => {
     describe(normalizeHereString, () => {
         it("handles here-strings with various line counts", () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
+            expect(() => {
+                fc.assert(
+                    fc.property(
+                        fc.integer({ max: 10, min: 0 }),
+                        fc.constantFrom("\n", "\r\n"),
+                        (lineCount, lineEnding) => {
+                            const lines = Array.from(
+                                { length: lineCount },
+                                (_, i) => `line${i}`
+                            );
+                            const value = lines.join(lineEnding);
 
-            fc.assert(
-                fc.property(
-                    fc.integer({ max: 10, min: 0 }),
-                    fc.constantFrom("\n", "\r\n"),
-                    (lineCount, lineEnding) => {
-                        const lines = Array.from(
-                            { length: lineCount },
-                            (_, i) => `line${i}`
-                        );
-                        const value = lines.join(lineEnding);
+                            const node: HereStringNode = {
+                                loc: createLocation(0, value.length),
+                                quote: "double",
+                                type: "HereString",
+                                value,
+                            };
 
-                        const node: HereStringNode = {
-                            loc: createLocation(0, value.length),
-                            quote: "double",
-                            type: "HereString",
-                            value,
-                        };
+                            const result = normalizeHereString(node);
 
-                        const result = normalizeHereString(node);
-
-                        // Should not throw
-                        if (typeof result !== "string") {
-                            throw new TypeError("Result should be a string");
-                        }
-
-                        // If 2 or fewer lines, should return original
-                        if (lineCount <= 2) {
-                            if (result !== value) {
-                                throw new Error(
-                                    `Should preserve <= 2 lines: got ${result}, expected ${value}`
+                            // Should not throw
+                            if (typeof result !== "string") {
+                                throw new TypeError(
+                                    "Result should be a string"
                                 );
                             }
-                        } else {
-                            // If more than 2 lines, should strip first and last
-                            const expected = lines.slice(1, -1).join("\n");
-                            if (result !== expected) {
-                                throw new Error(
-                                    `Should strip first/last lines: got ${result}, expected ${expected}`
-                                );
+
+                            // If 2 or fewer lines, should return original
+                            if (lineCount <= 2) {
+                                if (result !== value) {
+                                    throw new Error(
+                                        `Should preserve <= 2 lines: got ${result}, expected ${value}`
+                                    );
+                                }
+                            } else {
+                                // If more than 2 lines, should strip first and last
+                                const expected = lines.slice(1, -1).join("\n");
+                                if (result !== expected) {
+                                    throw new Error(
+                                        `Should strip first/last lines: got ${result}, expected ${expected}`
+                                    );
+                                }
                             }
                         }
-                    }
-                ),
-                { numRuns: PROPERTY_RUNS }
-            );
-
-            expect(true).toBeTruthy();
+                    ),
+                    { numRuns: PROPERTY_RUNS }
+                );
+            }).not.toThrow();
         });
 
         it("handles here-strings with empty lines", () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
+            expect(() => {
+                fc.assert(
+                    fc.property(
+                        fc.array(fc.constantFrom("", "line", "  spaces  "), {
+                            maxLength: 5,
+                            minLength: 0,
+                        }),
+                        (lines) => {
+                            const value = lines.join("\n");
 
-            fc.assert(
-                fc.property(
-                    fc.array(fc.constantFrom("", "line", "  spaces  "), {
-                        maxLength: 5,
-                        minLength: 0,
-                    }),
-                    (lines) => {
-                        const value = lines.join("\n");
+                            const node: HereStringNode = {
+                                loc: createLocation(0, value.length),
+                                quote: "single",
+                                type: "HereString",
+                                value,
+                            };
 
-                        const node: HereStringNode = {
-                            loc: createLocation(0, value.length),
-                            quote: "single",
-                            type: "HereString",
-                            value,
-                        };
+                            const result = normalizeHereString(node);
 
-                        const result = normalizeHereString(node);
+                            if (typeof result !== "string") {
+                                throw new TypeError(
+                                    "Result should be a string"
+                                );
+                            }
 
-                        if (typeof result !== "string") {
-                            throw new TypeError("Result should be a string");
+                            // Should preserve content
+                            if (lines.length <= 2 && result !== value) {
+                                throw new Error(
+                                    "Should preserve short content"
+                                );
+                            }
                         }
-
-                        // Should preserve content
-                        if (lines.length <= 2 && result !== value) {
-                            throw new Error("Should preserve short content");
-                        }
-                    }
-                ),
-                { numRuns: PROPERTY_RUNS }
-            );
-
-            expect(true).toBeTruthy();
+                    ),
+                    { numRuns: PROPERTY_RUNS }
+                );
+            }).not.toThrow();
         });
 
         it("handles here-strings with mixed line endings", () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
-
-            fc.assert(
-                fc.property(
-                    fc.array(fc.string({ maxLength: 10 }), {
-                        maxLength: 5,
-                        minLength: 3,
-                    }),
-                    (lines) => {
-                        // Mix \n and \r\n
-                        const parts: string[] = [];
-                        for (let i = 0; i < lines.length; i++) {
-                            const currentLine = lines[i];
-                            if (currentLine === undefined) {
-                                continue;
+            expect(() => {
+                fc.assert(
+                    fc.property(
+                        fc.array(fc.string({ maxLength: 10 }), {
+                            maxLength: 5,
+                            minLength: 3,
+                        }),
+                        (lines) => {
+                            // Mix \n and \r\n
+                            const parts: string[] = [];
+                            for (let i = 0; i < lines.length; i++) {
+                                const currentLine = lines[i];
+                                if (currentLine === undefined) {
+                                    continue;
+                                }
+                                parts.push(currentLine);
+                                if (i < lines.length - 1) {
+                                    parts.push(i % 2 === 0 ? "\r\n" : "\n");
+                                }
                             }
-                            parts.push(currentLine);
-                            if (i < lines.length - 1) {
-                                parts.push(i % 2 === 0 ? "\r\n" : "\n");
+                            const value = parts.join("");
+
+                            const node: HereStringNode = {
+                                loc: createLocation(0, value.length),
+                                quote: "double",
+                                type: "HereString",
+                                value,
+                            };
+
+                            const result = normalizeHereString(node);
+
+                            // Should not throw
+                            if (typeof result !== "string") {
+                                throw new TypeError(
+                                    "Result should be a string"
+                                );
+                            }
+
+                            // Result should always use \n
+                            if (result.includes("\r")) {
+                                throw new Error(
+                                    String.raw`Normalized result should not contain \r`
+                                );
                             }
                         }
-                        const value = parts.join("");
-
-                        const node: HereStringNode = {
-                            loc: createLocation(0, value.length),
-                            quote: "double",
-                            type: "HereString",
-                            value,
-                        };
-
-                        const result = normalizeHereString(node);
-
-                        // Should not throw
-                        if (typeof result !== "string") {
-                            throw new TypeError("Result should be a string");
-                        }
-
-                        // Result should always use \n
-                        if (result.includes("\r")) {
-                            throw new Error(
-                                String.raw`Normalized result should not contain \r`
-                            );
-                        }
-                    }
-                ),
-                { numRuns: PROPERTY_RUNS }
-            );
-
-            expect(true).toBeTruthy();
+                    ),
+                    { numRuns: PROPERTY_RUNS }
+                );
+            }).not.toThrow();
         });
 
         it("handles edge cases gracefully", () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
+            expect(() => {
+                fc.assert(
+                    fc.property(
+                        fc.constantFrom(
+                            "",
+                            "\n",
+                            "\r\n",
+                            "single line",
+                            "line1\nline2",
+                            "line1\r\nline2",
+                            "\n\n",
+                            "\r\n\r\n",
+                            "first\nmiddle\nlast",
+                            "first\r\nmiddle\r\nlast"
+                        ),
+                        (value) => {
+                            const node: HereStringNode = {
+                                loc: createLocation(0, value.length),
+                                quote: "double",
+                                type: "HereString",
+                                value,
+                            };
 
-            fc.assert(
-                fc.property(
-                    fc.constantFrom(
-                        "",
-                        "\n",
-                        "\r\n",
-                        "single line",
-                        "line1\nline2",
-                        "line1\r\nline2",
-                        "\n\n",
-                        "\r\n\r\n",
-                        "first\nmiddle\nlast",
-                        "first\r\nmiddle\r\nlast"
+                            // Should not throw
+                            const result = normalizeHereString(node);
+
+                            if (typeof result !== "string") {
+                                throw new TypeError(
+                                    "Result should be a string"
+                                );
+                            }
+                        }
                     ),
-                    (value) => {
+                    { numRuns: PROPERTY_RUNS }
+                );
+            }).not.toThrow();
+        });
+
+        it("preserves quote type in node", () => {
+            expect.hasAssertions();
+            expect(() => {
+                fc.assert(
+                    fc.property(
+                        fc.constantFrom("double", "single"),
+                        fc.string({ maxLength: 20 }),
+                        (quote, value) => {
+                            const node: HereStringNode = {
+                                loc: createLocation(0, value.length),
+                                quote,
+                                type: "HereString",
+                                value,
+                            };
+
+                            // Function should not modify the node
+                            const originalQuote = node.quote;
+                            normalizeHereString(node);
+
+                            if (node.quote !== originalQuote) {
+                                throw new Error(
+                                    "Function should not modify node"
+                                );
+                            }
+                        }
+                    ),
+                    { numRuns: PROPERTY_RUNS }
+                );
+            }).not.toThrow();
+        });
+
+        it("returns consistent results for identical inputs", () => {
+            expect.hasAssertions();
+            expect(() => {
+                fc.assert(
+                    fc.property(fc.string({ maxLength: 50 }), (value) => {
                         const node: HereStringNode = {
                             loc: createLocation(0, value.length),
                             quote: "double",
@@ -183,75 +240,16 @@ describe("tokenizer helper function property tests", () => {
                             value,
                         };
 
-                        // Should not throw
-                        const result = normalizeHereString(node);
+                        const result1 = normalizeHereString(node);
+                        const result2 = normalizeHereString(node);
 
-                        if (typeof result !== "string") {
-                            throw new TypeError("Result should be a string");
+                        if (result1 !== result2) {
+                            throw new Error("Function should be deterministic");
                         }
-                    }
-                ),
-                { numRuns: PROPERTY_RUNS }
-            );
-
-            expect(true).toBeTruthy();
-        });
-
-        it("preserves quote type in node", () => {
-            expect.hasAssertions();
-            expect(true).toBeTruthy();
-
-            fc.assert(
-                fc.property(
-                    fc.constantFrom("double", "single"),
-                    fc.string({ maxLength: 20 }),
-                    (quote, value) => {
-                        const node: HereStringNode = {
-                            loc: createLocation(0, value.length),
-                            quote,
-                            type: "HereString",
-                            value,
-                        };
-
-                        // Function should not modify the node
-                        const originalQuote = node.quote;
-                        normalizeHereString(node);
-
-                        if (node.quote !== originalQuote) {
-                            throw new Error("Function should not modify node");
-                        }
-                    }
-                ),
-                { numRuns: PROPERTY_RUNS }
-            );
-
-            expect(true).toBeTruthy();
-        });
-
-        it("returns consistent results for identical inputs", () => {
-            expect.hasAssertions();
-            expect(true).toBeTruthy();
-
-            fc.assert(
-                fc.property(fc.string({ maxLength: 50 }), (value) => {
-                    const node: HereStringNode = {
-                        loc: createLocation(0, value.length),
-                        quote: "double",
-                        type: "HereString",
-                        value,
-                    };
-
-                    const result1 = normalizeHereString(node);
-                    const result2 = normalizeHereString(node);
-
-                    if (result1 !== result2) {
-                        throw new Error("Function should be deterministic");
-                    }
-                }),
-                { numRuns: PROPERTY_RUNS }
-            );
-
-            expect(true).toBeTruthy();
+                    }),
+                    { numRuns: PROPERTY_RUNS }
+                );
+            }).not.toThrow();
         });
     });
 });

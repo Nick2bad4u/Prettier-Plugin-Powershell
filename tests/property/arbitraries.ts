@@ -426,8 +426,8 @@ const arbitraries = fc.letrec<LetrecShape>((tie) => {
         .subarray(
             [
                 "Begin",
-                "Process",
                 "End",
+                "Process",
             ] as const,
             {
                 maxLength: 3,

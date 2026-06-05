@@ -12,6 +12,7 @@ describe("progress utilities", () => {
             expect(tracker.advance()).toBe(1);
             expect(tracker.advance()).toBe(2);
             expect(tracker.advance()).toBe(3);
+            expect(tracker.advance()).not.toBe(3);
         });
 
         it("accepts totalHint parameter", () => {

@@ -86,7 +86,6 @@ const simpleScriptArb = fc
 describe("printer property-based tests", () => {
     it("printer never throws on valid AST", async () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         await withProgress(
             "printer.noThrow",
@@ -95,7 +94,7 @@ describe("printer property-based tests", () => {
                 await fc.assert(
                     fc.asyncProperty(simpleScriptArb, async (script) => {
                         tracker.advance();
-                        await formatAndAssert(
+                        const formatted = await formatAndAssert(
                             script,
                             {
                                 filepath: "test.ps1",
@@ -104,6 +103,8 @@ describe("printer property-based tests", () => {
                             },
                             { id: "printer.noThrow", skipParse: true }
                         );
+
+                        expect(formatted).toBeTypeOf("string");
                     }),
                     { numRuns: PROPERTY_RUNS }
                 );
@@ -113,7 +114,6 @@ describe("printer property-based tests", () => {
 
     it("formatted output is valid PowerShell", async () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         await withProgress(
             "printer.validPowerShell",
@@ -138,11 +138,7 @@ describe("printer property-based tests", () => {
 
                         const ast = parsePowerShell(formatted, {} as never);
 
-                        if (ast?.type !== "Script") {
-                            throw new Error(
-                                "Formatted output did not produce valid AST"
-                            );
-                        }
+                        expect(ast?.type).toBe("Script");
                     }),
                     { numRuns: PROPERTY_RUNS }
                 );
@@ -152,7 +148,6 @@ describe("printer property-based tests", () => {
 
     it("formatting is idempotent", async () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         await withProgress(
             "printer.idempotent",
@@ -161,7 +156,7 @@ describe("printer property-based tests", () => {
                 await fc.assert(
                     fc.asyncProperty(simpleScriptArb, async (script) => {
                         tracker.advance();
-                        await formatAndAssertRoundTrip(
+                        const formatted = await formatAndAssertRoundTrip(
                             script,
                             {
                                 filepath: "test.ps1",
@@ -170,6 +165,8 @@ describe("printer property-based tests", () => {
                             },
                             "printer.property.idempotent"
                         );
+
+                        expect(formatted).toBeTypeOf("string");
                     }),
                     { numRuns: PROPERTY_RUNS }
                 );
@@ -179,7 +176,6 @@ describe("printer property-based tests", () => {
 
     it("preserves semantic meaning (same number of statements)", async () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         await withProgress(
             "printer.semantic",
@@ -217,14 +213,9 @@ describe("printer property-based tests", () => {
                             (node) => node.type !== "BlankLine"
                         );
 
-                        if (
-                            originalStatements.length !==
-                            formattedStatements.length
-                        ) {
-                            throw new Error(
-                                `Statement count changed: ${originalStatements.length} -> ${formattedStatements.length}`
-                            );
-                        }
+                        expect(formattedStatements).toHaveLength(
+                            originalStatements.length
+                        );
                     }),
                     { numRuns: PROPERTY_RUNS }
                 );
@@ -234,7 +225,6 @@ describe("printer property-based tests", () => {
 
     it("respects indentSize option", async () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         await withProgress(
             "printer.indentSize",
@@ -270,15 +260,15 @@ describe("printer property-based tests", () => {
                                     line.trim().length > 0
                             );
 
-                            if (indentedLine !== undefined) {
-                                const leadingSpaces =
-                                    /^ */v.exec(indentedLine)?.[0].length ?? 0;
-                                if (leadingSpaces !== indentSize) {
-                                    throw new Error(
-                                        `Expected ${indentSize} spaces, got ${leadingSpaces}\nFormatted:\n${formatted}`
-                                    );
-                                }
-                            }
+                            expect(indentedLine).toBeTypeOf("string");
+
+                            const leadingSpaces =
+                                indentedLine === undefined
+                                    ? -1
+                                    : (/^ */v.exec(indentedLine)?.[0].length ??
+                                      0);
+
+                            expect(leadingSpaces).toBe(indentSize);
                         }
                     ),
                     { numRuns: PROPERTY_RUNS }
@@ -289,7 +279,6 @@ describe("printer property-based tests", () => {
 
     it("respects braceStyle option", async () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         await withProgress(
             "printer.braceStyle",
@@ -337,7 +326,7 @@ describe("printer property-based tests", () => {
                             expect(
                                 styleExpectationMet,
                                 `Unexpected brace style output for ${braceStyle}.\nFormatted:\n${formatted}`
-                            ).toBeTruthy();
+                            ).toBe(true);
                         }
                     ),
                     { numRuns: PROPERTY_RUNS }
@@ -348,7 +337,6 @@ describe("printer property-based tests", () => {
 
     it("respects keywordCase option", async () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         await withProgress(
             "printer.keywordCase",
@@ -393,7 +381,7 @@ describe("printer property-based tests", () => {
                             expect(
                                 caseExpectationMet,
                                 `Expected ${keywordCase} keyword formatting.\nFormatted:\n${formatted}`
-                            ).toBeTruthy();
+                            ).toBe(true);
                         }
                     ),
                     { numRuns: PROPERTY_RUNS }
@@ -404,7 +392,6 @@ describe("printer property-based tests", () => {
 
     it("does not change static method identifier case when keywordCase is set", async () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         await withProgress(
             "printer.keywordCase.staticMethod",
@@ -432,11 +419,7 @@ describe("printer property-based tests", () => {
                                 "printer.property.staticMethodKeywordCase"
                             );
 
-                            if (!formatted.includes(`::${methodName}(`)) {
-                                throw new Error(
-                                    `Static method name casing changed for '${methodName}' with keywordCase='${keywordCase}'.\nFormatted:\n${formatted}`
-                                );
-                            }
+                            expect(formatted).toContain(`::${methodName}(`);
                         }
                     ),
                     { numRuns: PROPERTY_RUNS }
@@ -447,7 +430,6 @@ describe("printer property-based tests", () => {
 
     it("handles empty scripts", async () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         await withProgress("printer.empty", PROPERTY_RUNS, async (tracker) => {
             await fc.assert(
@@ -467,11 +449,7 @@ describe("printer property-based tests", () => {
                         "printer.property.emptyScript"
                     );
 
-                    if (formatted.trim().length > 0) {
-                        throw new Error(
-                            `Empty script formatted to non-empty: ${JSON.stringify(formatted)}`
-                        );
-                    }
+                    expect(formatted.trim()).toBe("");
                 }),
                 { numRuns: PROPERTY_RUNS }
             );
@@ -480,7 +458,6 @@ describe("printer property-based tests", () => {
 
     it("preserves comments", async () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         await withProgress(
             "printer.comment",
@@ -503,11 +480,7 @@ describe("printer property-based tests", () => {
                             "printer.property.comment"
                         );
 
-                        if (!formatted.includes("#")) {
-                            throw new Error(
-                                `Comment lost during formatting: ${comment} -> ${formatted}`
-                            );
-                        }
+                        expect(formatted).toContain("#");
                     }),
                     { numRuns: PROPERTY_RUNS }
                 );
@@ -517,7 +490,6 @@ describe("printer property-based tests", () => {
 
     it("handles scripts with only comments", async () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         await withProgress(
             "printer.commentOnly",
@@ -549,13 +521,9 @@ describe("printer property-based tests", () => {
                             const formattedCommentCount =
                                 formatted.split("#").length - 1;
 
-                            if (
-                                originalCommentCount !== formattedCommentCount
-                            ) {
-                                throw new Error(
-                                    `Comment count changed: ${originalCommentCount} -> ${formattedCommentCount}`
-                                );
-                            }
+                            expect(formattedCommentCount).toBe(
+                                originalCommentCount
+                            );
                         }
                     ),
                     { numRuns: PROPERTY_RUNS }
@@ -566,7 +534,6 @@ describe("printer property-based tests", () => {
 
     it("output has consistent line endings", async () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         await withProgress(
             "printer.lineEndings",
@@ -592,17 +559,12 @@ describe("printer property-based tests", () => {
                         const hasLF = formatted.includes("\n");
                         const hasCRLF = formatted.includes("\r\n");
 
-                        if (hasLF && hasCRLF) {
-                            const lfOnly = formatted
-                                .split("\r\n")
-                                .join("")
-                                .includes("\n");
-                            if (lfOnly) {
-                                throw new Error(
-                                    "Output has mixed line endings"
-                                );
-                            }
-                        }
+                        const hasMixedLineEndings =
+                            hasLF &&
+                            hasCRLF &&
+                            formatted.split("\r\n").join("").includes("\n");
+
+                        expect(hasMixedLineEndings).toBe(false);
                     }),
                     { numRuns: PROPERTY_RUNS }
                 );

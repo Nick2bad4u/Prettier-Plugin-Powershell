@@ -82,5 +82,6 @@ describe("statement terminator handling", () => {
         );
 
         expect(result).toBe(expected);
+        expect(result).not.toContain(";");
     });
 });

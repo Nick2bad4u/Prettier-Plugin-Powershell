@@ -94,7 +94,6 @@ const commandNameArb = fc.constantFrom(
 describe("call operator property-based tests", () => {
     it("preserves script-block call operator at line start", async () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         await withProgress(
             "callOperator.scriptBlock",
@@ -123,6 +122,8 @@ ${scriptBlockVar} = {
                                     id: "callOperator.scriptBlock",
                                 }
                             );
+
+                            expect(formatted).not.toBe("");
 
                             const lines = formatted.split(/\r?\n/v);
                             const invokeLine = lines.find(
@@ -157,7 +158,6 @@ ${formatted}`
 
     it("keeps call operator on command expressions", async () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         await withProgress(
             "callOperator.commandExpression",
@@ -180,6 +180,8 @@ ${formatted}`
                                 }
                             );
 
+                            expect(formatted).not.toBe("");
+
                             const escapedCmd = escapeForRegExp(cmdName);
                             const hasMatch = formatted
                                 .split(/\r?\n/v)
@@ -191,7 +193,7 @@ ${formatted}`
                                     );
                                 });
 
-                            expect(hasMatch).toBeTruthy();
+                            expect(hasMatch).toBe(true);
                         }
                     ),
                     { numRuns: PROPERTY_RUNS }
@@ -202,7 +204,6 @@ ${formatted}`
 
     it("preserves splatted argument invocation", async () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         await withProgress(
             "callOperator.splat",
@@ -234,6 +235,8 @@ ${paramsVar} = @{ Name = "${argValue}" }
                                 }
                             );
 
+                            expect(formatted).not.toBe("");
+
                             const hasMatch = formatted
                                 .split(/\r?\n/v)
                                 .some((line) =>
@@ -244,7 +247,7 @@ ${paramsVar} = @{ Name = "${argValue}" }
                                         )
                                 );
 
-                            expect(hasMatch).toBeTruthy();
+                            expect(hasMatch).toBe(true);
                         }
                     ),
                     { numRuns: PROPERTY_RUNS }
@@ -255,7 +258,6 @@ ${paramsVar} = @{ Name = "${argValue}" }
 
     it("preserves property invocation via call operator", async () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         await withProgress(
             "callOperator.propertyInvocation",
@@ -285,6 +287,8 @@ ${objVar} = [PSCustomObject]@{ ${propertyName} = { "${argValue}" } }
                                 }
                             );
 
+                            expect(formatted).not.toBe("");
+
                             const hasMatch = formatted
                                 .split(/\r?\n/v)
                                 .some((line) =>
@@ -295,7 +299,7 @@ ${objVar} = [PSCustomObject]@{ ${propertyName} = { "${argValue}" } }
                                         )
                                 );
 
-                            expect(hasMatch).toBeTruthy();
+                            expect(hasMatch).toBe(true);
                         }
                     ),
                     { numRuns: PROPERTY_RUNS }

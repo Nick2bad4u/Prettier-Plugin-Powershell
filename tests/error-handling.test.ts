@@ -19,7 +19,7 @@ describe("error Handling and Resilience", () => {
             "error-handling.result|skipParse"
         );
 
-        expect(result).toBeTruthy();
+        expect(result).not.toBe("");
         expect(result).toContain("function Test");
     });
 
@@ -33,7 +33,7 @@ describe("error Handling and Resilience", () => {
             "error-handling.result|skipParse"
         );
 
-        expect(result).toBeTruthy();
+        expect(result).not.toBe("");
     });
 
     it("handles incomplete hashtables", async () => {
@@ -46,7 +46,7 @@ describe("error Handling and Resilience", () => {
             "error-handling.result|skipParse"
         );
 
-        expect(result).toBeTruthy();
+        expect(result).not.toBe("");
     });
 
     it("handles incomplete arrays", async () => {
@@ -59,7 +59,7 @@ describe("error Handling and Resilience", () => {
             "error-handling.result|skipParse"
         );
 
-        expect(result).toBeTruthy();
+        expect(result).not.toBe("");
     });
 
     it("handles incomplete strings", async () => {
@@ -72,7 +72,7 @@ describe("error Handling and Resilience", () => {
             "error-handling.result|skipParse"
         );
 
-        expect(result).toBeTruthy();
+        expect(result).not.toBe("");
     });
 
     it("handles incomplete here-strings", async () => {
@@ -85,7 +85,7 @@ describe("error Handling and Resilience", () => {
             "error-handling.result|skipParse"
         );
 
-        expect(result).toBeTruthy();
+        expect(result).not.toBe("");
     });
 
     it("handles malformed if statements", async () => {
@@ -98,7 +98,7 @@ describe("error Handling and Resilience", () => {
             "error-handling.result|skipParse"
         );
 
-        expect(result).toBeTruthy();
+        expect(result).not.toBe("");
     });
 
     it("handles empty input", async () => {
@@ -112,7 +112,7 @@ describe("error Handling and Resilience", () => {
         );
 
         // Empty input should return just a newline or empty string
-        expect(result).toBeDefined();
+        expect(result).toBe("");
     });
 
     it("handles only whitespace", async () => {
@@ -126,7 +126,7 @@ describe("error Handling and Resilience", () => {
         );
 
         // Whitespace-only should be trimmed
-        expect(result).toBeDefined();
+        expect(result).toBe("");
     });
 
     it("handles only comments", async () => {
@@ -152,7 +152,7 @@ describe("error Handling and Resilience", () => {
             "error-handling.result|skipParse"
         );
 
-        expect(result).toBeTruthy();
+        expect(result).not.toBe("");
         expect(result).toContain("$x = 1");
     });
 
@@ -167,7 +167,7 @@ describe("error Handling and Resilience", () => {
             "error-handling.result|skipParse"
         );
 
-        expect(result).toBeTruthy();
+        expect(result).not.toBe("");
         expect(result).toContain(longString);
     });
 
@@ -181,7 +181,7 @@ describe("error Handling and Resilience", () => {
             "error-handling.result|skipParse"
         );
 
-        expect(result).toBeTruthy();
+        expect(result).not.toBe("");
         expect(result).toContain("deep");
     });
 
@@ -195,7 +195,7 @@ describe("error Handling and Resilience", () => {
             "error-handling.result|skipParse"
         );
 
-        expect(result).toBeTruthy();
+        expect(result).not.toBe("");
     });
 
     it("handles Unicode in various contexts", async () => {
@@ -208,7 +208,7 @@ describe("error Handling and Resilience", () => {
             "error-handling.result|skipParse"
         );
 
-        expect(result).toBeTruthy();
+        expect(result).not.toBe("");
         expect(result).toContain("変数");
         expect(result).toContain("日本語");
     });
@@ -223,7 +223,7 @@ describe("error Handling and Resilience", () => {
             "error-handling.result|skipParse"
         );
 
-        expect(result).toBeTruthy();
+        expect(result).not.toBe("");
     });
 
     it("handles complex pipeline chains", async () => {
@@ -236,7 +236,7 @@ describe("error Handling and Resilience", () => {
             "error-handling.result|skipParse"
         );
 
-        expect(result).toBeTruthy();
+        expect(result).not.toBe("");
         expect(result).toContain("Get-Process");
         expect(result).toContain("Format-Table");
     });
@@ -271,7 +271,7 @@ Line
             "error-handling.result"
         );
 
-        expect(result).toBeTruthy();
+        expect(result).not.toBe("");
         expect(result).toContain("function Test-Everything");
     });
 });

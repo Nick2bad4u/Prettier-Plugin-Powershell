@@ -19,6 +19,7 @@ describe("advanced PowerShell Features", () => {
             });
 
             expect(result).toContain("$(Get-Date -Format yyyy-MM-dd)");
+            expect(result).not.toBe("");
         });
 
         it("formats expandable strings with variables", async () => {
@@ -88,7 +89,7 @@ describe("advanced PowerShell Features", () => {
                 "advanced-features.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
         });
     });
 
@@ -104,6 +105,7 @@ describe("advanced PowerShell Features", () => {
             );
 
             expect(result).toContain("param($p)");
+            expect(result).not.toBe("");
         });
 
         it("formats script blocks with multiple parameters", async () => {
@@ -134,6 +136,7 @@ describe("advanced PowerShell Features", () => {
             expect(result).toContain("class Person");
             expect(result).toContain("[string]");
             expect(result).toContain("$Name");
+            expect(result).not.toBe("");
         });
 
         it("formats class with constructor", async () => {
@@ -179,6 +182,7 @@ describe("advanced PowerShell Features", () => {
             expect(result).toContain("enum Status");
             expect(result).toContain("Running");
             expect(result).toContain("Stopped");
+            expect(result).not.toBe("");
         });
 
         it("formats enum with explicit values", async () => {
@@ -209,6 +213,7 @@ describe("advanced PowerShell Features", () => {
             );
 
             expect(result).toContain("[CmdletBinding()]");
+            expect(result).not.toBe("");
         });
 
         it("formats parameters with attributes", async () => {
@@ -250,6 +255,7 @@ describe("advanced PowerShell Features", () => {
             });
 
             expect(result).toContain("configuration");
+            expect(result).not.toBe("");
         });
 
         it("formats workflow blocks", async () => {
@@ -314,6 +320,7 @@ describe("advanced PowerShell Features", () => {
 
             expect(result).toContain("-Name");
             expect(result).toContain("-Id");
+            expect(result).not.toBe("");
         });
 
         it("formats long parameters", async () => {
@@ -359,6 +366,7 @@ describe("advanced PowerShell Features", () => {
 
             expect(result).toContain("Get-Process");
             expect(result).toContain("Format-Table");
+            expect(result).not.toBe("");
         });
 
         it("formats nested hashtables", async () => {

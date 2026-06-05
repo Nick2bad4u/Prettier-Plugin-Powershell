@@ -21,6 +21,7 @@ describe("parser inline comment detection", () => {
 
         // Comment at position 0 should be on its own line
         expect(result).toContain("# Comment at start\n");
+        expect(result).not.toContain("$a = 1 # Comment at start");
     });
 
     it("treats empty source correctly", async () => {
@@ -63,7 +64,8 @@ describe("parser empty array element handling", () => {
             .then(() => "formatted")
             .catch(() => "failed");
 
-        expect(["failed", "formatted"]).toContain(outcome);
+        expect(outcome).toMatch(/^(?:failed|formatted)$/v);
+        expect(outcome).not.toBe("crashed");
     });
 
     it("handles arrays with newlines and commas correctly", async () => {

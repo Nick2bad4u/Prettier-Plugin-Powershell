@@ -31,6 +31,12 @@ describe("enforce formatAndAssert usage", () => {
         };
         walk(TEST_DIR);
 
+        const normalizedFilePaths = filePaths.map((file) =>
+            path.relative(TEST_DIR, file).split(path.sep).join("/")
+        );
+
+        expect(normalizedFilePaths).not.toContain("utils/format-and-assert.ts");
+
         const matches: string[] = [];
         for (const file of filePaths) {
             const content = readFileSync(file, "utf8");

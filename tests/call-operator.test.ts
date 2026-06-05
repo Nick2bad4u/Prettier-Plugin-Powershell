@@ -44,6 +44,7 @@ describe("call operator formatting", () => {
         );
 
         expect(result).toBe('& (Get-Command Write-Host) "hi"\n');
+        expect(result).not.toBe('(Get-Command Write-Host) "hi"\n');
     });
 
     it("supports splatted arguments", async () => {

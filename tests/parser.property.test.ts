@@ -110,19 +110,18 @@ const assertParserOutput = (script: string): void => {
 describe("powershell parser property-based tests", () => {
     it("parses generated scripts without throwing and maintains location invariants", async () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
-        await withProgress("parser.location", PROPERTY_RUNS, (tracker) => {
-            fc.assert(
-                fc.property(structuredScriptArbitrary, (script) => {
-                    tracker.advance();
-                    assertParserOutput(script);
-                }),
-                { numRuns: PROPERTY_RUNS }
-            );
-        });
-
-        expect(true).toBeTruthy();
+        await expect(
+            withProgress("parser.location", PROPERTY_RUNS, (tracker) => {
+                fc.assert(
+                    fc.property(structuredScriptArbitrary, (script) => {
+                        tracker.advance();
+                        assertParserOutput(script);
+                    }),
+                    { numRuns: PROPERTY_RUNS }
+                );
+            })
+        ).resolves.toBeUndefined();
     });
 
     // On CI, skip this expensive property test to avoid syntax-check process
@@ -131,13 +130,11 @@ describe("powershell parser property-based tests", () => {
         "formatting generated scripts remains idempotent and parseable",
         async () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
 
             const numRuns = Math.max(16, Math.floor(PROPERTY_RUNS / 5));
-            await withProgress(
-                "parser.idempotence",
-                numRuns,
-                async (tracker) => {
+
+            await expect(
+                withProgress("parser.idempotence", numRuns, async (tracker) => {
                     await fc.assert(
                         fc.asyncProperty(
                             structuredScriptArbitrary,
@@ -171,7 +168,7 @@ describe("powershell parser property-based tests", () => {
                                             hasTryCatch || !isValidPowerShell,
                                     }
                                 );
-                                // FormatAndAssert already asserted parse when applicable
+                                // FormatAndAssert already asserted parse when applicable.
                                 if (formatted !== formattedTwice) {
                                     throw new Error(
                                         `Formatter is not idempotent under generated input.\n` +
@@ -186,8 +183,8 @@ describe("powershell parser property-based tests", () => {
                         ),
                         { numRuns }
                     );
-                }
-            );
+                })
+            ).resolves.toBeUndefined();
         }
     );
 });

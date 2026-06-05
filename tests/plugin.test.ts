@@ -267,7 +267,7 @@ b = 2
         expect(result).toContain("|");
         expect(
             result.split("\n").some((line) => line.trimStart().startsWith("|"))
-        ).toBeTruthy();
+        ).toBe(true);
     });
 
     it("prefers single quotes for simple strings when enabled", async () => {
@@ -343,7 +343,7 @@ $value`;
             result
                 .split("\n")
                 .some((line) => line.trim() === "Write-Host $value")
-        ).toBeTruthy();
+        ).toBe(true);
     });
 
     it("normalises keyword casing by default", async () => {
@@ -363,7 +363,6 @@ Write-Output "hi"
         const lines = result.split("\n");
 
         expect(lines[0]).toBe("function Foo {");
-        expect(lines[1]).toBeDefined();
         expect(lines[1]?.trim()).toBe("if ($true) {");
     });
 
@@ -387,7 +386,6 @@ Write-Output "hi"
         const lines = result.split("\n");
 
         expect(lines[0]).toBe("FUNCTION Foo {");
-        expect(lines[1]).toBeDefined();
         expect(lines[1]?.trim()).toBe("IF ($true) {");
     });
 

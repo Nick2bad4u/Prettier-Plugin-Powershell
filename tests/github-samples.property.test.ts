@@ -428,9 +428,8 @@ describe("real-world GitHub PowerShell samples", () => {
 
     it("formats GitHub PowerShell scripts without regressions", async () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
-        await ensureSamplesLoaded();
+        await expect(ensureSamplesLoaded()).resolves.toBeUndefined();
 
         const runCount = Math.min(PROPERTY_RUNS, samples.length);
         await withProgress("githubSamples", runCount, async (tracker) => {

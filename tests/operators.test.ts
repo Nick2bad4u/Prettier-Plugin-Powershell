@@ -20,6 +20,7 @@ describe("powershell operators", () => {
         );
 
         expect(result).toBe(expected);
+        expect(result).not.toContain(";");
     });
 
     it("formats logical OR pipeline chains", async () => {
@@ -249,6 +250,7 @@ describe("powershell keywords", () => {
         expect(result).toMatch(/begin/v);
         expect(result).toMatch(/process/v);
         expect(result).toMatch(/end/v);
+        expect(result).not.toContain("function Test { begin");
     });
 
     it("formats enum definitions", async () => {
@@ -263,6 +265,7 @@ describe("powershell keywords", () => {
         );
 
         expect(result).toBe(expected);
+        expect(result).not.toContain(";");
     });
 
     it("formats do-until loops", async () => {
@@ -321,6 +324,7 @@ describe("powershell variables", () => {
         );
 
         expect(result).toBe(expected);
+        expect(result).not.toContain(";");
     });
 
     it("formats braced variable names", async () => {

@@ -75,5 +75,6 @@ describe("delimited sequence handling", () => {
         ].join("\n");
 
         expect(result).toBe(expected);
+        expect(result).not.toContain("; Other");
     });
 });

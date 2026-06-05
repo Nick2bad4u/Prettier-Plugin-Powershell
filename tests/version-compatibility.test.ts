@@ -20,6 +20,7 @@ describe("powershell version compatibility", () => {
             );
 
             expect(result).toContain("class Person");
+            expect(result).not.toBe("");
         });
 
         it("formats enums (PS 5.0+)", async () => {
@@ -74,6 +75,7 @@ describe("powershell version compatibility", () => {
 
             expect(result).toContain("?");
             expect(result).toContain(":");
+            expect(result).not.toBe("");
         });
 
         it("formats null-coalescing operator (PS 7.0+)", async () => {
@@ -157,6 +159,7 @@ describe("powershell version compatibility", () => {
             );
 
             expect(result).toContain("PSNativeCommandArgumentPassing");
+            expect(result).not.toBe("");
         });
     });
 
@@ -172,6 +175,7 @@ describe("powershell version compatibility", () => {
             );
 
             expect(result).toContain("-replace");
+            expect(result).not.toBe("");
         });
 
         it("formats $PSStyle automatic variable", async () => {
@@ -199,7 +203,7 @@ describe("powershell version compatibility", () => {
                 "version-compat"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
         });
 
         it("formats SecureString improvements", async () => {
@@ -274,7 +278,7 @@ describe("powershell version compatibility", () => {
                 "version-compat"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
         });
     });
 
@@ -290,6 +294,7 @@ describe("powershell version compatibility", () => {
             );
 
             expect(result).toContain("Write-Host");
+            expect(result).not.toBe("");
         });
 
         it("formats legacy array syntax", async () => {
@@ -318,6 +323,7 @@ describe("powershell version compatibility", () => {
             );
 
             expect(result).toContain("Get-WmiObject");
+            expect(result).not.toBe("");
         });
 
         it("formats cross-platform cmdlets", async () => {
@@ -378,7 +384,7 @@ describe("powershell version compatibility", () => {
                 "version-compat"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
         });
     });
 });

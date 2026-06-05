@@ -73,6 +73,7 @@ describe("property test arbitraries", () => {
                     const ast = parsePowerShell(script, {} as never);
 
                     expect(ast.type).toBe("Script");
+                    expect(script).not.toContain("undefined");
                 }
             ),
             { numRuns: 20 }

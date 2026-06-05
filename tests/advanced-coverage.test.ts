@@ -1,44 +1,42 @@
 import prettier, { type AstPath, type Doc, type ParserOptions } from "prettier";
 import { describe, expect, it } from "vitest";
 
-import type {
-    ArrayLiteralNode,
-    BaseNode,
-    BlankLineNode,
-    CommentNode,
-    ExpressionNode,
-    ExpressionPartNode,
-    FunctionDeclarationNode,
-    HashtableEntryNode,
-    HashtableNode,
-    HereStringNode,
-    ParenthesisNode,
-    PipelineNode,
-    ScriptBlockNode,
-    ScriptBodyNode,
-    ScriptNode,
-    SourceLocation,
-    TextNode,
-    TokenRole,
-} from "../src/ast.js";
-import type { Token } from "../src/tokenizer.js";
-
 import * as astRuntime from "../src/ast.js";
-import { runtimeExports } from "../src/ast.js";
+import {
+    type ArrayLiteralNode,
+    type BaseNode,
+    type BlankLineNode,
+    type CommentNode,
+    type ExpressionNode,
+    type ExpressionPartNode,
+    type FunctionDeclarationNode,
+    type HashtableEntryNode,
+    type HashtableNode,
+    type HereStringNode,
+    type ParenthesisNode,
+    type PipelineNode,
+    runtimeExports,
+    type ScriptBlockNode,
+    type ScriptBodyNode,
+    type ScriptNode,
+    type SourceLocation,
+    type TextNode,
+    type TokenRole,
+} from "../src/ast.js";
 import { resolveOptions } from "../src/options.js";
 import {
-    parserTestUtils,
     locEnd,
     locStart,
     parsePowerShell,
+    parserTestUtils,
 } from "../src/parser.js";
 import plugin from "../src/plugin.js";
 import {
-    printerTestUtils,
     createPrinter,
     powerShellPrinter,
+    printerTestUtils,
 } from "../src/printer.js";
-import { normalizeHereString, tokenize } from "../src/tokenizer.js";
+import { normalizeHereString, type Token, tokenize } from "../src/tokenizer.js";
 import { formatAndAssert } from "./utils/format-and-assert.js";
 
 interface ParserTestUtils {
@@ -207,9 +205,9 @@ describe("ast runtime helpers", () => {
             value: "Sample",
         };
 
-        expect(isNodeType(textNode, "Text")).toBeTruthy();
-        expect(isNodeType(textNode, "Comment")).toBeFalsy();
-        expect(isNodeType(null, "Text")).toBeFalsy();
+        expect(isNodeType(textNode, "Text")).toBe(true);
+        expect(isNodeType(textNode, "Comment")).toBe(false);
+        expect(isNodeType(null, "Text")).toBe(false);
     });
 
     it("cloneNode returns a structural clone with isolated location object", () => {
@@ -232,7 +230,7 @@ describe("ast runtime helpers", () => {
     it("runtimeExports exposes frozen helper references", () => {
         expect.hasAssertions();
 
-        expect(Object.isFrozen(runtimeHelperBundle)).toBeTruthy();
+        expect(Object.isFrozen(runtimeHelperBundle)).toBe(true);
         expect(runtimeHelperBundle.createLocation).toBe(createLocation);
         expect(runtimeHelperBundle.isNodeType).toBe(isNodeType);
         expect(runtimeHelperBundle.cloneNode).toBe(cloneNode);
@@ -261,7 +259,7 @@ describe("resolveOptions advanced coverage", () => {
 
         const resolved = resolveOptions(options);
 
-        expect(options.useTabs).toBeTruthy();
+        expect(options.useTabs).toBe(true);
         expect(options.tabWidth).toBe(6);
         expect(resolved.lineWidth).toBe(40);
         expect(options.printWidth).toBe(40);
@@ -285,10 +283,10 @@ describe("resolveOptions advanced coverage", () => {
 
         expect(resolved.lineWidth).toBe(200);
         expect(options.printWidth).toBe(60);
-        expect(resolved.blankLineAfterParam).toBeFalsy();
-        expect(resolved.preferSingleQuote).toBeTruthy();
-        expect(resolved.rewriteAliases).toBeTruthy();
-        expect(resolved.rewriteWriteHost).toBeTruthy();
+        expect(resolved.blankLineAfterParam).toBe(false);
+        expect(resolved.preferSingleQuote).toBe(true);
+        expect(resolved.rewriteAliases).toBe(true);
+        expect(resolved.rewriteWriteHost).toBe(true);
     });
 
     it("clamps blank lines between functions within the allowed range", () => {
@@ -314,7 +312,7 @@ describe("resolveOptions advanced coverage", () => {
 
         const resolved = resolveOptions(options);
 
-        expect(options.useTabs).toBeFalsy();
+        expect(options.useTabs).toBe(false);
         expect(options.printWidth).toBe(80);
         expect(resolved.blankLinesBetweenFunctions).toBe(0);
     });
@@ -325,7 +323,7 @@ describe("resolveOptions advanced coverage", () => {
         const options = createOptions({ powershellBlankLineAfterParam: true });
         const resolved = resolveOptions(options);
 
-        expect(resolved.blankLineAfterParam).toBeTruthy();
+        expect(resolved.blankLineAfterParam).toBe(true);
     });
 
     it("cascades indent fallbacks and ignores invalid blank-line input", () => {
@@ -339,9 +337,8 @@ describe("resolveOptions advanced coverage", () => {
         expect(cascade.indentSize).toBe(6);
 
         Reflect.deleteProperty(options, "tabWidth");
-        options.powershellIndentSize = Number.NaN as unknown as number;
-        options.powershellBlankLinesBetweenFunctions =
-            Number.NaN as unknown as number;
+        options.powershellIndentSize = Number.NaN;
+        options.powershellBlankLinesBetweenFunctions = Number.NaN;
 
         const defaulted = resolveOptions(options);
 
@@ -392,7 +389,7 @@ describe("tokenizer advanced coverage", () => {
 
         expect(tokens[0]?.type).toBe("comment");
         expect(tokens[0]?.value).toBe(" comment");
-        expect(tokens[0]?.value.endsWith(" ")).toBeFalsy();
+        expect(tokens[0]?.value.endsWith(" ")).toBe(false);
     });
 
     it("supports complex variable characters inside braces", () => {
@@ -414,7 +411,7 @@ describe("tokenizer advanced coverage", () => {
             (token) => token.type === "operator" && token.value === "::"
         );
 
-        expect(operatorToken).toBeDefined();
+        expect(operatorToken?.value).toBe("::");
     });
 
     it("tokenizes repeated operators as combined tokens", () => {
@@ -448,12 +445,12 @@ describe("tokenizer advanced coverage", () => {
             tokens.some(
                 (token) => token.type === "operator" && token.value === "@("
             )
-        ).toBeTruthy();
+        ).toBe(true);
         expect(
             tokens.some(
                 (token) => token.type === "punctuation" && token.value === "["
             )
-        ).toBeTruthy();
+        ).toBe(true);
     });
 
     it("tokenizes hashtable opening operator distinctly", () => {
@@ -465,7 +462,7 @@ describe("tokenizer advanced coverage", () => {
             tokens.some(
                 (token) => token.type === "operator" && token.value === "@{"
             )
-        ).toBeTruthy();
+        ).toBe(true);
     });
 
     it("tokenizes line continuation backtick as an unknown token", () => {
@@ -572,7 +569,7 @@ describe("tokenizer advanced coverage", () => {
         const tokens = tokenize('@"\nUnix\n"@');
         const heredoc = tokens.find((token) => token.type === "heredoc");
 
-        expect(heredoc?.value.endsWith('"@')).toBeTruthy();
+        expect(heredoc?.value.endsWith('"@')).toBe(true);
     });
 
     it("tokenizes here-strings closing after windows newline", () => {
@@ -581,7 +578,7 @@ describe("tokenizer advanced coverage", () => {
         const tokens = tokenize('@"\r\nWindows\r\n"@');
         const heredoc = tokens.find((token) => token.type === "heredoc");
 
-        expect(heredoc?.value.endsWith('"@')).toBeTruthy();
+        expect(heredoc?.value.endsWith('"@')).toBe(true);
     });
 
     it("tokenizes here-strings closing after mixed newline order", () => {
@@ -590,7 +587,7 @@ describe("tokenizer advanced coverage", () => {
         const tokens = tokenize('@"\n\rMixed\n\r"@');
         const heredoc = tokens.find((token) => token.type === "heredoc");
 
-        expect(heredoc?.value.endsWith('"@')).toBeTruthy();
+        expect(heredoc?.value.endsWith('"@')).toBe(true);
     });
 });
 
@@ -623,7 +620,7 @@ describe("parser advanced coverage", () => {
             (part): part is ParenthesisNode => part.type === "Parenthesis"
         );
 
-        expect(parenthesis?.hasNewline).toBeTruthy();
+        expect(parenthesis?.hasNewline).toBe(true);
     });
 
     it("parseStatementForTest honors line continuation tokens", () => {
@@ -648,10 +645,9 @@ describe("parser advanced coverage", () => {
             (part) => part.type === "Parenthesis"
         );
 
-        expect(parenthesis).toBeDefined();
         expect(
             (parenthesis as undefined | { hasNewline: boolean })?.hasNewline
-        ).toBeTruthy();
+        ).toBe(true);
     });
 
     it("breaks pipeline when newline comment prevents continuation", () => {
@@ -683,7 +679,7 @@ describe("parser advanced coverage", () => {
             segmentParts.some(
                 (part) => part.type === "Text" && part.value === "|"
             )
-        ).toBeFalsy();
+        ).toBe(false);
     });
 
     it("splits statements on semicolons and collects blank lines", () => {
@@ -755,14 +751,12 @@ describe("parser advanced coverage", () => {
                   }[];
               };
 
-        expect(table).toBeDefined();
-        expect(table!.entries).toHaveLength(3);
-        expect(table!.entries[0]?.key).toBe("quoted");
-        expect(table!.entries[1]?.key).toBe("flag");
+        expect(table?.entries).toHaveLength(3);
+        expect(table?.entries[0]?.key).toBe("quoted");
+        expect(table?.entries[1]?.key).toBe("flag");
 
-        const nestedValue = table!.entries[2]?.value;
+        const nestedValue = table?.entries[2]?.value;
 
-        expect(nestedValue).toBeDefined();
         expect(nestedValue?.type).toBe("Expression");
         expect(nestedValue?.parts?.[0]?.type).toBe("Hashtable");
     });
@@ -796,7 +790,7 @@ describe("parser advanced coverage", () => {
         );
 
         expect(hereString?.quote).toBe("double");
-        expect(hereString?.value.includes("Alpha")).toBeTruthy();
+        expect(hereString?.value.includes("Alpha")).toBe(true);
     });
 
     it("parses standalone unknown tokens as text nodes", () => {
@@ -868,23 +862,22 @@ describe("parser advanced coverage", () => {
             (part): part is ScriptBlockNode => part.type === "ScriptBlock"
         );
 
-        expect(scriptBlock).toBeDefined();
+        expect(scriptBlock?.body.length).toBeGreaterThan(0);
 
-        const innerPipelines = scriptBlock!.body.filter(
-            (node): node is PipelineNode => node.type === "Pipeline"
-        );
+        const innerPipelines =
+            scriptBlock?.body.filter(
+                (node): node is PipelineNode => node.type === "Pipeline"
+            ) ?? [];
         const nestedPipeline = innerPipelines.find(
             (node) => node.segments.length > 1
         );
 
-        expect(nestedPipeline).toBeDefined();
+        expect(nestedPipeline?.segments).toHaveLength(2);
 
-        expect(nestedPipeline!.segments).toHaveLength(2);
-
-        const firstSegmentText = nestedPipeline!.segments[0]?.parts.find(
+        const firstSegmentText = nestedPipeline?.segments[0]?.parts.find(
             (part): part is TextNode => part.type === "Text"
         );
-        const secondSegmentText = nestedPipeline!.segments[1]?.parts.find(
+        const secondSegmentText = nestedPipeline?.segments[1]?.parts.find(
             (part): part is TextNode => part.type === "Text"
         );
 
@@ -895,7 +888,7 @@ describe("parser advanced coverage", () => {
             (node) => node !== nestedPipeline && node.segments.length === 1
         );
 
-        expect(subsequentPipeline).toBeDefined();
+        expect(subsequentPipeline?.segments).toHaveLength(1);
 
         const assignmentSegment = subsequentPipeline?.segments[0]?.parts.find(
             (part): part is TextNode => part.type === "Text"
@@ -927,7 +920,6 @@ describe("parser advanced coverage", () => {
             (part) => part.type === "Hashtable"
         );
 
-        expect(table).toBeDefined();
         expect(
             (table as undefined | { entries: unknown[] })?.entries.length
         ).toBe(1);
@@ -946,10 +938,8 @@ describe("parser advanced coverage", () => {
             (part): part is HashtableNode => part.type === "Hashtable"
         );
 
-        expect(table).toBeDefined();
-
-        expect(table!.entries).toHaveLength(0);
-        expect(table!.loc.end).toBe(2);
+        expect(table?.entries).toHaveLength(0);
+        expect(table?.loc.end).toBe(2);
     });
 });
 
@@ -970,6 +960,7 @@ describe("printer advanced coverage", () => {
         );
 
         expect(result).toContain("function A");
+        expect(result).not.toContain("function C");
 
         const blankLineSegments = result.split("\n");
 
@@ -1259,7 +1250,7 @@ describe("printer internal helpers", () => {
 
         const part = makeTextNode("   `   ", "operator");
 
-        expect(shouldSkipPart(part)).toBeTruthy();
+        expect(shouldSkipPart(part)).toBe(true);
     });
 
     it("normalizeStringLiteral respects quoting preferences", () => {
@@ -1313,7 +1304,7 @@ describe("printer internal helpers", () => {
 
         const doc = printParamParenthesis(node, resolvedOptions);
 
-        expect(containsFragment(doc, "# explicit comment")).toBeTruthy();
+        expect(containsFragment(doc, "# explicit comment")).toBe(true);
     });
 
     it("printParamParenthesis synthesizes comment markers for prose-like comment expressions", () => {
@@ -1331,7 +1322,7 @@ describe("printer internal helpers", () => {
 
         const doc = printParamParenthesis(node, resolvedOptions);
 
-        expect(containsFragment(doc, `# ${proseComment}`)).toBeTruthy();
+        expect(containsFragment(doc, `# ${proseComment}`)).toBe(true);
     });
 
     it("printParenthesis forces multiline output when newline metadata is present", () => {
@@ -1346,7 +1337,7 @@ describe("printer internal helpers", () => {
         );
         const doc = printerTestUtils.printNode(node, resolvedOptions);
 
-        expect(containsHardline(doc)).toBeTruthy();
+        expect(containsHardline(doc)).toBe(true);
     });
 
     it("printParenthesis forces multiline when multiple elements lack commas", () => {
@@ -1361,7 +1352,7 @@ describe("printer internal helpers", () => {
         );
         const doc = printerTestUtils.printNode(node, resolvedOptions);
 
-        expect(containsHardline(doc)).toBeTruthy();
+        expect(containsHardline(doc)).toBe(true);
     });
 
     it("printParenthesis uses inline separators when comma metadata is present", () => {
@@ -1376,8 +1367,8 @@ describe("printer internal helpers", () => {
         );
         const doc = printerTestUtils.printNode(node, resolvedOptions);
 
-        expect(containsHardline(doc)).toBeFalsy();
-        expect(containsLine(doc)).toBeTruthy();
+        expect(containsHardline(doc)).toBe(false);
+        expect(containsLine(doc)).toBe(true);
     });
 
     it("printParenthesis combines commas with hardline separators when multiline", () => {
@@ -1392,7 +1383,7 @@ describe("printer internal helpers", () => {
         );
         const doc = printerTestUtils.printNode(node, resolvedOptions);
 
-        expect(containsHardline(doc)).toBeTruthy();
+        expect(containsHardline(doc)).toBe(true);
     });
 
     it("trailingCommaDoc respects trailing comma settings", () => {
@@ -1403,8 +1394,8 @@ describe("printer internal helpers", () => {
         );
         const groupId = Symbol("test");
 
-        expect(trailingCommaDoc(allComma, groupId, false, ",")).toBeDefined();
-        expect(trailingCommaDoc(allComma, groupId, true, ",")).toBeDefined();
+        expect(trailingCommaDoc(allComma, groupId, false, ",")).not.toBe("");
+        expect(trailingCommaDoc(allComma, groupId, true, ",")).not.toBe("");
 
         const multiComma = resolveOptions(
             createOptions({ powershellTrailingComma: "multiline" })
@@ -1466,7 +1457,7 @@ describe("printer internal helpers", () => {
 
         const doc = printerTestUtils.printNode(hashtableNode, resolvedOptions);
 
-        expect(doc).toBeDefined();
+        expect(JSON.stringify(doc)).toContain("@{");
     });
 
     it("printPipeline handles empty and populated pipelines", () => {
@@ -1495,7 +1486,7 @@ describe("printer internal helpers", () => {
     it("isParamStatement checks pipelines safely", () => {
         expect.hasAssertions();
 
-        expect(isParamStatement(null as unknown as ScriptBodyNode)).toBeFalsy();
+        expect(isParamStatement(null)).toBe(false);
 
         const emptySegments: PipelineNode = {
             loc: { end: 0, start: 0 },
@@ -1503,7 +1494,7 @@ describe("printer internal helpers", () => {
             type: "Pipeline",
         };
 
-        expect(isParamStatement(emptySegments)).toBeFalsy();
+        expect(isParamStatement(emptySegments)).toBe(false);
 
         const emptyPartsPipeline: PipelineNode = {
             loc: { end: 0, start: 0 },
@@ -1511,7 +1502,7 @@ describe("printer internal helpers", () => {
             type: "Pipeline",
         };
 
-        expect(isParamStatement(emptyPartsPipeline)).toBeFalsy();
+        expect(isParamStatement(emptyPartsPipeline)).toBe(false);
 
         const noTextPipeline: PipelineNode = {
             loc: { end: 0, start: 0 },
@@ -1519,7 +1510,7 @@ describe("printer internal helpers", () => {
             type: "Pipeline",
         };
 
-        expect(isParamStatement(noTextPipeline)).toBeFalsy();
+        expect(isParamStatement(noTextPipeline)).toBe(false);
 
         const paramPipeline: PipelineNode = {
             loc: { end: 0, start: 0 },
@@ -1527,7 +1518,7 @@ describe("printer internal helpers", () => {
             type: "Pipeline",
         };
 
-        expect(isParamStatement(paramPipeline)).toBeTruthy();
+        expect(isParamStatement(paramPipeline)).toBe(true);
     });
 
     it("printScript returns empty doc when body is empty", () => {
@@ -1541,7 +1532,10 @@ describe("printer internal helpers", () => {
 
         expect(
             printerTestUtils.printScript(scriptNode, resolvedOptions)
-        ).toBeDefined();
+        ).toStrictEqual([
+            "",
+            [{ hard: true, type: "line" }, { type: "break-parent" }],
+        ]);
     });
 
     it("concatDocs handles empty arrays and concatenation", () => {
@@ -1551,7 +1545,7 @@ describe("printer internal helpers", () => {
 
         const combined = printerTestUtils.concatDocs(["a", "b"]);
 
-        expect(Array.isArray(combined)).toBeTruthy();
+        expect(Array.isArray(combined)).toBe(true);
     });
 
     it("indentStatement honors tab indentation style", () => {
@@ -1565,7 +1559,7 @@ describe("printer internal helpers", () => {
         );
         const indented = printerTestUtils.indentStatement("body", tabOptions);
 
-        expect(Array.isArray(indented)).toBeTruthy();
+        expect(Array.isArray(indented)).toBe(true);
         expect((indented as Doc[])[0]).toBe("\t");
     });
 
@@ -1579,7 +1573,7 @@ describe("printer internal helpers", () => {
 
         expect(
             printerTestUtils.printNode(unknownNode, resolvedOptions)
-        ).toBeDefined();
+        ).toStrictEqual([]);
     });
 
     it("printText preserves keywords for unknown case transforms", () => {
@@ -1658,7 +1652,7 @@ describe("printer internal helpers", () => {
             true
         );
 
-        expect(doc).toBeDefined();
+        expect(JSON.stringify(doc)).toContain("Write-Host");
     });
 
     it("printStatementList enforces function declaration spacing", () => {
@@ -1675,7 +1669,8 @@ function Beta {}`,
             false
         );
 
-        expect(doc).toBeDefined();
+        expect(JSON.stringify(doc)).toContain("Alpha");
+        expect(JSON.stringify(doc)).toContain("Beta");
     });
 
     it("printStatementList handles function followed by pipeline spacing", () => {
@@ -1692,7 +1687,7 @@ Write-Host "hi"`,
             false
         );
 
-        expect(doc).toBeDefined();
+        expect(JSON.stringify(doc)).toContain("Write-Host");
     });
 
     it("printStatementList handles pipeline preceding function spacing", () => {
@@ -1709,7 +1704,7 @@ function Delta {}`,
             false
         );
 
-        expect(doc).toBeDefined();
+        expect(JSON.stringify(doc)).toContain("Delta");
     });
 
     it("printStatementList honours pending blank lines between entries", () => {
@@ -1740,7 +1735,7 @@ function Delta {}`,
             false
         );
 
-        expect(doc).toBeDefined();
+        expect(JSON.stringify(doc)).toContain("Second");
     });
 
     it("printStatementList handles consecutive pipelines without blank lines", () => {
@@ -1762,7 +1757,7 @@ function Delta {}`,
             false
         );
 
-        expect(doc).toBeDefined();
+        expect(JSON.stringify(doc)).toContain("Beta");
     });
 
     it("powerShellPrinter returns empty doc for undefined nodes", () => {
@@ -1806,7 +1801,7 @@ function Delta {}`,
             resolvedOptions
         ) as Doc[];
 
-        expect(Array.isArray(blankDoc)).toBeTruthy();
+        expect(Array.isArray(blankDoc)).toBe(true);
 
         const commentNode: CommentNode = {
             inline: false,
@@ -1881,13 +1876,13 @@ describe("parser internal helpers", () => {
 
         const tokens = tokenize("{} () []");
 
-        expect(parserUtils.isOpeningToken(tokens[0])).toBeTruthy();
-        expect(parserUtils.isClosingToken(tokens[1])).toBeTruthy();
-        expect(parserUtils.isOpeningToken(tokens[2])).toBeTruthy();
-        expect(parserUtils.isClosingToken(tokens[3])).toBeTruthy();
-        expect(parserUtils.isOpeningToken(tokens[4])).toBeTruthy();
-        expect(parserUtils.isClosingToken(tokens[5])).toBeTruthy();
-        expect(parserUtils.isOpeningToken(tokens.at(-1))).toBeFalsy();
+        expect(parserUtils.isOpeningToken(tokens[0])).toBe(true);
+        expect(parserUtils.isClosingToken(tokens[1])).toBe(true);
+        expect(parserUtils.isOpeningToken(tokens[2])).toBe(true);
+        expect(parserUtils.isClosingToken(tokens[3])).toBe(true);
+        expect(parserUtils.isOpeningToken(tokens[4])).toBe(true);
+        expect(parserUtils.isClosingToken(tokens[5])).toBe(true);
+        expect(parserUtils.isOpeningToken(tokens.at(-1))).toBe(false);
     });
 
     it("collects structure tokens and handles missing closings", () => {
@@ -1913,9 +1908,9 @@ describe("parser internal helpers", () => {
         const entries = parserUtils.splitHashtableEntries(tokens);
 
         expect(entries).toHaveLength(2);
-        expect(
-            entries[1]?.some((token) => token.value === "nested")
-        ).toBeTruthy();
+        expect(entries[1]?.some((token) => token.value === "nested")).toBe(
+            true
+        );
     });
 
     it("attaches dangling trailing comments to the previous hashtable entry", () => {
@@ -1931,7 +1926,7 @@ describe("parser internal helpers", () => {
                 token.type === "comment" && token.value.includes("trailing")
         );
 
-        expect(trailingComment).toBeDefined();
+        expect(trailingComment?.value).toContain("trailing");
     });
 
     it("splitHashtableEntries maintains stack across nested hashtables", () => {
@@ -1942,7 +1937,7 @@ describe("parser internal helpers", () => {
         const entries = parserUtils.splitHashtableEntries(contentTokens);
 
         expect(entries).toHaveLength(2);
-        expect(entries[0]?.some((token) => token.value === "@(")).toBeTruthy();
+        expect(entries[0]?.some((token) => token.value === "@(")).toBe(true);
     });
 
     it("finds top-level equals while ignoring nested structures", () => {
@@ -2001,7 +1996,7 @@ describe("parser internal helpers", () => {
         const elements = parserUtils.splitArrayElements(tokens);
 
         expect(elements).toHaveLength(3);
-        expect(elements[1]?.some((token) => token.value === "@(")).toBeTruthy();
+        expect(elements[1]?.some((token) => token.value === "@(")).toBe(true);
     });
 
     it("splitArrayElements ignores separators inside nested parentheses", () => {
@@ -2015,7 +2010,7 @@ describe("parser internal helpers", () => {
         const elements = parserUtils.splitArrayElements(contentTokens);
 
         expect(elements).toHaveLength(2);
-        expect(elements[0]?.some((token) => token.value === "@(")).toBeTruthy();
+        expect(elements[0]?.some((token) => token.value === "@(")).toBe(true);
     });
 
     it("detects top-level commas within parenthesis tokens", () => {
@@ -2026,14 +2021,14 @@ describe("parser internal helpers", () => {
             0
         ).contentTokens;
 
-        expect(parserUtils.hasTopLevelComma(commaTokens)).toBeTruthy();
+        expect(parserUtils.hasTopLevelComma(commaTokens)).toBe(true);
 
         const nestedTokens = parserUtils.collectStructureTokens(
             tokensFrom("($a @(1, 2))"),
             0
         ).contentTokens;
 
-        expect(parserUtils.hasTopLevelComma(nestedTokens)).toBeFalsy();
+        expect(parserUtils.hasTopLevelComma(nestedTokens)).toBe(false);
     });
 
     it("buildExpressionFromTokens classifies array kinds and script blocks", () => {
@@ -2063,7 +2058,7 @@ describe("parser internal helpers", () => {
 
         expect(
             scriptExpression.parts.some((part) => part.type === "ScriptBlock")
-        ).toBeTruthy();
+        ).toBe(true);
     });
 
     it("createHereStringNode defaults missing quote metadata to double", () => {
@@ -2238,12 +2233,12 @@ describe("parser internal helpers", () => {
             "Key = 1 # trailing"
         );
 
-        expect(entry.trailingComments).toBeDefined();
+        expect(entry.trailingComments).toHaveLength(1);
 
         const comment = entry.trailingComments?.[0];
 
-        expect(comment).toBeDefined();
-        expect(comment?.inline).toBeFalsy();
+        expect(comment?.value).toBe("# trailing");
+        expect(comment?.inline).toBe(false);
     });
 
     it("resolveStructureEnd respects closing, content, and fallback positions", () => {
@@ -2353,7 +2348,7 @@ describe("parser internal helpers", () => {
             { end: 5, start: 4, type: "punctuation", value: "," },
         ];
 
-        expect(parserUtils.hasTopLevelComma(tokens)).toBeTruthy();
+        expect(parserUtils.hasTopLevelComma(tokens)).toBe(true);
     });
 
     it("exposes locStart and locEnd helpers", () => {

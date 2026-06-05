@@ -219,7 +219,6 @@ const assertTokenValuesMatchSource = (
 describe("tokenizer property-based tests", () => {
     it("tokenize never throws and produces valid tokens", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(scriptArb, (script) => {
@@ -228,6 +227,10 @@ describe("tokenizer property-based tests", () => {
                 assertTokenOrder(tokens);
                 assertTokenRanges(tokens, script);
                 assertTokenValuesMatchSource(tokens, script);
+
+                expect(tokens.every((token) => token.start <= token.end)).toBe(
+                    true
+                );
             }),
             { numRuns: PROPERTY_RUNS }
         );
@@ -235,12 +238,13 @@ describe("tokenizer property-based tests", () => {
 
     it("tokenization is deterministic", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(scriptArb, (script) => {
                 const tokens1 = tokenize(script);
                 const tokens2 = tokenize(script);
+
+                expect(tokens2).toStrictEqual(tokens1);
 
                 if (tokens1.length !== tokens2.length) {
                     throw new Error(
@@ -269,7 +273,6 @@ describe("tokenizer property-based tests", () => {
 
     it("handles empty and whitespace-only input", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(
@@ -278,12 +281,8 @@ describe("tokenizer property-based tests", () => {
                     .map((chars) => chars.join("")),
                 (whitespace) => {
                     const tokens = tokenize(whitespace);
-                    // Should produce no tokens (whitespace is skipped)
-                    if (tokens.length > 0) {
-                        throw new Error(
-                            `Expected no tokens for whitespace, got ${tokens.length}`
-                        );
-                    }
+
+                    expect(tokens).toHaveLength(0);
                 }
             ),
             { numRuns: PROPERTY_RUNS }
@@ -292,7 +291,6 @@ describe("tokenizer property-based tests", () => {
 
     it("handles newline-only input", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(
@@ -301,14 +299,11 @@ describe("tokenizer property-based tests", () => {
                     .map((chars) => chars.join("")),
                 (newlines) => {
                     const tokens = tokenize(newlines);
-                    // Each newline should produce exactly one token
-                    for (const token of tokens) {
-                        if (token.type !== "newline") {
-                            throw new Error(
-                                `Expected only newline tokens, got ${token.type}`
-                            );
-                        }
-                    }
+
+                    expect(tokens).not.toHaveLength(0);
+                    expect(
+                        tokens.every((token) => token.type === "newline")
+                    ).toBe(true);
                 }
             ),
             { numRuns: PROPERTY_RUNS }
@@ -317,25 +312,19 @@ describe("tokenizer property-based tests", () => {
 
     it("correctly identifies keywords vs identifiers", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(keywordArb, (keyword) => {
                 const tokens = tokenize(keyword);
-                if (tokens.length !== 1) {
-                    throw new Error(
-                        `Expected single token for keyword, got ${tokens.length}`
-                    );
-                }
+
+                expect(tokens).toHaveLength(1);
+
                 const firstToken = tokens[0];
                 if (firstToken === undefined) {
                     throw new Error("Expected single token for keyword");
                 }
-                if (firstToken.type !== "keyword") {
-                    throw new Error(
-                        `Expected keyword token, got ${firstToken.type}`
-                    );
-                }
+
+                expect(firstToken.type).toBe("keyword");
             }),
             { numRuns: PROPERTY_RUNS }
         );
@@ -343,7 +332,6 @@ describe("tokenizer property-based tests", () => {
 
     it("correctly tokenizes variables", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(variableArb, (variable) => {
@@ -351,9 +339,8 @@ describe("tokenizer property-based tests", () => {
                 const variableTokens = tokens.filter(
                     (t) => t.type === "variable"
                 );
-                if (variableTokens.length === 0) {
-                    throw new Error("Variable not tokenized as variable type");
-                }
+
+                expect(variableTokens).not.toHaveLength(0);
             }),
             { numRuns: PROPERTY_RUNS }
         );
@@ -361,17 +348,13 @@ describe("tokenizer property-based tests", () => {
 
     it("correctly tokenizes numbers", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(numberArb, (number) => {
                 const tokens = tokenize(number);
                 const numberTokens = tokens.filter((t) => t.type === "number");
-                if (numberTokens.length === 0) {
-                    throw new Error(
-                        `Number ${number} not tokenized as number type`
-                    );
-                }
+
+                expect(numberTokens).not.toHaveLength(0);
             }),
             { numRuns: PROPERTY_RUNS }
         );
@@ -379,7 +362,6 @@ describe("tokenizer property-based tests", () => {
 
     it("correctly tokenizes strings", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(
@@ -389,9 +371,8 @@ describe("tokenizer property-based tests", () => {
                     const stringTokens = tokens.filter(
                         (t) => t.type === "string"
                     );
-                    if (stringTokens.length === 0) {
-                        throw new Error("String not tokenized as string type");
-                    }
+
+                    expect(stringTokens).not.toHaveLength(0);
                 }
             ),
             { numRuns: PROPERTY_RUNS }
@@ -400,7 +381,6 @@ describe("tokenizer property-based tests", () => {
 
     it("correctly tokenizes comments", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(commentArb, (comment) => {
@@ -408,9 +388,8 @@ describe("tokenizer property-based tests", () => {
                 const commentTokens = tokens.filter(
                     (t) => t.type === "comment"
                 );
-                if (commentTokens.length === 0) {
-                    throw new Error("Comment not tokenized as comment type");
-                }
+
+                expect(commentTokens).not.toHaveLength(0);
             }),
             { numRuns: PROPERTY_RUNS }
         );
@@ -418,7 +397,6 @@ describe("tokenizer property-based tests", () => {
 
     it("tokenizes concatenated scripts consistently", () => {
         expect.hasAssertions();
-        expect(true).toBeTruthy();
 
         fc.assert(
             fc.property(
@@ -426,11 +404,17 @@ describe("tokenizer property-based tests", () => {
                 (scripts) => {
                     const concatenated = scripts.join("\n");
                     const tokens = tokenize(concatenated);
+                    const hasNonWhitespaceInput =
+                        concatenated.trim().length > 0;
 
                     // Verify tokens cover the entire input
-                    if (tokens.length === 0 && concatenated.trim().length > 0) {
-                        return; // Some inputs might be all whitespace
+                    if (tokens.length === 0 && hasNonWhitespaceInput) {
+                        throw new Error(
+                            "Tokenizer returned no tokens for non-whitespace concatenated input"
+                        );
                     }
+
+                    expect(tokens.length === 0).toBe(!hasNonWhitespaceInput);
 
                     // Verify no gaps or overlaps (excluding whitespace which is skipped)
                     let lastEnd = 0;

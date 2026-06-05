@@ -19,7 +19,7 @@ describe("advanced Printer Features", () => {
                 "advanced-printer.unclosed-braces|skipParse"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("-gt");
             expect(result).toContain("-like");
             expect(result).toContain("-eq");
@@ -35,7 +35,7 @@ describe("advanced Printer Features", () => {
                 "advanced-printer.unclosed-parens|skipParse"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("-gt");
             expect(result).toContain("-eq");
         });
@@ -50,7 +50,7 @@ describe("advanced Printer Features", () => {
                 "advanced-printer.unclosed-strings|skipParse"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("-gt");
             expect(result).toContain("-like");
         });
@@ -67,7 +67,7 @@ describe("advanced Printer Features", () => {
                 "advanced-printer.mixed-valid-invalid|skipParse"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("function Test");
         });
 
@@ -81,7 +81,7 @@ describe("advanced Printer Features", () => {
                 "advanced-printer.malformed-hashtables|skipParse"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
         });
 
         it("recovers from unclosed strings", async () => {
@@ -94,7 +94,7 @@ describe("advanced Printer Features", () => {
                 "advanced-printer.unclosed-string|skipParse"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
         });
 
         it("handles mixed valid and invalid syntax", async () => {
@@ -107,7 +107,7 @@ describe("advanced Printer Features", () => {
                 "advanced-printer.mixed-syntax|skipParse"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("$valid = 1");
             expect(result).toContain("$alsoValid = 2");
         });
@@ -122,7 +122,7 @@ describe("advanced Printer Features", () => {
                 "advanced-printer.malformed-hash|skipParse"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
         });
     });
 
@@ -139,6 +139,7 @@ describe("advanced Printer Features", () => {
 
             expect(result).toContain("-Name");
             expect(result).toContain("-Id");
+            expect(result).not.toBe("");
         });
 
         it("formats long GNU-style parameters", async () => {
@@ -207,7 +208,7 @@ describe("advanced Printer Features", () => {
             );
             const duration = Date.now() - start;
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(duration).toBeLessThan(1000); // Should complete in under 1 second
         });
 
@@ -231,7 +232,7 @@ describe("advanced Printer Features", () => {
                 "advanced-printer.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("deep");
         });
     });

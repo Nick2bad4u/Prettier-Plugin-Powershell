@@ -31,7 +31,7 @@ describe("coverage - Tokenizer edge cases", () => {
         const tokens = tokenize(input);
         const heredoc = tokens.find((t) => t.type === "heredoc");
 
-        expect(heredoc).toBeDefined();
+        expect(heredoc?.value).toBe(input);
     });
 
     it("handles here-string with closing not at line start", () => {
@@ -41,7 +41,7 @@ describe("coverage - Tokenizer edge cases", () => {
         const tokens = tokenize(input);
         const heredoc = tokens.find((t) => t.type === "heredoc");
 
-        expect(heredoc).toBeDefined();
+        expect(heredoc?.value).toBe(input);
     });
 
     it("handles normalizeHereString with 2 or fewer lines", async () => {
@@ -65,7 +65,7 @@ describe("coverage - Tokenizer edge cases", () => {
         const tokens = tokenize('"test`"');
         const string = tokens.find((t) => t.type === "string");
 
-        expect(string).toBeDefined();
+        expect(string?.value).toBe('"test`"');
     });
 
     it("handles variable with unclosed braces", () => {
@@ -74,7 +74,7 @@ describe("coverage - Tokenizer edge cases", () => {
         const tokens = tokenize("${unclosed");
         const variable = tokens.find((t) => t.type === "variable");
 
-        expect(variable).toBeDefined();
+        expect(variable?.value).toBe("${unclosed");
     });
 
     it("handles number without decimal part", () => {
@@ -82,7 +82,7 @@ describe("coverage - Tokenizer edge cases", () => {
 
         const tokens = tokenize("42.");
 
-        expect(tokens.some((t) => t.type === "number")).toBeTruthy();
+        expect(tokens.some((t) => t.type === "number")).toBe(true);
     });
 
     it("handles identifier starting with dash", () => {
@@ -126,7 +126,7 @@ describe("coverage - Tokenizer edge cases", () => {
         const tokens = tokenize('@"\nHello');
         const heredoc = tokens.find((t) => t.type === "heredoc");
 
-        expect(heredoc).toBeDefined();
+        expect(heredoc?.value).toBe('@"\nHello');
     });
 
     it("handles single-quoted here-string", () => {
@@ -147,7 +147,7 @@ Hello
         const tokens = tokenize('"Hello`');
         const string = tokens.find((t) => t.type === "string");
 
-        expect(string).toBeDefined();
+        expect(string?.value).toBe('"Hello`');
     });
 
     it("handles double equals operator", () => {
@@ -205,7 +205,7 @@ Hello
         const tokens = tokenize('@"\nHello world');
         const heredoc = tokens.find((t) => t.type === "heredoc");
 
-        expect(heredoc).toBeDefined();
+        expect(heredoc?.type).toBe("heredoc");
         expect(heredoc?.value.length).toBeGreaterThan(0);
     });
 
@@ -287,7 +287,7 @@ Write-Host "test"`;
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles nested structures in hashtable entries", async () => {
@@ -362,7 +362,7 @@ b = 2
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles pipeline with no segments", async () => {
@@ -406,7 +406,7 @@ $x = 1;
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles closing brace without statement", async () => {
@@ -471,7 +471,7 @@ $x = 1;
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 });
 
@@ -569,7 +569,7 @@ Write-Host "Hi"
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles uppercase keyword casing", async () => {
@@ -742,8 +742,11 @@ function B {}`;
         );
 
         expect(
-            result.split("\n").filter((l) => l.trim() === "").length
-        ).toBeGreaterThanOrEqual(0);
+            result
+                .trimEnd()
+                .split("\n")
+                .filter((l) => l.trim() === "")
+        ).toHaveLength(0);
     });
 
     it("handles extreme line width values", async () => {
@@ -759,7 +762,7 @@ function B {}`;
             "coverage.result1|skipParse"
         );
 
-        expect(result1).toBeDefined();
+        expect(result1).toBeTypeOf("string");
 
         const result2 = await formatAndAssert(
             input,
@@ -770,7 +773,7 @@ function B {}`;
             "coverage.result2|skipParse"
         );
 
-        expect(result2).toBeDefined();
+        expect(result2).toBeTypeOf("string");
     });
 
     it("handles script blocks in expressions", async () => {
@@ -907,7 +910,7 @@ function B {}`;
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles comment nodes", async () => {
@@ -951,7 +954,9 @@ function B {}`;
 
         expect(result).toContain("function Test\n{");
     });
+});
 
+describe("coverage - Printer structure edge cases", () => {
     it("handles rewriting unknown role aliases", async () => {
         expect.hasAssertions();
 
@@ -965,7 +970,7 @@ function B {}`;
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles param with single element and newline", async () => {
@@ -995,7 +1000,7 @@ param(
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles parenthesis with comma and no newline", async () => {
@@ -1008,7 +1013,7 @@ param(
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles empty array literal", async () => {
@@ -1108,7 +1113,7 @@ b = 2
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles statement with only semicolons", async () => {
@@ -1121,7 +1126,7 @@ b = 2
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles newlines in nested structures during statement parsing", async () => {
@@ -1231,7 +1236,7 @@ a = 1
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles empty expressions in various contexts", async () => {
@@ -1273,7 +1278,7 @@ $y
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles parenthesis with both hasNewline and hasComma", async () => {
@@ -1289,7 +1294,7 @@ $y
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles shouldBreak true for arrays", async () => {
@@ -1302,7 +1307,7 @@ $y
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles hashtable entry with ifBreak for semicolon", async () => {
@@ -1335,7 +1340,7 @@ c = 3
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles hashtable entry is last flag correctly", async () => {
@@ -1351,7 +1356,7 @@ c = 3
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles single element parenthesis without newline", async () => {
@@ -1377,7 +1382,7 @@ c = 3
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles forceMultiline scenarios in parenthesis", async () => {
@@ -1393,7 +1398,7 @@ $b
             "coverage.result1|skipParse"
         );
 
-        expect(result1).toBeDefined();
+        expect(result1).toBeTypeOf("string");
 
         const input2 = "($a, $b)";
         const result2 = await formatAndAssert(
@@ -1402,7 +1407,7 @@ $b
             "coverage.result2|skipParse"
         );
 
-        expect(result2).toBeDefined();
+        expect(result2).toBeTypeOf("string");
     });
 
     it("handles array elements without breaking", async () => {
@@ -1478,7 +1483,7 @@ describe("coverage - Options edge cases", () => {
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles invalid blank lines between functions (negative)", async () => {
@@ -1494,7 +1499,7 @@ describe("coverage - Options edge cases", () => {
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("uses default tabWidth when not specified", async () => {
@@ -1511,7 +1516,7 @@ describe("coverage - Options edge cases", () => {
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles all combinations of keyword case transforms", async () => {
@@ -1535,7 +1540,7 @@ describe("coverage - Options edge cases", () => {
                 "coverage.result|skipParse"
             );
 
-            expect(result).toBeDefined();
+            expect(result).toBeTypeOf("string");
         }
     });
 
@@ -1558,7 +1563,7 @@ describe("coverage - Options edge cases", () => {
                 "coverage.result|skipParse"
             );
 
-            expect(result).toBeDefined();
+            expect(result).toBeTypeOf("string");
         }
     });
 
@@ -1577,7 +1582,7 @@ describe("coverage - Options edge cases", () => {
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("keeps existing printWidth when it is lower than powershellLineWidth", async () => {
@@ -1596,7 +1601,7 @@ describe("coverage - Options edge cases", () => {
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeDefined();
+        expect(result).toBeTypeOf("string");
     });
 
     it("handles all boolean option combinations", async () => {
@@ -1618,7 +1623,7 @@ describe("coverage - Options edge cases", () => {
             "coverage.result1|skipParse"
         );
 
-        expect(result1).toBeDefined();
+        expect(result1).toBeTypeOf("string");
 
         const result2 = await formatAndAssert(
             input,
@@ -1633,7 +1638,7 @@ describe("coverage - Options edge cases", () => {
             "coverage.result2|skipParse"
         );
 
-        expect(result2).toBeDefined();
+        expect(result2).toBeTypeOf("string");
     });
 
     it("handles tabs vs spaces indentation branches", async () => {
@@ -1678,7 +1683,7 @@ describe("coverage - Options edge cases", () => {
             "coverage.noneResult"
         );
 
-        expect(noneResult).toBeDefined();
+        expect(noneResult).toBeTypeOf("string");
 
         const multilineResult = await formatAndAssert(
             input,
@@ -1689,7 +1694,7 @@ describe("coverage - Options edge cases", () => {
             "coverage.multilineResult"
         );
 
-        expect(multilineResult).toBeDefined();
+        expect(multilineResult).toBeTypeOf("string");
 
         const allResult = await formatAndAssert(
             input,
@@ -1700,7 +1705,7 @@ describe("coverage - Options edge cases", () => {
             "coverage.allResult"
         );
 
-        expect(allResult).toBeDefined();
+        expect(allResult).toBeTypeOf("string");
     });
 
     it("handles all braceStyle option values", async () => {
@@ -1717,7 +1722,7 @@ describe("coverage - Options edge cases", () => {
             "coverage.oneTbsResult"
         );
 
-        expect(oneTbsResult).toBeDefined();
+        expect(oneTbsResult).toBeTypeOf("string");
 
         const allmanResult = await formatAndAssert(
             input,
@@ -1728,7 +1733,7 @@ describe("coverage - Options edge cases", () => {
             "coverage.allmanResult"
         );
 
-        expect(allmanResult).toBeDefined();
+        expect(allmanResult).toBeTypeOf("string");
     });
 
     it("handles all keywordCase option values", async () => {
@@ -1737,10 +1742,10 @@ describe("coverage - Options edge cases", () => {
         const input = "function Foo { if ($true) { } }";
 
         for (const caseValue of [
-            "preserve",
             "lower",
-            "upper",
             "pascal",
+            "preserve",
+            "upper",
         ] as const) {
             const result = await formatAndAssert(
                 input,
@@ -1751,7 +1756,7 @@ describe("coverage - Options edge cases", () => {
                 "coverage.result|skipParse"
             );
 
-            expect(result).toBeDefined();
+            expect(result).toBeTypeOf("string");
         }
     });
 });
@@ -1760,41 +1765,48 @@ describe("coverage - Index exports", () => {
     it("exports plugin with hasPragma function", () => {
         expect.hasAssertions();
 
-        expect(plugin.parsers?.["powershell"]?.hasPragma).toBeDefined();
+        expect(plugin.parsers?.["powershell"]?.hasPragma).toBeTypeOf(
+            "function"
+        );
+        expect(Object.keys(plugin.parsers ?? {})).not.toHaveLength(0);
 
         const hasPragma = plugin.parsers?.["powershell"]?.hasPragma;
 
-        expect(hasPragma?.("")).toBeFalsy();
+        expect(hasPragma?.("")).toBe(false);
     });
 
     it("exports languages array", () => {
         expect.hasAssertions();
 
-        expect(plugin.languages).toBeDefined();
-        expect(Array.isArray(plugin.languages)).toBeTruthy();
+        expect(plugin.languages).toHaveLength(1);
+        expect(plugin.languages?.[0]?.name).toBe("PowerShell");
     });
 
     it("exports parsers object", () => {
         expect.hasAssertions();
 
-        expect(plugin.parsers).toBeDefined();
+        expect(Object.keys(plugin.parsers ?? {})).toContain("powershell");
     });
 
     it("exports printers object", () => {
         expect.hasAssertions();
 
-        expect(plugin.printers).toBeDefined();
+        expect(Object.keys(plugin.printers ?? {})).toContain("powershell-ast");
     });
 
     it("exports options", () => {
         expect.hasAssertions();
 
-        expect(plugin.options).toBeDefined();
+        expect(Object.keys(plugin.options ?? {})).toContain(
+            "powershellIndentStyle"
+        );
     });
 
     it("exports defaultOptions", () => {
         expect.hasAssertions();
 
-        expect(plugin.defaultOptions).toBeDefined();
+        expect(plugin.defaultOptions).toStrictEqual({
+            tabWidth: 4,
+        });
     });
 });

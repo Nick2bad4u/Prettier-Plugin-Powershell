@@ -19,7 +19,6 @@ describe("integration property tests", () => {
     describe("round-trip preservation", () => {
         it("preserves semantic structure through tokenize -> parse -> format cycle", async () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
 
             await withProgress(
                 "integration.roundTrip",
@@ -40,21 +39,14 @@ describe("integration property tests", () => {
                             async (script) => {
                                 tracker.advance();
                                 const tokens = tokenize(script);
-                                if (
-                                    tokens.length === 0 &&
-                                    script.trim().length > 0
-                                ) {
-                                    throw new Error(
-                                        "Tokenization produced no tokens"
-                                    );
-                                }
+
+                                expect(tokens).not.toHaveLength(0);
 
                                 const ast = parsePowerShell(script, {
                                     tabWidth: 2,
                                 } as never);
-                                if (ast?.type !== "Script") {
-                                    throw new Error("Parsing failed");
-                                }
+
+                                expect(ast?.type).toBe("Script");
 
                                 const formatted = await formatAndAssert(
                                     script,
@@ -80,11 +72,8 @@ describe("integration property tests", () => {
                                         tabWidth: 2,
                                     } as never
                                 );
-                                if (formattedAst?.type !== "Script") {
-                                    throw new Error(
-                                        "Re-parsing formatted output failed"
-                                    );
-                                }
+
+                                expect(formattedAst?.type).toBe("Script");
 
                                 const originalStatements = ast.body.filter(
                                     (n) => n.type !== "BlankLine"
@@ -94,14 +83,9 @@ describe("integration property tests", () => {
                                         (n) => n.type !== "BlankLine"
                                     );
 
-                                if (
-                                    originalStatements.length !==
-                                    formattedStatements.length
-                                ) {
-                                    throw new Error(
-                                        `Statement count changed: ${originalStatements.length} -> ${formattedStatements.length}`
-                                    );
-                                }
+                                expect(formattedStatements).toHaveLength(
+                                    originalStatements.length
+                                );
                             }
                         ),
                         { numRuns: PROPERTY_RUNS }
@@ -112,7 +96,6 @@ describe("integration property tests", () => {
 
         it("handles option combinations consistently", async () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
 
             await withProgress(
                 "integration.optionCombos",
@@ -163,11 +146,8 @@ describe("integration property tests", () => {
                                 const ast = parsePowerShell(formatted, {
                                     tabWidth: 2,
                                 } as never);
-                                if (ast?.type !== "Script") {
-                                    throw new Error(
-                                        `Failed with options: ${JSON.stringify(options)}`
-                                    );
-                                }
+
+                                expect(ast?.type).toBe("Script");
 
                                 const formatted2 = await formatAndAssert(
                                     formatted,
@@ -191,11 +171,8 @@ describe("integration property tests", () => {
                                     "integration.optionCombos.formatted2"
                                 );
 
-                                if (formatted !== formatted2) {
-                                    throw new Error(
-                                        `Not idempotent with options: ${JSON.stringify(options)}`
-                                    );
-                                }
+                                expect(formatted2).toBe(formatted);
+                                expect(formatted).not.toBe("");
                             }
                         ),
                         { numRuns: PROPERTY_RUNS }
@@ -208,7 +185,6 @@ describe("integration property tests", () => {
     describe("cross-module consistency", () => {
         it("ensures tokenizer and parser agree on locations", async () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
 
             await withProgress(
                 "integration.tokenizerLocations",
@@ -230,6 +206,8 @@ describe("integration property tests", () => {
                                 const ast = parsePowerShell(script, {
                                     tabWidth: 2,
                                 } as never);
+
+                                expect(tokens).not.toHaveLength(0);
 
                                 for (const token of tokens) {
                                     if (
@@ -283,7 +261,6 @@ describe("integration property tests", () => {
 
         it("ensures printer output can be re-tokenized and re-parsed", async () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
 
             await withProgress(
                 "integration.retTokenize",
@@ -315,11 +292,8 @@ describe("integration property tests", () => {
                                     tabWidth: 2,
                                 } as never);
 
-                                if (ast?.type !== "Script") {
-                                    throw new Error(
-                                        "Failed to re-parse formatted output"
-                                    );
-                                }
+                                expect(ast?.type).toBe("Script");
+                                expect(tokens).not.toHaveLength(0);
 
                                 for (const token of tokens) {
                                     if (
@@ -344,7 +318,6 @@ describe("integration property tests", () => {
     describe("error resilience", () => {
         it("handles concatenated valid scripts gracefully", async () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
 
             await withProgress(
                 "integration.concatenated",
@@ -367,11 +340,8 @@ describe("integration property tests", () => {
                                 const ast = parsePowerShell(combined, {
                                     tabWidth: 2,
                                 } as never);
-                                if (ast?.type !== "Script") {
-                                    throw new Error(
-                                        "Failed to parse combined scripts"
-                                    );
-                                }
+
+                                expect(ast?.type).toBe("Script");
 
                                 const formatted = await formatAndAssert(
                                     combined,
@@ -393,11 +363,9 @@ describe("integration property tests", () => {
                                         tabWidth: 2,
                                     } as never
                                 );
-                                if (formattedAst?.type !== "Script") {
-                                    throw new Error(
-                                        "Failed to re-parse formatted combined scripts"
-                                    );
-                                }
+
+                                expect(formattedAst?.type).toBe("Script");
+                                expect(formatted).not.toBe("");
                             }
                         ),
                         { numRuns: PROPERTY_RUNS }
@@ -408,7 +376,6 @@ describe("integration property tests", () => {
 
         it("preserves valid PowerShell across repeated formatting", async () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
 
             await withProgress(
                 "integration.repeatedFormatting",
@@ -440,11 +407,8 @@ describe("integration property tests", () => {
                                     const ast = parsePowerShell(formatted, {
                                         tabWidth: 2,
                                     } as never);
-                                    if (ast.type !== "Script") {
-                                        throw new Error(
-                                            `Invalid after ${i + 1} iterations`
-                                        );
-                                    }
+
+                                    expect(ast.type).toBe("Script");
 
                                     current = formatted;
                                 }
@@ -463,11 +427,8 @@ describe("integration property tests", () => {
                                     "integration.repeatedFormatting.final"
                                 );
 
-                                if (finalFormat !== current) {
-                                    throw new Error(
-                                        `Not stable after ${iterations} iterations`
-                                    );
-                                }
+                                expect(finalFormat).toBe(current);
+                                expect(finalFormat).not.toBe("");
                             }
                         ),
                         { numRuns: PROPERTY_RUNS }
@@ -480,7 +441,6 @@ describe("integration property tests", () => {
     describe("plugin interface contracts", () => {
         it("locStart and locEnd return valid positions", async () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
 
             await withProgress(
                 "integration.locBounds",
@@ -510,15 +470,9 @@ describe("integration property tests", () => {
                                 const start = locStart(ast);
                                 const end = locEnd(ast);
 
-                                if (
-                                    start < 0 ||
-                                    end < start ||
-                                    end > script.length
-                                ) {
-                                    throw new Error(
-                                        `Invalid loc: start=${start}, end=${end}, script.length=${script.length}`
-                                    );
-                                }
+                                expect(start).not.toBeLessThan(0);
+                                expect(end).toBeGreaterThanOrEqual(start);
+                                expect(end).toBeLessThanOrEqual(script.length);
                             }
                         ),
                         { numRuns: PROPERTY_RUNS }
@@ -529,7 +483,6 @@ describe("integration property tests", () => {
 
         it("hasPragma always returns false", async () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
 
             await withProgress(
                 "integration.hasPragma",
@@ -552,11 +505,7 @@ describe("integration property tests", () => {
                                 }
                                 const { hasPragma } = parser;
 
-                                if (hasPragma?.(script) === true) {
-                                    throw new Error(
-                                        "hasPragma should always return false"
-                                    );
-                                }
+                                expect(hasPragma?.(script)).not.toBe(true);
                             }
                         ),
                         { numRuns: PROPERTY_RUNS }
@@ -569,7 +518,6 @@ describe("integration property tests", () => {
     describe("file extension handling", () => {
         it("formats all supported extensions identically", async () => {
             expect.hasAssertions();
-            expect(true).toBeTruthy();
 
             await withProgress(
                 "integration.extensions",
@@ -614,11 +562,8 @@ describe("integration property tests", () => {
                                     "integration.extensions.formatted2"
                                 );
 
-                                if (formatted1 !== formatted2) {
-                                    throw new Error(
-                                        `Different formatting for ${ext1} vs ${ext2}`
-                                    );
-                                }
+                                expect(formatted2).toBe(formatted1);
+                                expect(formatted1).not.toBe("");
                             }
                         ),
                         { numRuns: PROPERTY_RUNS }

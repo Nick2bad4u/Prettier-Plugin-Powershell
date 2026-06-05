@@ -22,6 +22,10 @@ class MockProcess extends EventTarget {
     private dataCollected = 0;
     private expectedDataLength = 0;
     private readonly hooks: MockProcessHooks | undefined;
+    private readonly listenerAbortControllers = new Map<
+        (...detail: readonly unknown[]) => void,
+        AbortController
+    >();
     private readonly listenerMap = new Map<
         (...detail: readonly unknown[]) => void,
         (event: Readonly<Event>) => void
@@ -78,6 +82,8 @@ class MockProcess extends EventTarget {
 
         if (mapped) {
             this.removeEventListener(eventName, mapped);
+            this.listenerAbortControllers.get(listener)?.abort();
+            this.listenerAbortControllers.delete(listener);
             this.listenerMap.delete(listener);
         }
 
@@ -92,8 +98,13 @@ class MockProcess extends EventTarget {
             const customEvent = event as Event & { detail: readonly unknown[] };
             listener(...customEvent.detail);
         };
+        const abortController = new AbortController();
+
+        this.listenerAbortControllers.set(listener, abortController);
         this.listenerMap.set(listener, mapped);
-        this.addEventListener(eventName, mapped);
+        this.addEventListener(eventName, mapped, {
+            signal: abortController.signal,
+        });
 
         return this;
     }
@@ -191,7 +202,7 @@ class MockProcess extends EventTarget {
     }
 
     private scheduleResponse(response: Readonly<MockResponse>): void {
-        setTimeout(() => {
+        queueMicrotask(() => {
             const payload =
                 response.type === "OK"
                     ? Buffer.from("OK\n", "utf8")
@@ -199,7 +210,7 @@ class MockProcess extends EventTarget {
             const length = Buffer.alloc(4);
             length.writeInt32LE(payload.length, 0);
             this.stdout.push(Buffer.concat([length, payload]));
-        }, 0);
+        });
     }
 }
 
@@ -300,7 +311,7 @@ describe("powershell syntax utilities", () => {
 
             await expect(
                 isPowerShellParsable("Write-Host 'hello'", "disabled")
-            ).resolves.toBeTruthy();
+            ).resolves.toBe(true);
             await expect(
                 assertPowerShellParses("Write-Host 'hello'", "disabled")
             ).resolves.toBeUndefined();
@@ -326,9 +337,9 @@ describe("powershell syntax utilities", () => {
 
             await expect(
                 isPowerShellParsable("Write-Host 'ok'", "success")
-            ).resolves.toBeTruthy();
+            ).resolves.toBe(true);
 
-            expect(spawnMock).toHaveBeenCalledOnce();
+            expect(spawnMock).toHaveBeenCalledTimes(1);
         });
     });
 
@@ -373,7 +384,7 @@ describe("powershell syntax utilities", () => {
 
         await expect(
             isPowerShellParsable("bad script", "error-return")
-        ).resolves.toBeFalsy();
+        ).resolves.toBe(false);
     });
 
     it("limits validation invocations using POWERSHELL_MAX_SYNTAX_CHECKS", async () => {
@@ -393,12 +404,12 @@ describe("powershell syntax utilities", () => {
 
         await expect(
             isPowerShellParsable("Write-Host 'first'", "limited-1")
-        ).resolves.toBeTruthy();
+        ).resolves.toBe(true);
         await expect(
             isPowerShellParsable("Write-Host 'second'", "limited-2")
-        ).resolves.toBeTruthy();
+        ).resolves.toBe(true);
 
-        expect(spawnMock).toHaveBeenCalledOnce();
+        expect(spawnMock).toHaveBeenCalledTimes(1);
     });
 
     it("throws informative error when pwsh executable is missing", async () => {
@@ -505,9 +516,9 @@ describe("powershell syntax utilities", () => {
             "process-error"
         );
 
-        expect(createdProcess).not.toBeNull();
-
         const processRef = requireCreatedProcess(createdProcess);
+
+        expect(processRef.stdin).toBeInstanceOf(PassThrough);
 
         processRef.emit("error", new Error("simulated failure"));
 
@@ -533,17 +544,17 @@ describe("powershell syntax utilities", () => {
 
                 // Emit length in two chunks to force the parser to wait for remaining bytes.
                 proc.stdout.push(length.subarray(0, 2));
-                setTimeout(() => {
+                queueMicrotask(() => {
                     proc.stdout.push(
                         Buffer.concat([
                             length.subarray(2),
                             payload.subarray(0, 1),
                         ])
                     );
-                    setTimeout(() => {
+                    queueMicrotask(() => {
                         proc.stdout.push(payload.subarray(1));
-                    }, 0);
-                }, 0);
+                    });
+                });
             },
         });
         mockChildProcessModule(spawnMock);
@@ -552,7 +563,7 @@ describe("powershell syntax utilities", () => {
 
         await expect(
             isPowerShellParsable("Write-Host 'chunks'", "chunked-response")
-        ).resolves.toBeTruthy();
+        ).resolves.toBe(true);
     });
 
     it("rejects pending validations when the process exits unexpectedly", async () => {
@@ -585,9 +596,10 @@ describe("powershell syntax utilities", () => {
             "process-exit"
         );
 
-        expect(createdProcess).not.toBeNull();
-
         const processRef = requireCreatedProcess(createdProcess);
+
+        expect(processRef.stdin).toBeInstanceOf(PassThrough);
+
         processRef.emit("exit", 1);
 
         await expect(parsePromise).rejects.toThrow(
@@ -648,14 +660,15 @@ describe("powershell syntax utilities", () => {
 
         await expect(
             isPowerShellParsable("Write-Host 'trace'", "trace-case")
-        ).resolves.toBeTruthy();
+        ).resolves.toBe(true);
 
-        expect(logs.some((entry) => entry.includes("invoke"))).toBeTruthy();
-
-        expect(createdProcess).not.toBeNull();
+        expect(logs.some((entry) => entry.includes("invoke"))).toBe(true);
 
         const processRef = requireCreatedProcess(createdProcess);
-        const stderrStream = processRef.stderr as PassThrough;
+
+        expect(processRef.stderr).toBeInstanceOf(PassThrough);
+
+        const stderrStream = processRef.stderr;
 
         stderrStream.emit("data", Buffer.from("warning", "utf8"));
         processRef.emit("error", new Error("boom"));

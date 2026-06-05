@@ -17,6 +17,7 @@ describe("error Handling System", () => {
 
             expect(line).toBe(1);
             expect(column).toBe(1);
+            expect(line).not.toBe(2);
         });
 
         it("calculates line and column for middle of first line", () => {
@@ -107,8 +108,9 @@ describe("error Handling System", () => {
                 w.message.includes("Write-Host")
             );
 
-            expect(writeHostWarning).toBeDefined();
-            expect(writeHostWarning?.type).toBe("anti-pattern");
+            expect(writeHostWarning).toMatchObject({
+                type: "anti-pattern",
+            });
         });
 
         it("detects Invoke-Expression usage", () => {
@@ -121,9 +123,10 @@ describe("error Handling System", () => {
                 w.message.includes("Invoke-Expression")
             );
 
-            expect(ieWarning).toBeDefined();
-            expect(ieWarning?.type).toBe("anti-pattern");
-            expect(ieWarning?.suggestion).toBeTruthy();
+            expect(ieWarning).toMatchObject({
+                type: "anti-pattern",
+            });
+            expect(ieWarning?.suggestion).toContain("safer alternatives");
         });
 
         it("detects performance anti-patterns", () => {
@@ -134,7 +137,9 @@ describe("error Handling System", () => {
 
             const perfWarning = warnings.find((w) => w.type === "performance");
 
-            expect(perfWarning).toBeDefined();
+            expect(perfWarning).toMatchObject({
+                type: "performance",
+            });
         });
 
         it("detects foreach performance issue", () => {
@@ -147,7 +152,9 @@ describe("error Handling System", () => {
                 w.message.includes("ForEach-Object")
             );
 
-            expect(foreachWarning).toBeDefined();
+            expect(foreachWarning).toMatchObject({
+                type: "performance",
+            });
         });
 
         it("provides helpful suggestions", () => {
@@ -158,8 +165,9 @@ describe("error Handling System", () => {
 
             const warning = warnings[0];
 
-            expect(warning).toBeDefined();
-            expect(warning?.suggestion).toBeTruthy();
+            expect(warning).toMatchObject({
+                type: "anti-pattern",
+            });
             expect(warning?.suggestion).toContain("Write-Output");
         });
     });
@@ -173,13 +181,16 @@ describe("error Handling System", () => {
 
             const warning = warnings[0];
 
-            expect(warning).toBeDefined();
+            expect(warning).toMatchObject({
+                type: "anti-pattern",
+            });
 
             const message = warning?.toString() ?? "";
 
             expect(message).toContain("Warning");
             expect(message).toContain("anti-pattern");
             expect(message).toContain("Suggestion:");
+            expect(message).not.toBe("");
         });
 
         it("includes line and column in warning", () => {
@@ -190,7 +201,9 @@ describe("error Handling System", () => {
 
             const warning = warnings[0];
 
-            expect(warning).toBeDefined();
+            expect(warning).toMatchObject({
+                type: "anti-pattern",
+            });
             expect(warning?.line).toBe(2);
             expect(warning?.column).toBeGreaterThan(0);
         });
@@ -208,6 +221,7 @@ describe("error Handling System", () => {
             const warnings = detectIssues(source);
 
             expect(warnings.length).toBeGreaterThanOrEqual(3);
+            expect(warnings).not.toHaveLength(0);
         });
 
         it("reports correct positions for multiple issues", () => {
@@ -219,8 +233,12 @@ describe("error Handling System", () => {
             const firstWarning = warnings[0];
             const secondWarning = warnings[1];
 
-            expect(firstWarning).toBeDefined();
-            expect(secondWarning).toBeDefined();
+            expect(firstWarning).toMatchObject({
+                type: "anti-pattern",
+            });
+            expect(secondWarning).toMatchObject({
+                type: "anti-pattern",
+            });
             expect(firstWarning?.line).toBe(1);
             expect(secondWarning?.line).toBe(2);
         });

@@ -50,7 +50,7 @@ describe("long Line Wrapping Improvements", () => {
             );
 
             // Should format without errors
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("|");
 
             // Should break into multiple lines
@@ -69,7 +69,7 @@ describe("long Line Wrapping Improvements", () => {
                 "long-line-wrapping.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("Get-Process");
         });
     });
@@ -85,7 +85,7 @@ describe("long Line Wrapping Improvements", () => {
                 "long-line-wrapping.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("Where-Object");
         });
 
@@ -99,7 +99,7 @@ describe("long Line Wrapping Improvements", () => {
                 "long-line-wrapping.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("ForEach-Object");
         });
 
@@ -113,7 +113,7 @@ describe("long Line Wrapping Improvements", () => {
                 "long-line-wrapping.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("Get-ChildItem");
         });
     });
@@ -129,7 +129,7 @@ describe("long Line Wrapping Improvements", () => {
                 "long-line-wrapping.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("Get-ChildItem");
         });
 
@@ -143,7 +143,7 @@ describe("long Line Wrapping Improvements", () => {
                 "long-line-wrapping.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("Test-Function");
         });
     });
@@ -159,7 +159,7 @@ describe("long Line Wrapping Improvements", () => {
                 "long-line-wrapping.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("if");
         });
 
@@ -173,7 +173,7 @@ describe("long Line Wrapping Improvements", () => {
                 "long-line-wrapping.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("$message");
         });
 
@@ -187,7 +187,7 @@ describe("long Line Wrapping Improvements", () => {
                 "long-line-wrapping.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("$config");
         });
     });
@@ -204,7 +204,7 @@ describe("long Line Wrapping Improvements", () => {
                 "long-line-wrapping.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result.length).toBeGreaterThan(100);
         });
 
@@ -218,7 +218,7 @@ describe("long Line Wrapping Improvements", () => {
                 "long-line-wrapping.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("#");
         });
 
@@ -232,7 +232,7 @@ describe("long Line Wrapping Improvements", () => {
                 "long-line-wrapping.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("$result");
         });
     });
@@ -253,7 +253,7 @@ describe("long Line Wrapping Improvements", () => {
             );
             const duration = Date.now() - start;
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(duration).toBeLessThan(500); // Should take less than 500ms
         });
 
@@ -267,7 +267,7 @@ describe("long Line Wrapping Improvements", () => {
                 "long-line-wrapping.result"
             );
 
-            expect(result).toBeTruthy();
+            expect(result).not.toBe("");
             expect(result).toContain("$result");
         });
     });

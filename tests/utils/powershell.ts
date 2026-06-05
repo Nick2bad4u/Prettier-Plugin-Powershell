@@ -290,8 +290,7 @@ function initPersistentProcess(): void {
 
     const processInstance = persistentProcess;
     if (
-        processInstance === null ||
-        !processInstance.stdin ||
+        !processInstance?.stdin ||
         !processInstance.stdout ||
         !processInstance.stderr
     ) {
