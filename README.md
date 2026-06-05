@@ -8,17 +8,14 @@ A Prettier 3 plugin that formats PowerShell source files (`.ps1`, `.psm1`, `.psd
 
 ## Table of contents
 
-- [Highlights](#highlights)
-- [Quick start](#quick-start)
-  - [Install](#install)
-  - [Prettier configuration](#prettier-configuration)
-  - [Command line](#command-line)
-  - [Programmatic usage](#programmatic-usage)
-- [Configuration reference](#configuration-reference)
-- [Example formatting](#example-formatting)
-- [Contributing](#contributing)
-- [Credits](#credits)
-- [License](#license)
+1. [Highlights](#highlights)
+2. [Quick start](#quick-start)
+3. [Configuration reference](#configuration-reference)
+4. [Example formatting](#example-formatting)
+5. [Contributing](#contributing)
+6. [Credits](#credits)
+7. [License](#license)
+8. [Contributors ✨](#contributors-)
 
 ## Highlights
 
@@ -83,21 +80,21 @@ const formatted = await prettier.format(source, {
 
 ## Configuration reference
 
-| Option                                 | Type                                                                  | Default    | Description                                                                                                     |
-| -------------------------------------- | --------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------- |
-| `powershellIndentStyle`                | <code>"spaces" &#124; "tabs"</code>                                   | `"spaces"` | Render indentation with spaces or tabs.                                                                         |
-| `powershellIndentSize`                 | `number`                                                              | `4`        | Overrides Prettier's `tabWidth` specifically for PowerShell files (clamped between 1 and 8).                    |
-| `powershellTrailingComma`              | <code>"none" &#124; "multiline" &#124; "all"</code>                   | `"none"`   | When to emit trailing semicolons between hashtable entries (PowerShell arrays do not support trailing commas).  |
-| `powershellSortHashtableKeys`          | `boolean`                                                             | `false`    | Sort hashtable keys alphabetically before printing.                                                             |
-| `powershellBlankLinesBetweenFunctions` | `number`                                                              | `1`        | Minimum blank lines preserved between function declarations (clamped between 0 and 3).                          |
-| `powershellBlankLineAfterParam`        | `boolean`                                                             | `true`     | Insert a blank line after `param (...)` blocks within functions/script blocks.                                  |
-| `powershellBraceStyle`                 | <code>"1tbs" &#124; "allman"</code>                                   | `"1tbs"`   | Choose inline braces or newline-aligned Allman style.                                                           |
-| `powershellLineWidth`                  | `number`                                                              | `120`      | Maximum print width for wrapping pipelines, hashtables, and arrays (clamped between 40 and 200).                |
-| `powershellPreferSingleQuote`          | `boolean`                                                             | `false`    | Prefer single-quoted strings when interpolation is not required.                                                |
-| `powershellKeywordCase`                | <code>"preserve" &#124; "lower" &#124; "upper" &#124; "pascal"</code> | `"lower"`  | Normalise PowerShell keyword casing (defaults to lowercase to match PSScriptAnalyzer/Invoke-Formatter).         |
-| `powershellRewriteAliases`             | `boolean`                                                             | `false`    | Expand cmdlet aliases such as `ls`, `%`, `?`, `gci`.                                                            |
-| `powershellRewriteWriteHost`           | `boolean`                                                             | `false`    | Rewrite `Write-Host` invocations to `Write-Output`.                                                             |
-| `powershellPreset`                     | <code>"none" &#124; "invoke-formatter"</code>                         | `"none"`   | Apply a bundle of defaults (e.g. `invoke-formatter` mirrors the settings PowerShell's built-in formatter uses). |
+| Option                                 | Type                                                                                             | Default    | Description                                                                                                     |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------ | ---------- | --------------------------------------------------------------------------------------------------------------- |
+| `powershellIndentStyle`                | <code>"spaces"</code><br><code>"tabs"</code>                                                     | `"spaces"` | Render indentation with spaces or tabs.                                                                         |
+| `powershellIndentSize`                 | `number`                                                                                         | `4`        | Overrides Prettier's `tabWidth` specifically for PowerShell files (clamped between 1 and 8).                    |
+| `powershellTrailingComma`              | <code>"none"</code><br><code>"multiline"</code><br><code>"all"</code>                            | `"none"`   | When to emit trailing semicolons between hashtable entries (PowerShell arrays do not support trailing commas).  |
+| `powershellSortHashtableKeys`          | `boolean`                                                                                        | `false`    | Sort hashtable keys alphabetically before printing.                                                             |
+| `powershellBlankLinesBetweenFunctions` | `number`                                                                                         | `1`        | Minimum blank lines preserved between function declarations (clamped between 0 and 3).                          |
+| `powershellBlankLineAfterParam`        | `boolean`                                                                                        | `true`     | Insert a blank line after `param (...)` blocks within functions/script blocks.                                  |
+| `powershellBraceStyle`                 | <code>"1tbs"</code><br><code>"allman"</code>                                                     | `"1tbs"`   | Choose inline braces or newline-aligned Allman style.                                                           |
+| `powershellLineWidth`                  | `number`                                                                                         | `120`      | Maximum print width for wrapping pipelines, hashtables, and arrays (clamped between 40 and 200).                |
+| `powershellPreferSingleQuote`          | `boolean`                                                                                        | `false`    | Prefer single-quoted strings when interpolation is not required.                                                |
+| `powershellKeywordCase`                | <code>"preserve"</code><br><code>"lower"</code><br><code>"upper"</code><br><code>"pascal"</code> | `"lower"`  | Normalise PowerShell keyword casing (defaults to lowercase to match PSScriptAnalyzer/Invoke-Formatter).         |
+| `powershellRewriteAliases`             | `boolean`                                                                                        | `false`    | Expand cmdlet aliases such as `ls`, `%`, `?`, `gci`.                                                            |
+| `powershellRewriteWriteHost`           | `boolean`                                                                                        | `false`    | Rewrite `Write-Host` invocations to `Write-Output`.                                                             |
+| `powershellPreset`                     | <code>"none"</code><br><code>"invoke-formatter"</code>                                           | `"none"`   | Apply a bundle of defaults (e.g. `invoke-formatter` mirrors the settings PowerShell's built-in formatter uses). |
 
 ### Invoke-Formatter parity preset
 
@@ -200,8 +197,11 @@ Distributed under the [MIT License](LICENSE.md).
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+
 <!-- prettier-ignore-start -->
+
 <!-- markdownlint-disable -->
+
 <table>
   <tbody>
     <tr>
@@ -217,6 +217,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 </table>
 
 <!-- markdownlint-restore -->
+
 <!-- prettier-ignore-end -->
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->

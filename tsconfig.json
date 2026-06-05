@@ -117,6 +117,8 @@
         "src/**/*.ts",
         "test/**/*.d.ts",
         "test/**/*.ts",
+        "tsup.config.ts",
+        "vitest.config.ts",
         "vite.config.ts"
     ],
     "typeAcquisition": {

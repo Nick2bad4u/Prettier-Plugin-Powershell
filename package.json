@@ -143,7 +143,7 @@
         "sync:rules:write": "node -e \"console.log('No rule-sync sources configured; nothing to write.')\"",
         "sync-peer-prettier-range": "node scripts/sync-peer-prettier-range.mjs",
         "test": "vitest run",
-        "test:ci": "vitest run --reporter=summary",
+        "test:ci": "vitest run --reporter=dot",
         "test:coverage": "vitest run --coverage",
         "test:debug": "vitest --inspect-brk",
         "test:fuzz": "pwsh -NoLogo -NoProfile -Command \"$env:POWERSHELL_PROPERTY_RUNS=2000; npm run test\"",
