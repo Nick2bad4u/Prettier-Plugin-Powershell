@@ -9,15 +9,8 @@ const graphemeSegmenter = new Intl.Segmenter("en", {
     granularity: "grapheme",
 });
 
-const splitGraphemes = (value: string): string[] => {
-    const parts: string[] = [];
-
-    for (const segment of graphemeSegmenter.segment(value)) {
-        parts.push(segment.segment);
-    }
-
-    return parts;
-};
+const splitGraphemes = (value: string): string[] =>
+    Array.from(graphemeSegmenter.segment(value), (segment) => segment.segment);
 
 const letterCharacters = splitGraphemes(letters);
 const upperLetterCharacters = splitGraphemes(lettersUpper);
@@ -580,7 +573,7 @@ const arbitraries = fc.letrec<LetrecShape>((tie) => {
                 const normalised =
                     newline === "\n"
                         ? joined
-                        : joined.replaceAll("\n", newline);
+                        : joined.split("\n").join(newline);
                 return trailing.length > 0
                     ? `${normalised}${newline}`
                     : normalised;

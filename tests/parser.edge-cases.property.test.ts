@@ -507,6 +507,7 @@ describe("parser edge case property tests", () => {
                         }),
                         ({ depth, elements, hasComments }) => {
                             let script = "";
+                            const closingBrace = "}";
                             const indent = "  ";
 
                             const buildNested = (level: number): string => {
@@ -523,14 +524,14 @@ describe("parser edge case property tests", () => {
                                     if (level + 1 < depth) {
                                         content += "@{\n";
                                         content += buildNested(level + 2);
-                                        content += `\n${indent.repeat(level + 1)}}`;
+                                        content += `\n${indent.repeat(level + 1)}${closingBrace}`;
                                     } else {
-                                        content += `${i}`;
+                                        content += i.toString();
                                     }
                                     if (i < elements - 1) content += ";";
                                     content += "\n";
                                 }
-                                content += `${indent.repeat(level)}}`;
+                                content += `${indent.repeat(level)}${closingBrace}`;
                                 return content;
                             };
 

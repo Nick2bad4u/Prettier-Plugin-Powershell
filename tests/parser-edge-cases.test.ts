@@ -58,11 +58,14 @@ describe("parser empty array element handling", () => {
 
         // This would be invalid PowerShell anyway, but our parser shouldn't crash
         const script = "@(1,, 2)";
-        const outcome = await formatAndAssert(script, baseConfig, {
-            skipParse: true,
-        })
-            .then(() => "formatted")
-            .catch(() => "failed");
+        let outcome = "formatted";
+        try {
+            await formatAndAssert(script, baseConfig, {
+                skipParse: true,
+            });
+        } catch {
+            outcome = "failed";
+        }
 
         expect(outcome).toMatch(/^(?:failed|formatted)$/v);
         expect(outcome).not.toBe("crashed");

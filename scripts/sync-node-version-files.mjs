@@ -118,7 +118,7 @@ const parseArguments = (argumentList) => {
     /** @type {string | null} */
     let explicitVersion = null;
 
-    for (let index = 0; index < argumentList.length; ) {
+    for (let index = 0; index < argumentList.length;) {
         const argument = argumentList[index];
 
         if (typeof argument !== "string") {

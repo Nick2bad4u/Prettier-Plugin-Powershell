@@ -319,12 +319,12 @@ describe("printer property-based tests", () => {
                             const isExpectedAllman =
                                 functionLineIndex !== -1 &&
                                 nextNonEmptyLine?.trim() === "{";
-                            const styleExpectationMet =
+                            const isStyleExpectationMet =
                                 (braceStyle === "1tbs" && isExpected1tbs) ||
                                 (braceStyle === "allman" && isExpectedAllman);
 
                             expect(
-                                styleExpectationMet,
+                                isStyleExpectationMet,
                                 `Unexpected brace style output for ${braceStyle}.\nFormatted:\n${formatted}`
                             ).toBe(true);
                         }
@@ -374,12 +374,12 @@ describe("printer property-based tests", () => {
                                 upper: /\bIF\b/v,
                             };
                             const expectedRegex = regexByCase[keywordCase];
-                            const caseExpectationMet =
+                            const isCaseExpectationMet =
                                 expectedRegex === undefined ||
                                 expectedRegex.test(formatted);
 
                             expect(
-                                caseExpectationMet,
+                                isCaseExpectationMet,
                                 `Expected ${keywordCase} keyword formatting.\nFormatted:\n${formatted}`
                             ).toBe(true);
                         }
@@ -562,7 +562,7 @@ describe("printer property-based tests", () => {
                         const hasMixedLineEndings =
                             hasLF &&
                             hasCRLF &&
-                            formatted.split("\r\n").join("").includes("\n");
+                            formatted.replaceAll("\r\n", "").includes("\n");
 
                         expect(hasMixedLineEndings).toBe(false);
                     }),

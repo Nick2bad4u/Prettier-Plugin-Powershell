@@ -31,9 +31,7 @@ const PRAGMA_PATTERN = /^#[\t ]*@(?:format|prettier)\b/mv;
 const parsers: Plugin["parsers"] = {
     powershell: {
         astFormat: "powershell-ast",
-        hasPragma(text: string) {
-            return PRAGMA_PATTERN.test(text);
-        },
+        hasPragma: (text: string) => PRAGMA_PATTERN.test(text),
         locEnd,
         locStart,
         parse: parsePowerShell,

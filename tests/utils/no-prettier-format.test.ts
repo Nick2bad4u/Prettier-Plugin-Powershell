@@ -10,7 +10,9 @@ describe("enforce formatAndAssert usage", () => {
 
         const filePaths: string[] = [];
         const walk = (dir: string) => {
-            for (const entry of readdirSync(dir, { withFileTypes: true })) {
+            const entries = readdirSync(dir, { withFileTypes: true });
+
+            for (const entry of entries) {
                 const full = path.join(dir, entry.name);
                 if (entry.isDirectory()) {
                     walk(full);

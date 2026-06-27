@@ -10,6 +10,7 @@ import {
 } from "prettier";
 import {
     arrayFirst,
+    arrayIncludes,
     arrayJoin,
     isDefined,
     isEmpty,
@@ -124,6 +125,28 @@ const CONCATENATED_OPERATOR_PAIRS: ReadonlySet<string> = new Set([
     "^=",
     "|=",
 ]);
+const LOGICAL_OPERATORS = [
+    "-and",
+    "-not",
+    "-or",
+    "-xor",
+] as const;
+const REWRITEABLE_ROLES = [
+    "operator",
+    "unknown",
+    "word",
+] as const;
+const SPECIAL_UNKNOWN_SYMBOLS = [
+    ":",
+    "::",
+    "@",
+    "\\",
+] as const;
+const STRUCTURAL_EXPRESSION_TYPES = [
+    "ArrayLiteral",
+    "Hashtable",
+    "ScriptBlock",
+] as const;
 
 /**
  * Indicates the gap-between decision for two adjacent expression parts:
@@ -146,7 +169,7 @@ function getSymbol(node: null | Readonly<ExpressionPartNode>): null | string {
     }
     if (node.type === "Text" && node.role === "unknown") {
         const val = node.value.trim();
-        if (val === "@" || val === "::" || val === ":" || val === "\\") {
+        if (arrayIncludes(SPECIAL_UNKNOWN_SYMBOLS, val)) {
             return val;
         }
     }
@@ -219,9 +242,7 @@ export const powerShellPrinter: Printer<ScriptNode> = {
      * Prettier's `--insert-pragma` / `insertPragma: true` option works for
      * PowerShell files.
      */
-    insertPragma(text: string): string {
-        return `# @format\n${text}`;
-    },
+    insertPragma: (text: string): string => `# @format\n${text}`,
 
     print(path: AstPath<ScriptNode>, options: ParserOptions): Doc {
         const node = safeCastTo<
@@ -239,10 +260,10 @@ export const powerShellPrinter: Printer<ScriptNode> = {
 function appendCommentToLastDoc(
     docs: Doc[],
     printed: Doc,
-    indentStatements: boolean,
+    shouldIndentStatements: boolean,
     options: Readonly<ResolvedOptions>
 ): void {
-    const commentDoc = indentStatements
+    const commentDoc = shouldIndentStatements
         ? indentStatement(printed, options)
         : printed;
     const lastIndex = docs.length - 1;
@@ -363,11 +384,7 @@ function evaluateStructuralSpacing(
             : "space";
     }
 
-    if (
-        current.type === "ScriptBlock" ||
-        current.type === "Hashtable" ||
-        current.type === "ArrayLiteral"
-    ) {
+    if (arrayIncludes(STRUCTURAL_EXPRESSION_TYPES, current.type)) {
         return "space";
     }
 
@@ -443,6 +460,46 @@ function indentStatement(
     return safeCastTo<Doc>([indentUnit, align(indentUnit.length, docToIndent)]);
 }
 
+/**
+ * Heuristic to detect if text appears to be comment prose rather than code.
+ * Uses a minimum length threshold to avoid false positives with short variable
+ * names or keywords that might not have typical syntax markers.
+ */
+function isLikelyCommentText(text: string): boolean {
+    const trimmed = text.trim();
+
+    // Too short to determine reliably
+    if (trimmed.length <= MINIMUM_COMMENT_LENGTH) {
+        return false;
+    }
+
+    // Definitely code if it starts with typical PowerShell syntax
+    if (
+        trimmed.startsWith("$") ||
+        trimmed.startsWith("[") ||
+        trimmed.startsWith("(") ||
+        trimmed.startsWith("{") ||
+        trimmed.startsWith("@")
+    ) {
+        return false;
+    }
+
+    // Likely code if it contains assignment or typical operators
+    if (
+        trimmed.includes("=") ||
+        trimmed.includes("->") ||
+        trimmed.includes("::") ||
+        /\b(?:foreach|function|if|param|while)\b/iv.test(trimmed)
+    ) {
+        return false;
+    }
+
+    // If it contains spaces and looks like natural language, it's likely a comment
+    const hasSpaces = trimmed.includes(" ");
+    const wordCount = (trimmed.match(/\S+/gv) ?? []).length;
+    return hasSpaces && wordCount >= 3;
+}
+
 function isNoGapCurrentPart(
     previous: Readonly<ExpressionPartNode>,
     current: Readonly<ExpressionPartNode>
@@ -490,46 +547,6 @@ function isParamStatement(node: null | Readonly<ScriptBodyNode>): boolean {
         return false;
     }
     return firstPart.value.toLowerCase() === "param";
-}
-
-/**
- * Heuristic to detect if text appears to be comment prose rather than code.
- * Uses a minimum length threshold to avoid false positives with short variable
- * names or keywords that might not have typical syntax markers.
- */
-function looksLikeCommentText(text: string): boolean {
-    const trimmed = text.trim();
-
-    // Too short to determine reliably
-    if (trimmed.length <= MINIMUM_COMMENT_LENGTH) {
-        return false;
-    }
-
-    // Definitely code if it starts with typical PowerShell syntax
-    if (
-        trimmed.startsWith("$") ||
-        trimmed.startsWith("[") ||
-        trimmed.startsWith("(") ||
-        trimmed.startsWith("{") ||
-        trimmed.startsWith("@")
-    ) {
-        return false;
-    }
-
-    // Likely code if it contains assignment or typical operators
-    if (
-        trimmed.includes("=") ||
-        trimmed.includes("->") ||
-        trimmed.includes("::") ||
-        /\b(?:foreach|function|if|param|while)\b/iv.test(trimmed)
-    ) {
-        return false;
-    }
-
-    // If it contains spaces and looks like natural language, it's likely a comment
-    const hasSpaces = trimmed.includes(" ");
-    const wordCount = (trimmed.match(/\S+/gv) ?? []).length;
-    return hasSpaces && wordCount >= 3;
 }
 
 function mergeOperatorPair(
@@ -735,16 +752,12 @@ function printPipeline(
         printExpression(segment, options)
     );
     const firstSegmentDoc = arrayFirst(segmentDocs);
-    let result: Doc = "";
-
-    if (!isEmpty(segmentDocs) && isDefined(firstSegmentDoc)) {
-        result = withPipelineTrailingComment(
-            buildPipelineSegmentsDoc(firstSegmentDoc, segmentDocs),
-            node.trailingComment
-        );
-    }
-
-    return result;
+    return !isEmpty(segmentDocs) && isDefined(firstSegmentDoc)
+        ? withPipelineTrailingComment(
+              buildPipelineSegmentsDoc(firstSegmentDoc, segmentDocs),
+              node.trailingComment
+          )
+        : "";
 }
 
 function printScript(
@@ -792,7 +805,7 @@ function printSpecialExpressionPart(
         part.role === "unknown" &&
         isDefined(previous) &&
         !part.value.trim().startsWith("#") &&
-        looksLikeCommentText(part.value)
+        isLikelyCommentText(part.value)
     ) {
         return { doc: lineSuffix([" # ", part.value.trim()]) };
     }
@@ -817,7 +830,7 @@ function printSpecialExpressionPart(
 function printStatementList(
     body: readonly ScriptBodyNode[],
     options: Readonly<ResolvedOptions>,
-    indentStatements: boolean
+    shouldIndentStatements: boolean
 ): Doc {
     const docs: Doc[] = [];
     let previous: null | ScriptBodyNode = null;
@@ -843,14 +856,19 @@ function printStatementList(
 
         const printed = printNode(entry, options);
         if (shouldAppendCommentToPreviousDoc(entry, previous, docs.length)) {
-            appendCommentToLastDoc(docs, printed, indentStatements, options);
+            appendCommentToLastDoc(
+                docs,
+                printed,
+                shouldIndentStatements,
+                options
+            );
             previous = entry;
             pendingBlankLines = 0;
             continue;
         }
 
         docs.push(
-            indentStatements ? indentStatement(printed, options) : printed
+            shouldIndentStatements ? indentStatement(printed, options) : printed
         );
         previous = entry;
         pendingBlankLines = 0;
@@ -910,10 +928,7 @@ function spacingBeforeParenthesis(
     const prevLower = previous.value.toLowerCase();
     const isLogicalOperator =
         prevLower.startsWith("-") &&
-        (prevLower === "-not" ||
-            prevLower === "-and" ||
-            prevLower === "-or" ||
-            prevLower === "-xor");
+        arrayIncludes(LOGICAL_OPERATORS, prevLower);
 
     return isLogicalOperator ? "space" : "none";
 }
@@ -943,7 +958,7 @@ const KEYWORD_CASE_TRANSFORMS: Record<string, (value: string) => string> = {
         if (value.length === 0) {
             return value;
         }
-        const first = value[0];
+        const first = value.at(0);
         if (!isDefined(first)) {
             return value;
         }
@@ -1073,7 +1088,7 @@ function isCommentExpression(node: Readonly<ExpressionNode>): boolean {
         return true;
     }
 
-    return looksLikeCommentText(trimmed);
+    return isLikelyCommentText(trimmed);
 }
 
 function isPrintableParamElement(
@@ -1107,11 +1122,9 @@ function printArray(
     }
     const groupId = Symbol("array");
 
-    // Build element docs while treating comment-only expressions as trailing
-    // comments on the previous element. This preserves inline comment intent
-    // for constructs like:
-    //   "#000000", # Black
-    // which would otherwise be parsed as two separate elements.
+    // Build element docs while treating comment-only expressions as trailing comments on the previous element.
+    // This preserves inline comment intent for constructs like: "#000000",
+    // # Black which would otherwise be parsed as two separate elements.
     const elementDocs: Doc[] = [];
 
     for (let index = 0; index < node.elements.length; index += 1) {
@@ -1211,22 +1224,16 @@ function printHashtableEntry(
     // Check if the value expression starts with a control flow keyword
     // (if, switch, foreach, etc.) - these should stay on the same line as '='
     const firstPart = arrayFirst(node.value.parts);
-    const startsWithKeyword =
+    const isStartsWithKeyword =
         firstPart?.type === "Text" &&
         firstPart.role === "keyword" &&
         /^(?:for|foreach|if|switch|while)$/iv.test(firstPart.value);
 
-    let entryDoc: Doc = startsWithKeyword
-        ? group([
-              keyDoc,
-              " = ",
-              valueDoc,
-          ])
-        : group([
-              keyDoc,
-              " =",
-              indent([line, valueDoc]),
-          ]);
+    let entryDoc: Doc = group([
+        keyDoc,
+        isStartsWithKeyword ? " = " : " =",
+        isStartsWithKeyword ? valueDoc : indent([line, valueDoc]),
+    ]);
 
     // Add leading comments
     if (node.leadingComments && node.leadingComments.length > 0) {
@@ -1378,12 +1385,12 @@ function printParenthesis(
     }
 
     const hasComma = node.hasComma;
-    const forceMultiline =
+    const isForceMultiline =
         node.hasNewline || (!node.hasComma && elementDocs.length > 1);
     const separator: Doc = hasComma
-        ? [",", forceMultiline ? hardline : line]
+        ? [",", isForceMultiline ? hardline : line]
         : hardline;
-    const hasSoftBreak = hasComma && !forceMultiline;
+    const hasSoftBreak = hasComma && !isForceMultiline;
     const leadingLine: Doc = hasSoftBreak ? line : hardline;
     const trailingLine: Doc = hasSoftBreak ? line : hardline;
 
@@ -1419,12 +1426,7 @@ function printText(
         }
     }
 
-    if (
-        options.rewriteAliases &&
-        (node.role === "word" ||
-            node.role === "operator" ||
-            node.role === "unknown")
-    ) {
+    if (options.rewriteAliases && arrayIncludes(REWRITEABLE_ROLES, node.role)) {
         const aliasKey = value.toLowerCase();
         if (objectHasOwn(CMDLET_ALIAS_MAP, aliasKey)) {
             value = CMDLET_ALIAS_MAP[aliasKey] ?? value;

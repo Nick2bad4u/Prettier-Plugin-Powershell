@@ -3,6 +3,7 @@ import type { ParserOptions } from "prettier";
 import {
     arrayAt,
     arrayFirst,
+    arrayIncludes,
     arrayJoin,
     isDefined,
     isEmpty,
@@ -58,13 +59,38 @@ const FALLBACK_OPERATOR_TOKENS = new Set([
 ]);
 const BLOCK_COMMENT_TOKEN_TYPE = "block-comment";
 const COMMENT_TOKEN_TYPE = "comment";
+const CLOSING_PUNCTUATION_TOKENS = [
+    ")",
+    "]",
+    "}",
+] as const;
+const INLINE_WHITESPACE_CHARACTERS = new Set([
+    " ",
+    "\t",
+    "\f",
+    "\v",
+    "\u{A0}",
+    "\u{FEFF}",
+    "\u{200B}",
+    "\u{2060}",
+]);
+const OPENING_PUNCTUATION_TOKENS = [
+    "(",
+    "[",
+    "{",
+] as const;
+const STATEMENT_BREAK_TERMINATORS = [
+    "closing-brace",
+    "closing-paren",
+    "semicolon",
+] as const;
 
 interface SplitContext<TState> {
     current: Token[];
+    isTopLevel: boolean;
     stack: string[];
     state: TState;
     token: Token;
-    topLevel: boolean;
 }
 
 type SplitDecision = "skip" | undefined;
@@ -82,7 +108,7 @@ interface SplitOptions<TState = Record<string, never>> {
         state: TState,
         // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Segment and segments arrays are mutated by the flush handler
         segments: Token[][],
-        force: boolean
+        shouldForce: boolean
     ) => Token[] | undefined;
     // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Callback receives context with mutable Token array that it may push to
     onToken?: (context: SplitContext<TState>) => SplitDecision;
@@ -109,7 +135,7 @@ function extendNodeLocation(node: { loc: SourceLocation }, end: number): void {
 function isClosingToken(token: Readonly<Token>): boolean {
     return (
         token.type === "punctuation" &&
-        (token.value === "}" || token.value === ")" || token.value === "]")
+        arrayIncludes(CLOSING_PUNCTUATION_TOKENS, token.value)
     );
 }
 
@@ -120,7 +146,7 @@ function isOpeningToken(token: Readonly<Token>): boolean {
 
     return (
         token.type === "punctuation" &&
-        (token.value === "{" || token.value === "(" || token.value === "[")
+        arrayIncludes(OPENING_PUNCTUATION_TOKENS, token.value)
     );
 }
 
@@ -161,23 +187,11 @@ const isInlineSpacing = (
         if (char === "\n" || char === "\r") {
             return false;
         }
-        switch (char) {
-            case " ":
-            case "\t":
-            case "\f":
-            case "\v":
-            case "\u00A0":
-            case "\uFEFF":
-            case "\u200B":
-            case "\u2060": {
-                break;
-            }
-            case undefined: {
-                return false;
-            }
-            default: {
-                return false;
-            }
+        if (!isDefined(char)) {
+            return false;
+        }
+        if (!setHas(INLINE_WHITESPACE_CHARACTERS, char)) {
+            return false;
         }
     }
     return true;
@@ -335,12 +349,12 @@ class Parser {
             return false;
         }
 
-        const closesCurrentBlock =
+        const isClosesCurrentBlock =
             nextToken?.type === "punctuation" && nextToken.value === "}";
-        const belongsToBlock =
-            commentNode.loc.start < lastPart.loc.end || closesCurrentBlock;
+        const isBelongsToBlock =
+            commentNode.loc.start < lastPart.loc.end || isClosesCurrentBlock;
 
-        if (!belongsToBlock) {
+        if (!isBelongsToBlock) {
             return false;
         }
 
@@ -485,11 +499,7 @@ class Parser {
             state.structureStack.length
         );
 
-        if (
-            terminatorType === "semicolon" ||
-            terminatorType === "closing-brace" ||
-            terminatorType === "closing-paren"
-        ) {
+        if (arrayIncludes(STATEMENT_BREAK_TERMINATORS, terminatorType)) {
             return "break";
         }
 
@@ -569,12 +579,12 @@ class Parser {
 
     private createCommentNode(
         token: Readonly<Token>,
-        inline: boolean
+        isInlineArgument: boolean
     ): CommentNode {
         const style =
             token.type === BLOCK_COMMENT_TOKEN_TYPE ? "block" : "line";
         const isInline =
-            style === "line" && inline && this.isInlineComment(token);
+            style === "line" && isInlineArgument && this.isInlineComment(token);
 
         return {
             inline: isInline,
@@ -650,10 +660,7 @@ class Parser {
             if (next.type === COMMENT_TOKEN_TYPE) {
                 return false;
             }
-            if (next.type === "operator" && next.value === "|") {
-                return true;
-            }
-            return false;
+            return next.type === "operator" && next.value === "|";
         }
     }
 
@@ -902,7 +909,7 @@ function buildExpressionFromTokens(
     }
 
     const lastPart = arrayAt(parts, -1);
-    const expressionEnd = lastPart ? lastPart.loc.end : lastToken.end;
+    const expressionEnd = lastPart?.loc.end ?? lastToken.end;
 
     return {
         loc: {
@@ -932,8 +939,8 @@ function findExpressionBoundaryTokens(
     }
 
     return {
-        ...(firstToken ? { firstToken } : {}),
-        ...(lastToken === null ? {} : { lastToken }),
+        ...(firstToken && { firstToken }),
+        ...(lastToken !== null && { lastToken }),
     };
 }
 
@@ -1010,9 +1017,10 @@ function buildHashtableEntry(
     const valueTokens =
         equalsIndex === -1 ? [] : otherTokens.slice(equalsIndex + 1);
     const keyExpression = buildExpressionFromTokens(keyTokens, source);
-    const valueExpression = isEmpty(valueTokens)
-        ? buildExpressionFromTokens([], source)
-        : buildExpressionFromTokens(valueTokens, source);
+    const valueExpression = buildExpressionFromTokens(
+        isEmpty(valueTokens) ? [] : valueTokens,
+        source
+    );
     const key = extractKeyText(keyTokens);
 
     // Calculate start/end based on non-comment tokens like original logic
@@ -1094,11 +1102,11 @@ function buildTrailingCommentNodes(
     let referenceEnd = referenceStart;
 
     for (const token of trailingComments) {
-        const inline =
+        const isInline =
             token.type === COMMENT_TOKEN_TYPE &&
             isInlineSpacing(source, referenceEnd, token.start);
 
-        trailingNodes.push(createCommentNodeFromToken(token, inline));
+        trailingNodes.push(createCommentNodeFromToken(token, isInline));
         referenceEnd = token.end;
     }
 
@@ -1255,10 +1263,10 @@ function consumeElseContinuationPrefix(
 
 function createCommentNodeFromToken(
     token: Readonly<Token>,
-    inline: boolean
+    isInline: boolean
 ): CommentNode {
     return {
-        inline,
+        inline: isInline,
         loc: { end: token.end, start: token.start },
         style: token.type === BLOCK_COMMENT_TOKEN_TYPE ? "block" : "line",
         type: "Comment",
@@ -1341,13 +1349,13 @@ function extractElseContinuation(
 
 function getTopLevelSeparatorDecision<TState>(
     token: Readonly<Token>,
-    topLevel: boolean,
+    isTopLevel: boolean,
     // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Split callbacks intentionally rely on mutable context contracts
     context: SplitContext<TState>,
     // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Split callbacks intentionally rely on mutable option callback signatures
     options: SplitOptions<TState>
 ): "consume" | "flush" | "none" {
-    if (!topLevel) {
+    if (!isTopLevel) {
         return "none";
     }
 
@@ -1543,14 +1551,14 @@ function partitionHashtableEntryTokens(
     const trailingComments: Token[] = [];
     const otherTokens: Token[] = [];
     let equalsIndex = -1;
-    let foundEquals = false;
+    let isFoundEquals = false;
 
     for (const token of tokens) {
         if (
             token.type === COMMENT_TOKEN_TYPE ||
             token.type === BLOCK_COMMENT_TOKEN_TYPE
         ) {
-            if (foundEquals) {
+            if (isFoundEquals) {
                 trailingComments.push(token);
             } else {
                 leadingComments.push(token);
@@ -1558,9 +1566,13 @@ function partitionHashtableEntryTokens(
             continue;
         }
 
-        if (token.type === "operator" && token.value === "=" && !foundEquals) {
+        if (
+            token.type === "operator" &&
+            token.value === "=" &&
+            !isFoundEquals
+        ) {
             equalsIndex = otherTokens.length;
-            foundEquals = true;
+            isFoundEquals = true;
         }
         otherTokens.push(token);
     }
@@ -1631,8 +1643,12 @@ function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
         }),
         delimiterValues: [";"],
         onAfterAddToken: (context) => {
-            const { state, token, topLevel } = context;
-            if (topLevel && token.type === "operator" && token.value === "=") {
+            const { isTopLevel, state, token } = context;
+            if (
+                isTopLevel &&
+                token.type === "operator" &&
+                token.value === "="
+            ) {
                 state.hasEquals = true;
                 state.justSawEquals = true;
                 return;
@@ -1646,10 +1662,12 @@ function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
             }
         },
         onBeforeAddToken: (context) => {
-            if (context.state.pendingComments.length > 0) {
-                context.current.push(...context.state.pendingComments);
-                context.state.pendingComments = [];
+            if (isEmpty(context.state.pendingComments)) {
+                return;
             }
+
+            context.current.push(...context.state.pendingComments);
+            context.state.pendingComments = [];
         },
         onFlush: (segment, state, segments) => {
             if (state.pendingComments.length > 0) {
@@ -1741,11 +1759,16 @@ function splitTopLevelTokens<TState = Record<string, never>>(
         : // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- default state is only used when callers do not supply typed state
           ({} as TState);
 
-    const flush = (force = false) => {
-        if (!force && isEmpty(current)) {
+    const flush = (shouldForce = false) => {
+        if (!shouldForce && isEmpty(current)) {
             return;
         }
-        const maybeSegment = options.onFlush?.(current, state, result, force);
+        const maybeSegment = options.onFlush?.(
+            current,
+            state,
+            result,
+            shouldForce
+        );
         const segment = maybeSegment ?? current;
         if (segment.length > 0) {
             result.push(segment);
@@ -1754,18 +1777,18 @@ function splitTopLevelTokens<TState = Record<string, never>>(
     };
 
     for (const token of tokens) {
-        const topLevel = isEmpty(stack);
+        const isTopLevel = isEmpty(stack);
         const context: SplitContext<TState> = {
             current,
+            isTopLevel,
             stack,
             state,
             token,
-            topLevel,
         };
 
         const separatorDecision = getTopLevelSeparatorDecision(
             token,
-            topLevel,
+            isTopLevel,
             context,
             options
         );
@@ -1788,10 +1811,10 @@ function splitTopLevelTokens<TState = Record<string, never>>(
 
         options.onAfterAddToken?.({
             current,
+            isTopLevel: isEmpty(stack),
             stack,
             state,
             token,
-            topLevel: isEmpty(stack),
         });
     }
 

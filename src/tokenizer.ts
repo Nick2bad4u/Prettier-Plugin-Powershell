@@ -238,10 +238,10 @@ const isWhitespaceCharacter = (ch: string): boolean => {
         case "\t":
         case "\f":
         case "\v":
-        case "\u00A0":
-        case "\uFEFF":
-        case "\u200B":
-        case "\u2060": {
+        case "\u{A0}":
+        case "\u{FEFF}":
+        case "\u{200B}":
+        case "\u{2060}": {
             return true;
         }
         default: {
@@ -327,23 +327,23 @@ const readHereStringEnd = (source: string, startIndex: number): number => {
     let scanIndex = startIndex + 2;
 
     while (scanIndex < source.length) {
-        const maybeClosing =
+        const isMaybeClosing =
             scanIndex + 1 < source.length &&
             source[scanIndex] === quoteChar &&
             source[scanIndex + 1] === "@";
 
-        if (!maybeClosing) {
+        if (!isMaybeClosing) {
             scanIndex += 1;
             continue;
         }
 
         const prevChar = source[scanIndex - 1];
         const prevPrev = source[scanIndex - 2];
-        const atImmediateClosing = scanIndex === startIndex + 2;
-        const atUnixLineStart = prevChar === "\n";
-        const atWindowsLineStart = prevChar === "\n" && prevPrev === "\r";
+        const isAtImmediateClosing = scanIndex === startIndex + 2;
+        const isAtUnixLineStart = prevChar === "\n";
+        const isAtWindowsLineStart = prevChar === "\n" && prevPrev === "\r";
 
-        if (atImmediateClosing || atUnixLineStart || atWindowsLineStart) {
+        if (isAtImmediateClosing || isAtUnixLineStart || isAtWindowsLineStart) {
             return scanIndex + 2;
         }
 
@@ -362,13 +362,13 @@ const readQuotedString = (
     quoteChar: string
 ): number => {
     let scanIndex = startIndex;
-    let escaped = false;
+    let isEscaped = false;
     while (scanIndex < length) {
         const current = source[scanIndex];
-        if (escaped) {
-            escaped = false;
+        if (isEscaped) {
+            isEscaped = false;
         } else if (current === "`") {
-            escaped = true;
+            isEscaped = true;
         } else if (current === quoteChar) {
             if (scanIndex + 1 < length && source[scanIndex + 1] === quoteChar) {
                 scanIndex += 2;
@@ -456,8 +456,17 @@ const consumeVariableToken = (
     let scanIndex = startPosition + 1;
 
     if (scanIndex < length) {
-        const nextChar = source[scanIndex];
-        if (nextChar === "$" || nextChar === "^" || nextChar === "?") {
+        const nextChar = source.charAt(scanIndex);
+        if (
+            arrayIncludes(
+                [
+                    "$",
+                    "?",
+                    "^",
+                ],
+                nextChar
+            )
+        ) {
             return scanIndex + 1;
         }
 
@@ -590,10 +599,10 @@ const consumeNumberToken = (
         return parseBinaryLiteral(source, length, startPosition);
     }
 
-    let scanIndex =
-        hasRadixPrefix && (secondChar === "x" || secondChar === "X")
-            ? parseHexLiteral(source, length, startPosition)
-            : parseDecimalLiteral(source, length, startPosition);
+    let scanIndex = parseDecimalLiteral(source, length, startPosition);
+    if (hasRadixPrefix && arrayIncludes(["X", "x"], secondChar)) {
+        scanIndex = parseHexLiteral(source, length, startPosition);
+    }
 
     if (scanIndex + 1 < length) {
         const suffix = source.slice(scanIndex, scanIndex + 2).toUpperCase();
@@ -878,7 +887,7 @@ const consumePipeOrEqualsToken = (
     let value = char;
     if (source.charAt(index + 1) === char) {
         end = index + 2;
-        value = `${value}${char}`;
+        value += char;
     }
 
     push({ end, start: index, type: "operator", value });
@@ -912,7 +921,7 @@ const consumeAngleRedirectionToken = (
     let value = char;
     let end = index + 1;
     if (source.charAt(index + 1) === char) {
-        value = `${value}${char}`;
+        value += char;
         end = index + 2;
     }
 

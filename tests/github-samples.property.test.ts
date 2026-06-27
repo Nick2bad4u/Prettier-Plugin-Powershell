@@ -52,7 +52,8 @@ const PROPERTY_RUNS = Number.parseInt(
 );
 const ENABLE_GITHUB_SAMPLES =
     testEnv["POWERSHELL_ENABLE_GITHUB_SAMPLES"] === "1";
-const CACHE_GITHUB_SAMPLES = testEnv["POWERSHELL_CACHE_GITHUB_SAMPLES"] === "1";
+const IS_CACHE_GITHUB_SAMPLES =
+    testEnv["POWERSHELL_CACHE_GITHUB_SAMPLES"] === "1";
 const GITHUB_QUERY =
     testEnv["POWERSHELL_GITHUB_QUERY"] ??
     "extension:ps1 language:PowerShell size:1000..50000";
@@ -134,7 +135,7 @@ const readUtf8IfNonEmpty = (absolutePath: string): null | string => {
 };
 
 const loadFromCache = (identifier: string): null | string => {
-    if (!CACHE_GITHUB_SAMPLES) {
+    if (!IS_CACHE_GITHUB_SAMPLES) {
         return null;
     }
 
@@ -148,7 +149,7 @@ const loadFromCache = (identifier: string): null | string => {
 };
 
 const saveToCache = (identifier: string, content: string): void => {
-    if (!CACHE_GITHUB_SAMPLES) {
+    if (!IS_CACHE_GITHUB_SAMPLES) {
         return;
     }
 
@@ -285,7 +286,7 @@ const loadCachedSamples = (
     samples: Readonly<SampleCollection>,
     limit: number
 ): void => {
-    if (!CACHE_GITHUB_SAMPLES || !existsSync(cacheDir)) {
+    if (!IS_CACHE_GITHUB_SAMPLES || !existsSync(cacheDir)) {
         return;
     }
 

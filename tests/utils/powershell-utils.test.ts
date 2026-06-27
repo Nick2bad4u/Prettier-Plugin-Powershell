@@ -30,6 +30,7 @@ class MockProcess extends EventTarget {
         (...detail: readonly unknown[]) => void,
         (event: Readonly<Event>) => void
     >();
+    private responseIndex = 0;
     private readonly responses: MockResponse[];
     private totalLength = 0;
 
@@ -163,9 +164,10 @@ class MockProcess extends EventTarget {
             return;
         }
 
-        const response = this.responses.shift() ?? {
+        const response = this.responses[this.responseIndex] ?? {
             type: "OK" as const,
         };
+        this.responseIndex += 1;
         this.scheduleResponse(response);
     }
 

@@ -134,7 +134,7 @@ describe("tokenizer edge cases", () => {
     it("treats zero-width and NBSP characters as whitespace", () => {
         expect.hasAssertions();
 
-        const script = `function\u200BFoo { $x\u00A0= 1\u200B}\uFEFF`;
+        const script = "function\u{200B}Foo { $x\u{A0}= 1\u{200B}}\u{FEFF}";
         const tokens = tokenize(script);
 
         const keyword = tokens.find((t) => t.type === "keyword");

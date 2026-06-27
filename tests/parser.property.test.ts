@@ -14,10 +14,10 @@ import { isPowerShellParsable } from "./utils/powershell.js";
 import { withProgress } from "./utils/progress.js";
 
 const PROPERTY_RUNS = Number.parseInt(
-    globalThis.process.env["POWERSHELL_PROPERTY_RUNS"] ?? "150",
+    process.env["POWERSHELL_PROPERTY_RUNS"] ?? "150",
     10
 );
-const isCI = globalThis.process.env["CI"] === "true";
+const isCI = process.env["CI"] === "true";
 
 const prettierConfig: Options = {
     filepath: "property.ps1",

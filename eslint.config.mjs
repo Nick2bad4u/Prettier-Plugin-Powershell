@@ -30,6 +30,62 @@ const config = [
         },
     },
 
+    // Parser public methods are grouped for the TypeScript member-ordering rule;
+    // Unicorn's class-order rule conflicts with that ordering for this class.
+    {
+        files: ["src/parser.ts"],
+        rules: {
+            "unicorn/consistent-class-member-order": "off",
+        },
+    },
+
+    // Property tests intentionally build deeply nested Fast-Check arbitraries,
+    // parse integer environment knobs, and exercise edge runtime state.
+    {
+        files: [
+            "tests/**/*.ts",
+            "tests/property/**/*.ts",
+            "vitest.config.ts",
+        ],
+        rules: {
+            "n/no-process-env": "off",
+            "unicorn/max-nested-calls": "off",
+            "unicorn/prefer-number-coercion": "off",
+            "unicorn/prefer-number-is-safe-integer": "off",
+            "unicorn/try-complexity": "off",
+        },
+    },
+
+    // The PowerShell validation helper owns a persistent child process and
+    // module-level counters by design so property tests can amortize parser
+    // startup cost.
+    {
+        files: ["tests/utils/powershell.ts"],
+        rules: {
+            "unicorn/no-top-level-assignment-in-function": "off",
+            "unicorn/no-top-level-side-effects": "off",
+            "unicorn/prefer-top-level-await": "off",
+        },
+    },
+
+    // Error tests deliberately probe Node's non-standard stack-capture API.
+    {
+        files: ["tests/errors.detailed.test.ts"],
+        rules: {
+            "unicorn/no-nonstandard-builtin-properties": "off",
+        },
+    },
+
+    // The mock child process mirrors Node EventEmitter and stream state rather
+    // than a production domain model, so production class-order preferences do
+    // not improve readability here.
+    {
+        files: ["tests/utils/powershell-utils.test.ts"],
+        rules: {
+            "unicorn/consistent-class-member-order": "off",
+        },
+    },
+
     // Standalone benchmark/profile scripts are intentionally lightweight runtime
     // tooling; strict TS-only linting rules are noisy and not actionable here.
     {

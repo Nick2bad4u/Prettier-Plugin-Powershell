@@ -15,14 +15,12 @@ const resolveChecksRemaining = (): number => {
     }
 
     if (maxChecksEnv === undefined) {
-        return Number.POSITIVE_INFINITY;
+        return Infinity;
     }
 
     const parsed = Number.parseInt(maxChecksEnv, 10);
 
-    return Number.isNaN(parsed) || parsed < 0
-        ? Number.POSITIVE_INFINITY
-        : parsed;
+    return Number.isNaN(parsed) || parsed < 0 ? Infinity : parsed;
 };
 
 let checksRemaining = resolveChecksRemaining();
@@ -63,7 +61,7 @@ const shouldRunValidation = (): boolean => {
     if (!shouldVerify) {
         return false;
     }
-    if (checksRemaining === Number.POSITIVE_INFINITY) {
+    if (checksRemaining === Infinity) {
         return true;
     }
     if (checksRemaining > 0) {
@@ -314,7 +312,7 @@ const runPowerShellParser = async (
         totalInvocations += 1;
         if (shouldTrace) {
             const remaining =
-                checksRemaining === Number.POSITIVE_INFINITY
+                checksRemaining === Infinity
                     ? "inf"
                     : checksRemaining.toString();
             console.log(

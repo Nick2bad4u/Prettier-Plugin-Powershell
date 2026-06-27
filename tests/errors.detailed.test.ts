@@ -153,10 +153,10 @@ describe("error and warning classes", () => {
             const error = new PowerShellParseError("Error", "test", 1, 1, 1);
             const hasCaptureStackTrace =
                 typeof Error.captureStackTrace === "function";
-            const stackExpectationMet =
+            const isStackExpectationMet =
                 !hasCaptureStackTrace || error.stack !== undefined;
 
-            expect(stackExpectationMet).toBe(true);
+            expect(isStackExpectationMet).toBe(true);
         });
 
         it("constructs correctly when Error.captureStackTrace is unavailable", () => {

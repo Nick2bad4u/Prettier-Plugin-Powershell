@@ -346,7 +346,7 @@ export function resolveOptions(
             "powershellTrailingComma",
             TRAILING_COMMA_OPTIONS
         ) ?? "none";
-    const sortHashtableKeys = Boolean(options["powershellSortHashtableKeys"]);
+    const isSortHashtableKeys = Boolean(options["powershellSortHashtableKeys"]);
     const rawBlankLines = Number(
         options["powershellBlankLinesBetweenFunctions"] ?? 1
     );
@@ -355,11 +355,8 @@ export function resolveOptions(
         0,
         Math.min(3, Math.floor(normalizedBlankLines))
     );
-    let blankLineAfterParam = true;
-    /* c8 ignore next */
-    if (options["powershellBlankLineAfterParam"] === false) {
-        blankLineAfterParam = false;
-    }
+    const isBlankLineAfterParam =
+        options["powershellBlankLineAfterParam"] !== false;
     const braceStyle =
         readChoiceOption(
             options,
@@ -370,32 +367,32 @@ export function resolveOptions(
         40,
         Math.min(200, Number(options["powershellLineWidth"] ?? 120))
     );
-    const preferSingleQuote = options["powershellPreferSingleQuote"] === true;
+    const isPreferSingleQuote = options["powershellPreferSingleQuote"] === true;
     const keywordCase =
         readChoiceOption(
             options,
             "powershellKeywordCase",
             KEYWORD_CASE_OPTIONS
         ) ?? "lower";
-    const rewriteAliases = options["powershellRewriteAliases"] === true;
-    const rewriteWriteHost = options["powershellRewriteWriteHost"] === true;
+    const isRewriteAliases = options["powershellRewriteAliases"] === true;
+    const isRewriteWriteHost = options["powershellRewriteWriteHost"] === true;
 
     if (!options.printWidth || options.printWidth > lineWidth) {
         mutableOptions.printWidth = lineWidth;
     }
 
     return {
-        blankLineAfterParam,
+        blankLineAfterParam: isBlankLineAfterParam,
         blankLinesBetweenFunctions,
         braceStyle,
         indentSize,
         indentStyle,
         keywordCase,
         lineWidth,
-        preferSingleQuote,
-        rewriteAliases,
-        rewriteWriteHost,
-        sortHashtableKeys,
+        preferSingleQuote: isPreferSingleQuote,
+        rewriteAliases: isRewriteAliases,
+        rewriteWriteHost: isRewriteWriteHost,
+        sortHashtableKeys: isSortHashtableKeys,
         trailingComma,
     } satisfies ResolvedOptions;
 }

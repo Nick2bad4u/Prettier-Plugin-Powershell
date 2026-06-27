@@ -118,24 +118,23 @@ const parserUtils = parserTestUtils as unknown as ParserTestUtils;
 
 const { hardline, line } = prettier.doc.builders;
 
-const containsFragment = (value: unknown, fragment: unknown): boolean => {
+const hasFragment = (value: unknown, fragment: unknown): boolean => {
     if (value === fragment) {
         return true;
     }
     if (Array.isArray(value)) {
-        return value.some((part) => containsFragment(part, fragment));
+        return value.some((part) => hasFragment(part, fragment));
     }
     if (typeof value === "object" && value !== null) {
         return Object.values(value as Record<string, unknown>).some((child) =>
-            containsFragment(child, fragment)
+            hasFragment(child, fragment)
         );
     }
     return false;
 };
 
-const containsHardline = (value: unknown): boolean =>
-    containsFragment(value, hardline);
-const containsLine = (value: unknown): boolean => containsFragment(value, line);
+const hasHardline = (value: unknown): boolean => hasFragment(value, hardline);
+const hasLine = (value: unknown): boolean => hasFragment(value, line);
 
 const makeTextNode = (value: string, role: TokenRole = "word"): TextNode => ({
     loc: { end: value.length, start: 0 },
@@ -185,11 +184,11 @@ describe("ast runtime helpers", () => {
 
         expect(createLocation(-4, 6)).toStrictEqual({ end: 6, start: 0 });
         expect(createLocation(10, 3)).toStrictEqual({ end: 10, start: 10 });
-        expect(createLocation(5.9, Number.NaN)).toStrictEqual({
+        expect(createLocation(5.9, NaN)).toStrictEqual({
             end: 5,
             start: 5,
         });
-        expect(createLocation(Number.POSITIVE_INFINITY, 15)).toStrictEqual({
+        expect(createLocation(Infinity, 15)).toStrictEqual({
             end: 15,
             start: 0,
         });
@@ -337,8 +336,8 @@ describe("resolveOptions advanced coverage", () => {
         expect(cascade.indentSize).toBe(6);
 
         Reflect.deleteProperty(options, "tabWidth");
-        options.powershellIndentSize = Number.NaN;
-        options.powershellBlankLinesBetweenFunctions = Number.NaN;
+        options.powershellIndentSize = NaN;
+        options.powershellBlankLinesBetweenFunctions = NaN;
 
         const defaulted = resolveOptions(options);
 
@@ -1304,7 +1303,7 @@ describe("printer internal helpers", () => {
 
         const doc = printParamParenthesis(node, resolvedOptions);
 
-        expect(containsFragment(doc, "# explicit comment")).toBe(true);
+        expect(hasFragment(doc, "# explicit comment")).toBe(true);
     });
 
     it("printParamParenthesis synthesizes comment markers for prose-like comment expressions", () => {
@@ -1322,7 +1321,7 @@ describe("printer internal helpers", () => {
 
         const doc = printParamParenthesis(node, resolvedOptions);
 
-        expect(containsFragment(doc, `# ${proseComment}`)).toBe(true);
+        expect(hasFragment(doc, `# ${proseComment}`)).toBe(true);
     });
 
     it("printParenthesis forces multiline output when newline metadata is present", () => {
@@ -1337,7 +1336,7 @@ describe("printer internal helpers", () => {
         );
         const doc = printerTestUtils.printNode(node, resolvedOptions);
 
-        expect(containsHardline(doc)).toBe(true);
+        expect(hasHardline(doc)).toBe(true);
     });
 
     it("printParenthesis forces multiline when multiple elements lack commas", () => {
@@ -1352,7 +1351,7 @@ describe("printer internal helpers", () => {
         );
         const doc = printerTestUtils.printNode(node, resolvedOptions);
 
-        expect(containsHardline(doc)).toBe(true);
+        expect(hasHardline(doc)).toBe(true);
     });
 
     it("printParenthesis uses inline separators when comma metadata is present", () => {
@@ -1367,8 +1366,8 @@ describe("printer internal helpers", () => {
         );
         const doc = printerTestUtils.printNode(node, resolvedOptions);
 
-        expect(containsHardline(doc)).toBe(false);
-        expect(containsLine(doc)).toBe(true);
+        expect(hasHardline(doc)).toBe(false);
+        expect(hasLine(doc)).toBe(true);
     });
 
     it("printParenthesis combines commas with hardline separators when multiline", () => {
@@ -1383,7 +1382,7 @@ describe("printer internal helpers", () => {
         );
         const doc = printerTestUtils.printNode(node, resolvedOptions);
 
-        expect(containsHardline(doc)).toBe(true);
+        expect(hasHardline(doc)).toBe(true);
     });
 
     it("trailingCommaDoc respects trailing comma settings", () => {

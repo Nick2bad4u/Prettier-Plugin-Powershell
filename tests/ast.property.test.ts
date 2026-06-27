@@ -191,13 +191,10 @@ describe("abstract syntax tree property-based tests", () => {
             expect(() => {
                 fc.assert(
                     fc.property(
-                        fc.constantFrom(Number.NaN, Infinity, -Infinity),
-                        fc.option(
-                            fc.constantFrom(Number.NaN, Infinity, -Infinity),
-                            {
-                                nil: undefined,
-                            }
-                        ),
+                        fc.constantFrom(NaN, Infinity, -Infinity),
+                        fc.option(fc.constantFrom(NaN, Infinity, -Infinity), {
+                            nil: undefined,
+                        }),
                         (start, end) => {
                             const loc =
                                 end === undefined
@@ -450,12 +447,13 @@ describe("abstract syntax tree property-based tests", () => {
                         fc.integer({ max: 10_000, min: 0 }),
                         (a, b) => {
                             const loc1 = createLocation(a, b);
-                            const loc2 = createLocation(b, a);
 
                             // Both should be valid
                             if (loc1.end < loc1.start) {
                                 throw new Error("Location 1 invalid");
                             }
+
+                            const loc2 = createLocation(b, a);
                             if (loc2.end < loc2.start) {
                                 throw new Error("Location 2 invalid");
                             }

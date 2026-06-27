@@ -62,14 +62,14 @@ export async function formatAndAssertRoundTrip(
 ): Promise<string> {
     const resolvedOptions = resolveFormatAndAssertOptions(opts);
     const firstPassOptions: FormatAndAssertOptions = {
-        ...(resolvedOptions.id === undefined ? {} : { id: resolvedOptions.id }),
+        ...(resolvedOptions.id !== undefined && { id: resolvedOptions.id }),
         skipParse: resolvedOptions.skipParse,
     };
     const formatted1 = await formatAndAssert(script, options, firstPassOptions);
     const secondPassOptions: FormatAndAssertOptions = {
-        ...(resolvedOptions.id === undefined
-            ? {}
-            : { id: `${resolvedOptions.id}.second` }),
+        ...(resolvedOptions.id !== undefined && {
+            id: `${resolvedOptions.id}.second`,
+        }),
         skipParse: resolvedOptions.skipParse,
     };
     const formatted2 = await formatAndAssert(

@@ -2,7 +2,7 @@ import { coverageConfigDefaults, defineConfig } from "vitest/config";
 
 const vitestConfig: ReturnType<typeof defineConfig> = defineConfig(() => {
     const timeoutSetting = Number.parseInt(
-        globalThis.process.env["POWERSHELL_TEST_TIMEOUT_MS"] ?? "120000",
+        process.env["POWERSHELL_TEST_TIMEOUT_MS"] ?? "120000",
         10
     );
     const testTimeout =
@@ -14,12 +14,9 @@ const vitestConfig: ReturnType<typeof defineConfig> = defineConfig(() => {
     // maxWorkers replaces poolOptions.threads.maxThreads (and singleThread: true
     // is now expressed as maxWorkers: 1).  minWorkers and useAtomics were removed.
     const maxWorkers =
-        globalThis.process.env["CI"] === "true"
+        process.env["CI"] === "true"
             ? 1
-            : Math.max(
-                  16,
-                  Number(globalThis.process.env["MAX_THREADS"] ?? "4")
-              );
+            : Math.max(16, Number(process.env["MAX_THREADS"] ?? "4"));
 
     return {
         test: {

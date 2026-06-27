@@ -40,6 +40,7 @@ export class PowerShellParseError extends Error {
     /**
      * Initializes a parse error with location details.
      */
+    /* eslint-disable unicorn/custom-error-definition -- Keep the established public constructor shape; callers pass source location metadata as positional arguments. */
     public constructor(
         message: string,
         source: string,
@@ -54,6 +55,7 @@ export class PowerShellParseError extends Error {
         this.line = line;
         this.column = column;
     }
+    /* eslint-enable unicorn/custom-error-definition -- Restore rule after the positional public constructor. */
 
     /**
      * Gets a snippet of source text around the failing line.

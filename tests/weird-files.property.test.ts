@@ -13,7 +13,7 @@ import {
 import { withProgress } from "./utils/progress.js";
 
 const PROPERTY_RUNS = Number.parseInt(
-    globalThis.process.env["POWERSHELL_PROPERTY_RUNS"] ?? "100",
+    process.env["POWERSHELL_PROPERTY_RUNS"] ?? "100",
     10
 );
 
@@ -52,14 +52,14 @@ describe("weird PowerShell file property tests", () => {
         });
 
         // Known issue: BOM followed immediately by certain syntax confuses PowerShell
-        const formattedHasBOMIssue =
-            formatted.startsWith("\uFEFF") &&
+        const isFormattedHasBOMIssue =
+            formatted.startsWith("\u{FEFF}") &&
             formatted.length > 1 &&
             formatted[1] !== "\n" &&
             formatted[1] !== "\r";
 
         // Now validate if it's parseable (unless we know it has the BOM issue)
-        if (isValidPowerShell && !formattedHasBOMIssue) {
+        if (isValidPowerShell && !isFormattedHasBOMIssue) {
             await assertPowerShellParses(formatted, "weirdFiles.formatted");
         }
 
@@ -75,7 +75,7 @@ describe("weird PowerShell file property tests", () => {
             prettierConfig,
             {
                 id: "weirdFiles.formattedAgain",
-                skipParse: !isValidPowerShell || formattedHasBOMIssue,
+                skipParse: !isValidPowerShell || isFormattedHasBOMIssue,
             }
         );
         if (formattedAgain !== formatted) {
@@ -108,7 +108,7 @@ describe("weird PowerShell file property tests", () => {
                                     tracker.advance();
                                     const parts: string[] = [];
                                     if (includeBom) {
-                                        parts.push("\uFEFF");
+                                        parts.push("\u{FEFF}");
                                     }
                                     if (shebang) {
                                         parts.push(shebang);
@@ -247,10 +247,10 @@ describe("weird PowerShell file property tests", () => {
         const weirdWhitespace = fc
             .array(
                 fc.constantFrom(
-                    "\u00A0",
-                    "\u2003",
-                    "\u2009",
-                    "\u202F",
+                    "\u{A0}",
+                    "\u{2003}",
+                    "\u{2009}",
+                    "\u{202F}",
                     "\t",
                     " "
                 ),

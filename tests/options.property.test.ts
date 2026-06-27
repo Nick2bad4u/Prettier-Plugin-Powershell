@@ -343,9 +343,9 @@ describe("options property-based tests", () => {
 
                 resolveOptions(options);
 
-                const expectedUseTabs = indentStyle === "tabs";
+                const isExpectedUseTabs = indentStyle === "tabs";
 
-                expect(options.useTabs).toBe(expectedUseTabs);
+                expect(options.useTabs).toBe(isExpectedUseTabs);
             }),
             { numRuns: PROPERTY_RUNS }
         );

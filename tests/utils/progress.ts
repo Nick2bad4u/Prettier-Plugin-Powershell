@@ -1,8 +1,7 @@
-const progressEnabled =
-    globalThis.process.env["POWERSHELL_PROPERTY_PROGRESS"] === "1";
+const isProgressEnabled = process.env["POWERSHELL_PROPERTY_PROGRESS"] === "1";
 
 const defaultInterval = Number.parseInt(
-    globalThis.process.env["POWERSHELL_PROPERTY_PROGRESS_INTERVAL"] ?? "50",
+    process.env["POWERSHELL_PROPERTY_PROGRESS_INTERVAL"] ?? "50",
     10
 );
 
@@ -23,7 +22,7 @@ export const createProgressTracker = (
     let count = 0;
 
     const emit = (message: string): void => {
-        if (!progressEnabled) {
+        if (!isProgressEnabled) {
             return;
         }
         console.log(`[progress] ${name} ${message}`);
@@ -32,7 +31,7 @@ export const createProgressTracker = (
     return {
         advance: () => {
             count += 1;
-            if (!progressEnabled) {
+            if (!isProgressEnabled) {
                 return count;
             }
             const shouldLog =

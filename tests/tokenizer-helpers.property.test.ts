@@ -5,7 +5,7 @@ import { createLocation, type HereStringNode } from "../src/ast.js";
 import { normalizeHereString } from "../src/tokenizer.js";
 
 const PROPERTY_RUNS = Number.parseInt(
-    globalThis.process.env["POWERSHELL_PROPERTY_RUNS"] ?? "100",
+    process.env["POWERSHELL_PROPERTY_RUNS"] ?? "100",
     10
 );
 

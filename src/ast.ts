@@ -125,10 +125,7 @@ export interface ScriptBlockNode extends BaseNode {
  * Node union allowed in script and script-block bodies.
  */
 export type ScriptBodyNode =
-    | BlankLineNode
-    | CommentNode
-    | FunctionDeclarationNode
-    | PipelineNode;
+    BlankLineNode | CommentNode | FunctionDeclarationNode | PipelineNode;
 
 /**
  * Script root node.
