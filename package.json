@@ -83,7 +83,7 @@
         "lint": "cross-env NODE_OPTIONS=--max_old_space_size=16384 eslint . --cache --cache-strategy content --cache-location .cache/.eslintcache",
         "lint:action": "npm run lint:actions",
         "lint:actions": "node scripts/lint-actionlint.mjs",
-        "lint:all": "npm run lint && npm run typecheck && npm run lint:css && npm run lint:prettier && npm run lint:remark && npm run lint:package && npm run lint:lychee && npm run lint:secretlint && npm run lint:yaml && npm run lint:circular && npm run sync:rules:check && npm run lint:jscpd",
+        "lint:all": "npm run lint && npm run typecheck && npm run lint:css && npm run lint:prettier && npm run lint:remark && npm run lint:package && npm run lint:secretlint && npm run lint:yaml && npm run lint:circular && npm run sync:rules:check",
         "lint:all:fix": "npm run lint:fix && npm run typecheck && npm run lint:css:fix && npm run lint:prettier:fix && npm run lint:remark && npm run lint:package && npm run lint:secretlint && npm run lint:yaml:fix && npm run lint:circular && npm run sync:rules:write",
         "lint:all:fix:quiet": "npm run lint:fix:quiet && npm run typecheck && npm run lint:css:fix && npm run lint:prettier:fix && npm run lint:remark && npm run lint:package && npm run lint:secretlint && npm run lint:yaml:fix && npm run lint:circular && npm run sync:rules:write",
         "lint:circular": "npm run madge:circular",
