@@ -192,3 +192,5 @@ lint*.txt
 temp/
 !**/.gitkeep
 test-report.junit.xml
+.lychee.report.md
+.lycheecache
