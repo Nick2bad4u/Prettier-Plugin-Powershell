@@ -227,15 +227,13 @@ const monitorPersistentProcessStderr = async (
     }
 };
 
-const cleanupPersistentProcessOnExit = async (): Promise<void> => {
-    await once(process, "exit");
-
+const cleanupPersistentProcessOnExit = (): void => {
     if (persistentProcess) {
         persistentProcess.kill();
     }
 };
 
-void cleanupPersistentProcessOnExit();
+process.once("exit", cleanupPersistentProcessOnExit);
 
 function initPersistentProcess(): void {
     if (persistentProcess) {
