@@ -305,7 +305,10 @@ class Parser {
     private appendScriptNode(
         // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- ScriptBodyNode array is intentionally mutated while parsing
         body: ScriptBodyNode[],
-        node: null | Readonly<ScriptBodyNode> | undefined
+        node:
+            | null
+            | Readonly<ScriptBodyNode>
+            | undefined
     ): void {
         if (!isPresent(node)) {
             return;
@@ -493,7 +496,10 @@ class Parser {
         token: Readonly<Token>,
         // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Parser state is intentionally mutated during statement consumption
         state: StatementParseState
-    ): "break" | "continue" | "none" {
+    ):
+        | "break"
+        | "continue"
+        | "none" {
         const terminatorType = classifyStatementTerminator(
             token,
             state.structureStack.length
@@ -1163,7 +1169,12 @@ function captureElseContinuationTokens(
 function classifyStatementTerminator(
     token: Readonly<Token> | undefined,
     structureDepth: number
-): "closing-brace" | "closing-paren" | "newline" | "semicolon" | null {
+):
+    | "closing-brace"
+    | "closing-paren"
+    | "newline"
+    | "semicolon"
+    | null {
     if (!isDefined(token)) {
         return null;
     }
@@ -1354,7 +1365,10 @@ function getTopLevelSeparatorDecision<TState>(
     context: SplitContext<TState>,
     // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Split callbacks intentionally rely on mutable option callback signatures
     options: SplitOptions<TState>
-): "consume" | "flush" | "none" {
+):
+    | "consume"
+    | "flush"
+    | "none" {
     if (!isTopLevel) {
         return "none";
     }

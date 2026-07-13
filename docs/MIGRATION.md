@@ -9,8 +9,12 @@ This guide helps you migrate from other PowerShell formatters to prettier-plugin
 - [From Manual Formatting](#from-manual-formatting)
 - [Configuration Mapping](#configuration-mapping)
 - [Common Issues](#common-issues)
-
----
+- [Gradual Migration Strategy](#gradual-migration-strategy)
+- [Pre-commit Hook Setup](#pre-commit-hook-setup)
+- [CI Integration](#ci-integration)
+- [Verification Checklist](#verification-checklist)
+- [Getting Help](#getting-help)
+- [Rollback Plan](#rollback-plan)
 
 ## From PSScriptAnalyzer
 
@@ -221,7 +225,7 @@ prettier --write "src/**/*.ps1"
 
 **Other Formatters**:
 
-- K&R / "Same Line" / "OpenBraceOnSameLine"
+- K\&R / "Same Line" / "OpenBraceOnSameLine"
 
 **Prettier**:
 

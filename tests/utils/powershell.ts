@@ -168,10 +168,9 @@ const monitorPersistentProcessError = async (
         console.error("[powershell-syntax] Process error:", error);
     }
 
-    const message =
-        error instanceof Error
-            ? `PowerShell process error: ${error.message}`
-            : `PowerShell process error: ${String(error)}`;
+    const message = Error.isError(error)
+        ? `PowerShell process error: ${error.message}`
+        : `PowerShell process error: ${String(error)}`;
 
     rejectAllPendingValidations(message);
 };
@@ -262,7 +261,7 @@ function initPersistentProcess(): void {
             }
         );
     } catch (error) {
-        if (error instanceof Error) {
+        if (Error.isError(error)) {
             const errorWithCode = error as Error & { code?: string };
             if (errorWithCode.code === "ENOENT") {
                 throw new Error(missingPwshMessage, {
@@ -323,7 +322,7 @@ const runPowerShellParser = async (
         try {
             initPersistentProcess();
         } catch (error) {
-            reject(error instanceof Error ? error : new Error(String(error)));
+            reject(Error.isError(error) ? error : new Error(String(error)));
             return;
         }
 
@@ -354,7 +353,7 @@ const runPowerShellParser = async (
             persistentProcess.stdin.write(scriptBuffer);
         } catch (error) {
             pendingValidations.delete(validationId);
-            reject(error instanceof Error ? error : new Error(String(error)));
+            reject(Error.isError(error) ? error : new Error(String(error)));
         }
     });
 

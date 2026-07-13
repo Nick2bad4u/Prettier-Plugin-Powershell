@@ -8,14 +8,14 @@ A Prettier 3 plugin that formats PowerShell source files (`.ps1`, `.psm1`, `.psd
 
 ## Table of contents
 
-1. [Highlights](#highlights)
-2. [Quick start](#quick-start)
-3. [Configuration reference](#configuration-reference)
-4. [Example formatting](#example-formatting)
-5. [Contributing](#contributing)
-6. [Credits](#credits)
-7. [License](#license)
-8. [Contributors ✨](#contributors-)
+- [Highlights](#highlights)
+- [Quick start](#quick-start)
+- [Configuration reference](#configuration-reference)
+- [Example formatting](#example-formatting)
+- [Contributing](#contributing)
+- [Credits](#credits)
+- [License](#license)
+- [Contributors ✨](#contributors-)
 
 ## Highlights
 

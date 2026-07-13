@@ -175,7 +175,7 @@ const getResponse = async (url: string): Promise<IncomingMessage> => {
     const errorPromise = (async (): Promise<never> => {
         const [error] = await once(request, "error");
 
-        throw error instanceof Error ? error : new Error(String(error));
+        throw Error.isError(error) ? error : new Error(String(error));
     })();
 
     return Promise.race([responsePromise, errorPromise]);
@@ -212,7 +212,10 @@ const fetchJson = async <T>(url: string): Promise<T> => {
     const response = await requestText(url);
 
     const stringifyHeaderValue = (
-        value: readonly string[] | string | undefined
+        value:
+            | readonly string[]
+            | string
+            | undefined
     ): string => {
         if (value === undefined) {
             return "unknown";

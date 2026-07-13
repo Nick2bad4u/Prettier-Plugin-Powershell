@@ -364,7 +364,10 @@ describe("printer property-based tests", () => {
                             );
                             const regexByCase: Readonly<
                                 Record<
-                                    "lower" | "pascal" | "preserve" | "upper",
+                                    | "lower"
+                                    | "pascal"
+                                    | "preserve"
+                                    | "upper",
                                     RegExp | undefined
                                 >
                             > = {

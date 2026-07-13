@@ -62,9 +62,22 @@ const config = [
     {
         files: ["tests/utils/powershell.ts"],
         rules: {
+            // Error.isError is a standard static method in supported Node
+            // versions; canonical currently misclassifies it as native
+            // extension.
+            "canonical/no-use-extend-native": "off",
             "unicorn/no-top-level-assignment-in-function": "off",
             "unicorn/no-top-level-side-effects": "off",
             "unicorn/prefer-top-level-await": "off",
+        },
+    },
+
+    // Error.isError preserves cross-realm error detection in this network
+    // helper; canonical currently misclassifies the standard static method.
+    {
+        files: ["tests/github-samples.property.test.ts"],
+        rules: {
+            "canonical/no-use-extend-native": "off",
         },
     },
 

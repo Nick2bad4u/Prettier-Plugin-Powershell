@@ -11,9 +11,11 @@ This guide helps you resolve common issues when using prettier-plugin-powershell
 - [Performance Issues](#performance-issues)
 - [Integration Issues](#integration-issues)
 - [Known Limitations](#known-limitations)
+- [Debugging](#debugging)
+- [Common Error Messages](#common-error-messages)
 - [Getting Help](#getting-help)
-
----
+- [Performance Tips](#performance-tips)
+- [Additional Resources](#additional-resources)
 
 ## Installation Issues
 
@@ -104,6 +106,7 @@ cmd.exe --% /c dir /s
   ```
 
 - Inline comments are preserved on the same line
+
 - File an issue if you find comments being removed incorrectly
 
 ### Hashtables Not Aligning
@@ -121,6 +124,7 @@ cmd.exe --% /c dir /s
   ```
 
 - Alignment depends on the `powershellTrailingComma` option
+
 - Long keys may prevent alignment
 
 ---
@@ -147,7 +151,7 @@ Use caching in your editor/CI:
 prettier --cache --write script.ps1
 ```
 
-1. **Expected performance**: ~7.1 MB/sec on typical hardware (per `npm run benchmark` on November 15, 2025)
+1. **Expected performance**: \~7.1 MB/sec on typical hardware (per `npm run benchmark` on November 15, 2025)
 
 ### High Memory Usage
 
@@ -223,7 +227,7 @@ Use `--check` for validation:
 prettier --check "**/*.ps1"
 ```
 
-1. **Cache node_modules** to speed up CI
+1. **Cache node\_modules** to speed up CI
 
 ---
 

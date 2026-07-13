@@ -13,11 +13,7 @@ title = "Uptime Watcher - Enhanced Secret Detection Configuration"
 # - Service-specific secrets
 # - New AI platform keys (OpenAI, Anthropic, etc.)
 [extend]
-useDefault = true
-
-# Disable overly broad rules that generate false positives
-# in JavaScript/TypeScript development environments
-disabledRules = [ "generic-api-key" ]
+path = "node_modules/gitleaks-config-nick2bad4u/gitleaks.toml"
 
 # Performance optimizations enabled by default in v8.28+
 # - Stopword optimization (promoted from experimental)

@@ -9,8 +9,8 @@ Implemented a persistent PowerShell process for syntax validation that eliminate
 ### Performance Impact
 
 - **Before**: 1000+ seconds for full test suite with unlimited validation
-- **After**: ~21 seconds for full test suite with unlimited validation
-- **Speedup**: ~50x faster
+- **After**: \~21 seconds for full test suite with unlimited validation
+- **Speedup**: \~50x faster
 
 ### How It Works
 

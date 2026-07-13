@@ -125,7 +125,10 @@ export interface ScriptBlockNode extends BaseNode {
  * Node union allowed in script and script-block bodies.
  */
 export type ScriptBodyNode =
-    BlankLineNode | CommentNode | FunctionDeclarationNode | PipelineNode;
+    | BlankLineNode
+    | CommentNode
+    | FunctionDeclarationNode
+    | PipelineNode;
 
 /**
  * Script root node.
@@ -287,7 +290,10 @@ export function isNodeType<
     Type extends BaseNode["type"],
     Node extends BaseNode = BaseNode,
 >(
-    node: null | Readonly<Node> | undefined,
+    node:
+        | null
+        | Readonly<Node>
+        | undefined,
     type: Type
 ): node is Extract<Node, { type: Type }> {
     return node?.type === type;

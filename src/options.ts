@@ -16,7 +16,11 @@ export type IndentStyleOption = "spaces" | "tabs";
 /**
  * Keyword casing normalization mode.
  */
-export type KeywordCaseOption = "lower" | "pascal" | "preserve" | "upper";
+export type KeywordCaseOption =
+    | "lower"
+    | "pascal"
+    | "preserve"
+    | "upper";
 
 /**
  * Full PowerShell-specific option bag accepted by the plugin.
@@ -45,7 +49,10 @@ export type PresetOption = "invoke-formatter" | "none";
 /**
  * Trailing delimiter behavior for multiline literals.
  */
-export type TrailingCommaOption = "all" | "multiline" | "none";
+export type TrailingCommaOption =
+    | "all"
+    | "multiline"
+    | "none";
 
 /**
  * Prettier option descriptors exposed by the plugin.

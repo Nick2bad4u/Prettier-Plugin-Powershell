@@ -284,7 +284,7 @@ const withTestCleanup = async (action: () => Promise<void>): Promise<void> => {
     }
 };
 
-const requireCreatedProcess = (
+const getCreatedProcessOrThrow = (
     processRef: null | Readonly<ChildProcess & MockProcess>
 ): Readonly<ChildProcess & MockProcess> => {
     if (processRef === null) {
@@ -518,7 +518,7 @@ describe("powershell syntax utilities", () => {
             "process-error"
         );
 
-        const processRef = requireCreatedProcess(createdProcess);
+        const processRef = getCreatedProcessOrThrow(createdProcess);
 
         expect(processRef.stdin).toBeInstanceOf(PassThrough);
 
@@ -598,7 +598,7 @@ describe("powershell syntax utilities", () => {
             "process-exit"
         );
 
-        const processRef = requireCreatedProcess(createdProcess);
+        const processRef = getCreatedProcessOrThrow(createdProcess);
 
         expect(processRef.stdin).toBeInstanceOf(PassThrough);
 
@@ -666,7 +666,7 @@ describe("powershell syntax utilities", () => {
 
         expect(logs.some((entry) => entry.includes("invoke"))).toBe(true);
 
-        const processRef = requireCreatedProcess(createdProcess);
+        const processRef = getCreatedProcessOrThrow(createdProcess);
 
         expect(processRef.stderr).toBeInstanceOf(PassThrough);
 

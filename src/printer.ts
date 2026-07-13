@@ -155,7 +155,10 @@ const STRUCTURAL_EXPRESSION_TYPES = [
  * - `"space"` — a single space separator
  * - `"defer"` — fall through to the next rule in the evaluation chain
  */
-type GapDecision = "defer" | "none" | "space";
+type GapDecision =
+    | "defer"
+    | "none"
+    | "space";
 
 function getSymbol(node: null | Readonly<ExpressionPartNode>): null | string {
     if (!node) {
@@ -246,7 +249,10 @@ export const powerShellPrinter: Printer<ScriptNode> = {
 
     print(path: AstPath<ScriptNode>, options: ParserOptions): Doc {
         const node = safeCastTo<
-            ExpressionPartNode | ScriptBodyNode | ScriptNode | undefined
+            | ExpressionPartNode
+            | ScriptBodyNode
+            | ScriptNode
+            | undefined
         >(path.node);
         let result: Doc = "";
         if (isDefined(node)) {

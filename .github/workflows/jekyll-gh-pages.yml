@@ -1,5 +1,5 @@
 # Sample workflow for building and deploying a Jekyll site to GitHub Pages
-name: Deploy Jekyll With GitHub Pages Dependencies Preinstalled
+name: "Deploy Jekyll with GitHub Pages Dependencies Preinstalled"
 run-name: >-
     Deploy Jekyll • ${{ github.event_name }} • ${{ github.ref_name }}
 
@@ -11,12 +11,12 @@ on:
         workflows: ["GitHub Pages - Generate XML sitemap"]
         branches: ["main"]
         types:
-            - completed
+            - "completed"
 
     # Allows you to run this workflow manually from the Actions tab
     workflow_dispatch:
 
-# Restrict all permissions at the workflow level; grant only what each job needs.
+        # Restrict all permissions at the workflow level; grant only what each job needs.
 permissions: {}
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
@@ -28,53 +28,53 @@ concurrency:
 jobs:
     # Build job
     build:
-        name: Build site
-        runs-on: ubuntu-latest
+        name: "Build site"
+        runs-on: "ubuntu-latest"
         timeout-minutes: 20
         permissions:
-            contents: read
+            contents: "read"
         concurrency:
-            group: jekyll-gh-pages-${{ github.ref }}
+            group: "jekyll-gh-pages-${{ github.ref }}"
             cancel-in-progress: false
         steps:
-            - name: Harden the runner (Audit all outbound calls)
-              uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+            - name: "Harden the runner (Audit all outbound calls)"
+              uses: "step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411" # v2.19.4
               with:
-                  egress-policy: audit
+                  egress-policy: "audit"
 
-            - name: Checkout
-              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-            - name: Setup Pages
-              uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-            - name: Build with Jekyll
-              uses: actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697 # v1.0.13
+            - name: "Checkout"
+              uses: "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0" # v7.0.0
+            - name: "Setup Pages"
+              uses: "actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d" # v6.0.0
+            - name: "Build with Jekyll"
+              uses: "actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697" # v1.0.13
               with:
-                  source: ./
-                  destination: ./_site
-            - name: Upload artifact
-              uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+                  source: "./"
+                  destination: "./_site"
+            - name: "Upload artifact"
+              uses: "actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9" # v5.0.0
 
     # Deployment job
     deploy:
-        name: Deploy site
+        name: "Deploy site"
         environment:
-            name: github-pages
-            url: ${{ steps.deployment.outputs.page_url }}
-        runs-on: ubuntu-latest
+            name: "github-pages"
+            url: "${{ steps.deployment.outputs.page_url }}"
+        runs-on: "ubuntu-latest"
         timeout-minutes: 20
-        needs: build
+        needs: "build"
         permissions:
-            pages: write
-            id-token: write
+            pages: "write"
+            id-token: "write"
         concurrency:
-            group: jekyll-gh-pages-${{ github.ref }}
+            group: "jekyll-gh-pages-${{ github.ref }}"
             cancel-in-progress: false
         steps:
-            - name: Harden the runner (Audit all outbound calls)
-              uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+            - name: "Harden the runner (Audit all outbound calls)"
+              uses: "step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411" # v2.19.4
               with:
-                  egress-policy: audit
+                  egress-policy: "audit"
 
-            - name: Deploy to GitHub Pages
-              id: deployment
-              uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+            - name: "Deploy to GitHub Pages"
+              id: "deployment"
+              uses: "actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128" # v5.0.0

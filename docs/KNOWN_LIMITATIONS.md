@@ -10,13 +10,18 @@ This document outlines current limitations and known issues with prettier-plugin
 - [Formatting Limitations](#formatting-limitations)
 - [Performance Considerations](#performance-considerations)
 - [Platform-Specific Issues](#platform-specific-issues)
-- [Workarounds](#workaround-patterns)
-
----
+- [Edge Cases](#edge-cases)
+- [Not Supported](#not-supported)
+- [Comparison with PowerShell's Own Formatter](#comparison-with-powershells-own-formatter)
+- [Future Improvements](#future-improvements)
+- [Reporting Limitations](#reporting-limitations)
+- [Workaround Patterns](#workaround-patterns)
+- [Version Compatibility](#version-compatibility)
+- [Getting Help](#getting-help)
 
 ## Language Features
 
-### 1\. Complex DSC Configurations
+### 1. Complex DSC Configurations
 
 **Status**: ✅ **IMPROVED** - Enhanced in v2.0.4
 
@@ -54,7 +59,7 @@ Configuration WebServer {
 
 ---
 
-### 2\. Dynamic Keywords
+### 2. Dynamic Keywords
 
 **Limitation**: Dynamically created keywords using `New-Alias` or similar are not recognized at parse time.
 
@@ -72,7 +77,7 @@ CustomKeyword  # Treated as identifier, not keyword
 
 ---
 
-### 3\. Here-Strings with Unusual Escape Sequences
+### 3. Here-Strings with Unusual Escape Sequences
 
 **Limitation**: Some rare escape sequences in here-strings might be preserved as-is rather than normalized.
 
@@ -90,7 +95,7 @@ Line with \u0041 unicode escape
 
 ---
 
-### 4\. Script Blocks in Long One-Liners
+### 4. Script Blocks in Long One-Liners
 
 **Status**: ✅ **FIXED** - Improved in v2.0.4
 
@@ -117,7 +122,7 @@ Get-Process |
 
 ## Formatting Limitations
 
-### 1\. No Semantic Analysis
+### 1. No Semantic Analysis
 
 **Limitation**: The formatter works purely on syntax, not semantics.
 
@@ -135,7 +140,7 @@ Get-Proccess  # Typo, but still formats
 
 ---
 
-### 2\. Comment Positioning Edge Cases
+### 2. Comment Positioning Edge Cases
 
 **Status**: ✅ **FIXED** - Parser & printer enhanced in v2.0.4
 
@@ -183,7 +188,7 @@ Get-Proccess  # Typo, but still formats
 
 ---
 
-### 3\. No Custom Formatting Rules (Yet)
+### 3. No Custom Formatting Rules (Yet)
 
 **Limitation**: You cannot add custom formatting rules without modifying the plugin.
 
@@ -197,7 +202,7 @@ Get-Proccess  # Typo, but still formats
 
 ---
 
-### 4\. Hashtable Key Ordering
+### 4. Hashtable Key Ordering
 
 **Limitation**: Hashtable keys are only sorted if `powershellSortHashtableKeys: true`. Keys maintain insertion order otherwise.
 
@@ -219,15 +224,15 @@ Get-Proccess  # Typo, but still formats
 
 ## Performance Considerations
 
-### 1\. Large Files and Throughput
+### 1. Large Files and Throughput
 
 **Status**: ✅ **GOOD** – Performance validated regularly via `npm run benchmark`.
 
 Recent benchmarks on v2.0.9 (run via `npm run benchmark` on typical developer hardware) show:
 
-- ~3 ms for ~7.4 KB scripts (10 synthetic functions)
-- ~10 ms for ~37 KB scripts (50 synthetic functions)
-- ~22 ms for ~149 KB scripts (200 synthetic functions)
+- \~3 ms for \~7.4 KB scripts (10 synthetic functions)
+- \~10 ms for \~37 KB scripts (50 synthetic functions)
+- \~22 ms for \~149 KB scripts (200 synthetic functions)
 - Overall throughput of roughly **6.9 MB/sec** for the largest benchmark case
 
 For up-to-date and more detailed numbers, see [`docs/PERFORMANCE.md`](./PERFORMANCE.md).
@@ -242,7 +247,7 @@ For up-to-date and more detailed numbers, see [`docs/PERFORMANCE.md`](./PERFORMA
 
 ---
 
-### 2\. Memory Usage on Large Files
+### 2. Memory Usage on Large Files
 
 **Status**: ✅ **IMPROVED** – No known memory regressions in recent releases.
 
@@ -257,7 +262,7 @@ For typical PowerShell files (<500 KB), memory usage remains well within default
 
 ---
 
-### 3\. No Incremental Formatting
+### 3. No Incremental Formatting
 
 **Limitation**: Always formats entire file, even if only one line changed.
 
@@ -271,7 +276,7 @@ For typical PowerShell files (<500 KB), memory usage remains well within default
 
 ## Platform-Specific Issues
 
-### 1\. Line Ending Normalization
+### 1. Line Ending Normalization
 
 **Limitation**: Line endings are normalized to the system default or Prettier's `endOfLine` setting.
 
@@ -294,7 +299,7 @@ Linux/Mac: LF (\n)
 
 ---
 
-### 2\. Path Separators in Strings
+### 2. Path Separators in Strings
 
 **Limitation**: String content is not modified, so path separators are preserved as-is.
 
@@ -314,7 +319,7 @@ $path2 = "C:/Windows/System32"
 
 ## Edge Cases
 
-### 1\. Ambiguous Syntax
+### 1. Ambiguous Syntax
 
 **Limitation**: Some PowerShell syntax is ambiguous without semantic analysis.
 
@@ -333,7 +338,7 @@ $x-eq  # Variable named "x-eq" or "$x -eq"?
 
 ---
 
-### 2\. Mixing Tabs and Spaces
+### 2. Mixing Tabs and Spaces
 
 **Limitation**: If input file mixes tabs and spaces, output will use consistent style based on config.
 
@@ -359,7 +364,7 @@ function Test {
 
 ---
 
-### 3\. Deeply Nested Structures
+### 3. Deeply Nested Structures
 
 **Limitation**: Structures nested >100 levels may cause stack overflow.
 
@@ -386,7 +391,7 @@ function Test {
 
 The following features are **not supported** and not planned:
 
-### 1\. PowerShell 1.0 / 2.0 Syntax
+### 1. PowerShell 1.0 / 2.0 Syntax
 
 **Reason**: These versions are deprecated and unsupported by Microsoft.
 
@@ -394,7 +399,7 @@ The following features are **not supported** and not planned:
 
 ---
 
-### 2\. Reformatting String Content
+### 2. Reformatting String Content
 
 **Limitation**: Strings, here-strings, and comments are preserved as-is.
 
@@ -415,7 +420,7 @@ $json = @"
 
 ---
 
-### 3\. Auto-fixing Linting Issues
+### 3. Auto-fixing Linting Issues
 
 **Limitation**: This is a formatter, not a linter. It doesn't fix semantic issues.
 

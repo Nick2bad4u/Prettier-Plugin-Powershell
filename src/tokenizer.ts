@@ -250,7 +250,7 @@ const isWhitespaceCharacter = (ch: string): boolean => {
     }
 };
 
-const skipWhitespace = (source: string, startIndex: number): number => {
+const advancePastWhitespace = (source: string, startIndex: number): number => {
     let index = startIndex;
     while (
         index < source.length &&
@@ -261,7 +261,7 @@ const skipWhitespace = (source: string, startIndex: number): number => {
     return index;
 };
 
-const skipQuotedForAttribute = (
+const readQuotedAttributeEnd = (
     source: string,
     startIndex: number,
     quoteChar: string
@@ -288,7 +288,7 @@ const readAttributeBodyEnd = (source: string, startIndex: number): number => {
     while (index < source.length && depth > 0) {
         const current = source[index];
         if (current === "'" || current === '"') {
-            index = skipQuotedForAttribute(source, index + 1, current);
+            index = readQuotedAttributeEnd(source, index + 1, current);
             continue;
         }
         if (current === "[") {
@@ -311,7 +311,7 @@ const readAttributeEnd = (
     source: string,
     startIndex: number
 ): null | number => {
-    const lookahead = skipWhitespace(source, startIndex + 1);
+    const lookahead = advancePastWhitespace(source, startIndex + 1);
     if (
         lookahead >= source.length ||
         !IDENTIFIER_START_PATTERN.test(source.charAt(lookahead))

@@ -10,11 +10,11 @@ This guide helps you optimize the performance of prettier-plugin-powershell for 
 
 Based on `npm run benchmark` (captured November 15, 2025 on Node.js 20.11):
 
-- **Small files (≈7.4 KB)**: ~3.3 ms
-- **Medium files (≈37.1 KB)**: ~10.4 ms
-- **Large files (≈74.3 KB)**: ~10.8 ms
-- **Extra large files (≈148.9 KB)**: ~21 ms
-- **Throughput**: ~7.1 MB/sec across the largest batch (200 synthetic functions)
+- **Small files (≈7.4 KB)**: \~3.3 ms
+- **Medium files (≈37.1 KB)**: \~10.4 ms
+- **Large files (≈74.3 KB)**: \~10.8 ms
+- **Extra large files (≈148.9 KB)**: \~21 ms
+- **Throughput**: \~7.1 MB/sec across the largest batch (200 synthetic functions)
 
 ### Running Benchmarks
 
@@ -34,7 +34,7 @@ node --prof-process isolate-*.log > profile.txt
 
 ## Optimization Strategies
 
-### 1\. File Organization
+### 1. File Organization
 
 #### Split Large Files
 
@@ -58,7 +58,7 @@ Use multiple focused modules:
 - Better caching
 - Parallel processing possible
 
-### 2\. Editor Integration
+### 2. Editor Integration
 
 #### VS Code Settings
 
@@ -101,7 +101,7 @@ third-party/
 *.min.ps1
 ```
 
-### 3\. CI/CD Optimization
+### 3. CI/CD Optimization
 
 #### Format Only Changed Files
 
@@ -134,7 +134,7 @@ find . -name "*.ps1" -print0 | xargs -0 -P 4 -n 1 prettier --write
 find . -name "*.ps1" | parallel prettier --write {}
 ```
 
-### 4\. Node.js Optimization
+### 4. Node.js Optimization
 
 #### Memory Configuration
 
@@ -372,16 +372,20 @@ jobs:
 
 Check file size (files >500KB may be slow):
 
-    ```bash
-    find . -name "*.ps1" -size +500k
-    ```
+````markdown
+```bash
+find . -name "*.ps1" -size +500k
+```
+````
 
 Profile the specific file:
 
-    ```bash
-    node --prof $(which prettier) --plugin=prettier-plugin-powershell --write slow-file.ps1
-    node --prof-process isolate-*.log
-    ```
+````markdown
+```bash
+node --prof $(which prettier) --plugin=prettier-plugin-powershell --write slow-file.ps1
+node --prof-process isolate-*.log
+```
+````
 
 Check for pathological cases:
 
@@ -393,24 +397,30 @@ Check for pathological cases:
 
 Process files in batches:
 
-    ```bash
-    ls *.ps1 | xargs -n 10 prettier --write
-    ```
+````markdown
+```bash
+ls *.ps1 | xargs -n 10 prettier --write
+```
+````
 
 Increase Node.js heap:
 
-    ```bash
-    NODE_OPTIONS="--max-old-space-size=8192" prettier --write "**/*.ps1"
-    ```
+````markdown
+```bash
+NODE_OPTIONS="--max-old-space-size=8192" prettier --write "**/*.ps1"
+```
+````
 
 Monitor with heapdump:
 
-    ```javascript
-    const heapdump = await import("heapdump");
-    const api = heapdump.default ?? heapdump;
-    // Take snapshot before/after formatting
-    await api.writeSnapshot("./before.heapsnapshot");
-    ```
+````markdown
+```javascript
+const heapdump = await import("heapdump");
+const api = heapdump.default ?? heapdump;
+// Take snapshot before/after formatting
+await api.writeSnapshot("./before.heapsnapshot");
+```
+````
 
 ---
 

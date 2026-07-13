@@ -80,13 +80,20 @@ type PowerShellParserOptions = ParserOptions & {
     powershellBraceStyle?: "1tbs" | "allman";
     powershellIndentSize?: number;
     powershellIndentStyle?: "spaces" | "tabs";
-    powershellKeywordCase?: "lower" | "pascal" | "preserve" | "upper";
+    powershellKeywordCase?:
+        | "lower"
+        | "pascal"
+        | "preserve"
+        | "upper";
     powershellLineWidth?: number;
     powershellPreferSingleQuote?: boolean;
     powershellRewriteAliases?: boolean;
     powershellRewriteWriteHost?: boolean;
     powershellSortHashtableKeys?: boolean;
-    powershellTrailingComma?: "all" | "multiline" | "none";
+    powershellTrailingComma?:
+        | "all"
+        | "multiline"
+        | "none";
 };
 
 const baseConfig = {
@@ -167,7 +174,10 @@ const { cloneNode, createLocation, isNodeType } = astRuntime as {
     cloneNode: <T extends BaseNode>(node: T) => T;
     createLocation: (start: number, end?: number) => SourceLocation;
     isNodeType: <Type extends BaseNode["type"]>(
-        node: null | Readonly<BaseNode> | undefined,
+        node:
+            | null
+            | Readonly<BaseNode>
+            | undefined,
         type: Type
     ) => node is Extract<BaseNode, { type: Type }>;
 };

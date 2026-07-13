@@ -17,8 +17,9 @@ This guide provides examples for each formatting option available in the prettie
 - [Rewrite Aliases](#rewrite-aliases)
 - [Rewrite Write-Host](#rewrite-write-host)
 - [Presets](#presets)
-
----
+- [Configuration File Example](#configuration-file-example)
+- [Command Line Usage](#command-line-usage)
+- [Tips and Best Practices](#tips-and-best-practices)
 
 ## Indent Style
 
