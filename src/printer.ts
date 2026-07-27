@@ -1395,21 +1395,11 @@ function printParenthesis(
     const hasSoftBreak = node.hasComma && !isForceMultiline;
     const leadingLine: Doc = hasSoftBreak ? line : hardline;
     const trailingLine: Doc = hasSoftBreak ? line : hardline;
-    const contentDocs: Doc[] = [];
-
-    for (const [index, elementDoc] of elementDocs.entries()) {
-        contentDocs.push(elementDoc);
-        if (index >= elementDocs.length - 1) {
-            continue;
-        }
-
-        const separator = node.separators[index];
-        contentDocs.push(
-            separator === "comma"
-                ? [",", isForceMultiline ? hardline : line]
-                : hardline
-        );
-    }
+    const contentDocs = printParenthesisContent(
+        node,
+        elementDocs,
+        isForceMultiline ? hardline : line
+    );
 
     return group(
         [
@@ -1422,6 +1412,26 @@ function printParenthesis(
             id: groupId,
         }
     );
+}
+
+function printParenthesisContent(
+    node: Readonly<ParenthesisNode>,
+    elementDocs: readonly Doc[],
+    commaLine: Doc
+): Doc[] {
+    const contentDocs: Doc[] = [];
+
+    for (const [index, elementDoc] of elementDocs.entries()) {
+        contentDocs.push(elementDoc);
+        if (index >= elementDocs.length - 1) {
+            continue;
+        }
+
+        const separator = node.separators[index];
+        contentDocs.push(separator === "comma" ? [",", commaLine] : hardline);
+    }
+
+    return contentDocs;
 }
 
 function printText(
