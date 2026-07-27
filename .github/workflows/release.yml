@@ -377,20 +377,18 @@ jobs:
                   assets_dir="${RELEASE_ASSETS_DIR}"
                   unpack_dir="temp/release-package"
                   pack_metadata_path="${assets_dir}/npm-pack.json"
+                  rm -rf "$assets_dir" "$unpack_dir"
                   mkdir -p "$assets_dir"
-                  rm -rf "$unpack_dir"
 
                   npm pack --ignore-scripts --json --pack-destination "$assets_dir" > "$pack_metadata_path"
 
                   tarball_filename=$(
                     node -e \
                       "const fs = require('node:fs');"\
-                      " const packMetadata = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));"\
-                      " const entries = Array.isArray(packMetadata) ? packMetadata : Object.values(packMetadata);"\
-                      " const filename = entries[0]?.filename;"\
-                      " if (typeof filename !== 'string' || filename.length === 0) throw new Error('npm pack did not report a filename');"\
-                      " process.stdout.write(filename);" \
-                      "$pack_metadata_path"
+                      " const tarballs = fs.readdirSync(process.argv[1]).filter((filename) => filename.endsWith('.tgz'));"\
+                      " if (tarballs.length !== 1) throw new Error('Expected one npm tarball, found ' + tarballs.length);"\
+                      " process.stdout.write(tarballs[0]);" \
+                      "$assets_dir"
                   )
                   tarball_path="${assets_dir}/${tarball_filename}"
                   safe_package_name=$(printf '%s' "$PACKAGE_NAME" | sed 's/^@//; s#/#-#g')
