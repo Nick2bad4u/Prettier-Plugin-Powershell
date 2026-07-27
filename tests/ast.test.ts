@@ -196,12 +196,14 @@ describe("abstract syntax tree utility functions", () => {
                 elements: [createTextExpression("1", "number")],
                 kind: "implicit",
                 loc: createLocation(0, 3),
+                separators: ["newline"],
                 type: "ArrayLiteral",
             };
             const cloned = cloneNode(node);
 
             expect(cloned).toStrictEqual(node);
             expect(cloned.elements).not.toBe(node.elements);
+            expect(cloned.separators).not.toBe(node.separators);
         });
 
         it("clones a node with entries array", () => {
@@ -399,6 +401,7 @@ describe("abstract syntax tree utility functions", () => {
                     elements: [],
                     kind: "implicit",
                     loc: createLocation(0, 2),
+                    separators: [],
                     type: "ArrayLiteral",
                 };
 

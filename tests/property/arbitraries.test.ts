@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 // Import the arbitraries to test them
 import { parsePowerShell } from "../../src/parser.js";
+import { arrayLiteralArbitrary } from "./arbitraries.js";
 
 // We'll test the arbitraries by generating samples and verifying they're valid
 describe("property test arbitraries", () => {
@@ -142,18 +143,11 @@ content
         expect.hasAssertions();
 
         fc.assert(
-            fc.property(
-                fc.array(fc.constantFrom("1", "'test'", "$true"), {
-                    maxLength: 5,
-                }),
-                (elements) => {
-                    const script =
-                        elements.length === 0 ? "@()" : elements.join(", ");
-                    const ast = parsePowerShell(script, {} as never);
+            fc.property(arrayLiteralArbitrary, (arrayLiteral) => {
+                const ast = parsePowerShell(arrayLiteral, {} as never);
 
-                    expect(ast.type).toBe("Script");
-                }
-            ),
+                expect(ast.type).toBe("Script");
+            }),
             { numRuns: 20 }
         );
     });

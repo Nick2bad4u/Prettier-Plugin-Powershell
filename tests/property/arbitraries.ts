@@ -100,14 +100,25 @@ const variableReferenceArb: fc.Arbitrary<string> = variableNameArb;
 
 const arrayLiteralArb: fc.Arbitrary<string> = fc
     .array(simpleValueArb, { maxLength: 5 })
-    .map((elements) => {
+    .chain((elements) => {
         if (elements.length === 0) {
-            return "@()";
+            return fc.constant("@()");
         }
 
-        const separator = elements.length > 1 ? ", " : "";
+        return fc
+            .array(fc.constantFrom(", ", "\n"), {
+                maxLength: elements.length - 1,
+                minLength: elements.length - 1,
+            })
+            .map((separators) => {
+                const [firstElement, ...remainingElements] = elements;
+                let content = firstElement ?? "";
+                for (const [index, element] of remainingElements.entries()) {
+                    content += `${separators[index] ?? "\n"}${element}`;
+                }
 
-        return `@(${elements.join(separator)})`;
+                return `@(${content})`;
+            });
     });
 
 interface HashtableEntry {
@@ -596,3 +607,4 @@ const arbitraries = fc.letrec<LetrecShape>((tie) => {
 export const scriptArbitrary: fc.Arbitrary<string> = arbitraries.script;
 export const structuredScriptArbitrary: fc.Arbitrary<string> =
     arbitraries.structuredScript;
+export const arrayLiteralArbitrary = arrayLiteralArb;

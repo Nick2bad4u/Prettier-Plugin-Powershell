@@ -8,8 +8,14 @@ import { isFinite, objectHasOwn, safeCastTo } from "ts-extras";
 export interface ArrayLiteralNode extends BaseNode {
     elements: ExpressionNode[];
     kind: "explicit" | "implicit";
+    separators: ArraySeparator[];
     type: "ArrayLiteral";
 }
+
+/**
+ * Source-level separator between adjacent array-subexpression entries.
+ */
+export type ArraySeparator = "comma" | "newline";
 
 /**
  * Base shape shared by all PowerShell AST nodes.
@@ -207,6 +213,7 @@ export function cloneNode<T extends BaseNode>(node: Readonly<T>): T {
     cloneArrayField("parts");
     cloneArrayField("segments");
     cloneArrayField("elements");
+    cloneArrayField("separators");
     cloneArrayField("entries");
     cloneArrayField("parameters");
 

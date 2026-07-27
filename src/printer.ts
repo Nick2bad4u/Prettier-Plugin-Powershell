@@ -21,6 +21,7 @@ import {
 
 import type {
     ArrayLiteralNode,
+    ArraySeparator,
     CommentNode,
     ExpressionNode,
     ExpressionPartNode,
@@ -1020,8 +1021,8 @@ function extractCommentText(node: Readonly<ExpressionNode>): null | string {
     }
 
     const trimmed = part.value.trim();
-    // If it already starts with #, return as is
-    if (trimmed.startsWith("#")) {
+    // If it already has a PowerShell comment marker, return it as is.
+    if (trimmed.startsWith("#") || trimmed.startsWith("<#")) {
         return trimmed;
     }
     // Otherwise, prepend # to make it a comment
@@ -1062,6 +1063,12 @@ function flushPendingAttributes(
     return [];
 }
 
+function hasLineComment(node: Readonly<ExpressionNode>): boolean {
+    return node.parts.some(
+        (part) => part.type === "Text" && part.value.trimStart().startsWith("#")
+    );
+}
+
 function isAttributeExpression(node: Readonly<ExpressionNode>): boolean {
     if (isEmpty(node.parts)) {
         return false;
@@ -1097,6 +1104,20 @@ function isCommentExpression(node: Readonly<ExpressionNode>): boolean {
     return isLikelyCommentText(trimmed);
 }
 
+function isExplicitCommentExpression(node: Readonly<ExpressionNode>): boolean {
+    if (node.parts.length !== 1) {
+        return false;
+    }
+
+    const part = arrayFirst(node.parts);
+    if (!isDefined(part) || part.type !== "Text") {
+        return false;
+    }
+
+    const trimmed = part.value.trim();
+    return trimmed.startsWith("#") || trimmed.startsWith("<#");
+}
+
 function isPrintableParamElement(
     element: Readonly<ExpressionNode> | undefined
 ): element is Readonly<ExpressionNode> {
@@ -1128,49 +1149,73 @@ function printArray(
     }
     const groupId = Symbol("array");
 
-    // Build element docs while treating comment-only expressions as trailing comments on the previous element.
-    // This preserves inline comment intent for constructs like: "#000000",
-    // # Black which would otherwise be parsed as two separate elements.
+    // A comment after a comma belongs to the preceding array item. Comments
+    // reached through newline separators remain standalone array content.
     const elementDocs: Doc[] = [];
+    const elementSeparators: (ArraySeparator | undefined)[] = [];
 
     for (let index = 0; index < node.elements.length; index += 1) {
         const element = node.elements[index];
 
-        // Skip standalone comment expressions here; they will be attached to
-        // the previous real element when encountered as `nextElement` below.
-        if (!isDefined(element) || isCommentExpression(element)) {
+        if (!isDefined(element)) {
             continue;
         }
 
         let printed = printExpression(element, options);
+        const separator = node.separators[index];
 
         const nextElement = node.elements[index + 1];
-        if (isDefined(nextElement) && isCommentExpression(nextElement)) {
+        if (
+            separator === "comma" &&
+            isDefined(nextElement) &&
+            isExplicitCommentExpression(nextElement)
+        ) {
             const commentText = extractCommentText(nextElement);
             if (commentText !== null) {
                 printed = [printed, lineSuffix([" ", commentText])];
-                index += 1; // Consume the comment element
+                index += 1;
             }
         }
 
         elementDocs.push(printed);
+        elementSeparators.push(separator);
     }
 
-    const shouldBreak = elementDocs.length > 1;
-    const separator: Doc = [",", line];
+    const hasNewline =
+        arrayIncludes(node.separators, "newline") ||
+        node.elements.some((element) => hasLineComment(element));
+    const contentDocs: Doc[] = [];
+    for (const [index, elementDoc] of elementDocs.entries()) {
+        contentDocs.push(elementDoc);
+        if (index >= elementDocs.length - 1) {
+            continue;
+        }
+
+        const separator = elementSeparators[index];
+        contentDocs.push(
+            separator === "comma"
+                ? [",", hasNewline ? hardline : line]
+                : hardline
+        );
+    }
+
+    const edgeLine: Doc = hasNewline
+        ? hardline
+        : elementDocs.length > 1
+          ? line
+          : softline;
     // PowerShell does NOT support trailing commas in arrays, so never add them
 
     return group(
         [
             open,
-            indent([
-                shouldBreak ? line : softline,
-                join(separator, elementDocs),
-            ]),
-            shouldBreak ? line : softline,
+            indent([edgeLine, contentDocs]),
+            edgeLine,
             close,
         ],
-        { id: groupId }
+        {
+            id: groupId,
+        }
     );
 }
 
@@ -1298,6 +1343,13 @@ function printParamParenthesis(
 ): Doc {
     if (isEmpty(node.elements)) {
         return group(["(", ")"]);
+    }
+
+    // A top-level newline without a preceding comma can be part of one
+    // parameter expression, such as a continued default value. Preserve the
+    // source separators instead of inventing commas between parser segments.
+    if (arrayIncludes(node.separators, "newline")) {
+        return group([printParenthesis(node, options)]);
     }
 
     if (node.elements.length <= 1 && !node.hasNewline) {

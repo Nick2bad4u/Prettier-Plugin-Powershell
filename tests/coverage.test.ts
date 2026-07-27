@@ -326,13 +326,14 @@ Write-Host "test"`;
 2
 3
 )`;
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
+        const result = await formatAndAssert(input, baseConfig);
 
-        expect(result).toContain("1");
+        expect(result).toBe(`@(
+    1
+    2
+    3
+)
+`);
     });
 
     it("handles array with nested structures", async () => {

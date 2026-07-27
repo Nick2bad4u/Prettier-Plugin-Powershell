@@ -14,6 +14,7 @@ import {
 
 import type {
     ArrayLiteralNode,
+    ArraySeparator,
     BlankLineNode,
     CommentNode,
     ExpressionNode,
@@ -23,7 +24,6 @@ import type {
     HashtableNode,
     HereStringNode,
     ParenthesisNode,
-    ParenthesisSeparator,
     PipelineNode,
     ScriptBlockNode,
     ScriptBodyNode,
@@ -1022,9 +1022,9 @@ const extractKeyText = (tokens: readonly Token[]): string => {
     return text;
 };
 
-interface ParenthesisSplitResult {
+interface ArraySplitResult {
     elements: Token[][];
-    separators: ParenthesisSeparator[];
+    separators: ArraySeparator[];
 }
 
 function buildHashtableEntry(
@@ -1420,6 +1420,7 @@ function parseArrayPart(
                 elements: [],
                 kind: "explicit",
                 loc: { end: 0, start: 0 },
+                separators: [],
                 type: "ArrayLiteral",
             },
         };
@@ -1428,7 +1429,8 @@ function parseArrayPart(
         tokens,
         startIndex
     );
-    const elements = splitArrayElements(contentTokens).map((elementTokens) =>
+    const splitResult = splitArrayElements(contentTokens);
+    const elements = splitResult.elements.map((elementTokens) =>
         buildExpressionFromTokens(elementTokens, source)
     );
     /* c8 ignore next */
@@ -1440,6 +1442,7 @@ function parseArrayPart(
             elements,
             kind,
             loc: { end, start: startToken.start },
+            separators: splitResult.separators,
             type: "ArrayLiteral",
         },
     } satisfies { nextIndex: number; node: ArrayLiteralNode };
@@ -1505,7 +1508,7 @@ function parseParenthesisPart(
         tokens,
         startIndex
     );
-    const splitResult = splitParenthesisElements(contentTokens);
+    const splitResult = splitArrayElements(contentTokens);
     const elements = splitResult.elements.map((elementTokens) =>
         buildExpressionFromTokens(elementTokens, source)
     );
@@ -1654,11 +1657,43 @@ function resolveStructureEnd(
 }
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
-function splitArrayElements(tokens: readonly Token[]): Token[][] {
-    return splitTopLevelTokens(tokens, {
-        delimiterValues: [","],
-        splitOnNewline: (context) => context.current.length > 0,
-    });
+function splitArrayElements(tokens: readonly Token[]): ArraySplitResult {
+    const elements: Token[][] = [];
+    const separators: ArraySeparator[] = [];
+    let current: Token[] = [];
+    const stack: string[] = [];
+
+    const flush = (separator?: ArraySeparator): void => {
+        if (isEmpty(current)) {
+            return;
+        }
+
+        elements.push(current);
+        current = [];
+        if (separator) {
+            separators.push(separator);
+        }
+    };
+
+    for (const token of tokens) {
+        if (isEmpty(stack)) {
+            if (token.type === "newline") {
+                flush("newline");
+                continue;
+            }
+            if (token.type === "punctuation" && token.value === ",") {
+                flush("comma");
+                continue;
+            }
+        }
+
+        pushTopLevelToken(token, current, stack);
+    }
+
+    flush();
+    separators.splice(Math.max(0, elements.length - 1));
+
+    return { elements, separators };
 }
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
@@ -1778,47 +1813,6 @@ function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
     }
 
     return segments;
-}
-
-function splitParenthesisElements(
-    tokens: readonly Readonly<Token>[]
-): ParenthesisSplitResult {
-    const elements: Token[][] = [];
-    const separators: ParenthesisSeparator[] = [];
-    let current: Token[] = [];
-    const stack: string[] = [];
-
-    const flush = (separator?: ParenthesisSeparator): void => {
-        if (isEmpty(current)) {
-            return;
-        }
-
-        elements.push(current);
-        current = [];
-        if (separator) {
-            separators.push(separator);
-        }
-    };
-
-    for (const token of tokens) {
-        if (isEmpty(stack)) {
-            if (token.type === "newline") {
-                flush("newline");
-                continue;
-            }
-            if (token.type === "punctuation" && token.value === ",") {
-                flush("comma");
-                continue;
-            }
-        }
-
-        pushTopLevelToken(token, current, stack);
-    }
-
-    flush();
-    separators.splice(Math.max(0, elements.length - 1));
-
-    return { elements, separators };
 }
 
 function splitTopLevelTokens<TState = Record<string, never>>(

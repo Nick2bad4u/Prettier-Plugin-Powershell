@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import * as astRuntime from "../src/ast.js";
 import {
     type ArrayLiteralNode,
+    type ArraySeparator,
     type BaseNode,
     type BlankLineNode,
     type CommentNode,
@@ -70,7 +71,10 @@ interface ParserTestUtils {
         closingToken: Readonly<Token> | undefined,
         contentTokens: readonly Readonly<Token>[]
     ) => number;
-    splitArrayElements: (tokens: readonly Readonly<Token>[]) => Token[][];
+    splitArrayElements: (tokens: readonly Readonly<Token>[]) => {
+        elements: Token[][];
+        separators: ArraySeparator[];
+    };
     splitHashtableEntries: (tokens: readonly Readonly<Token>[]) => Token[][];
 }
 
@@ -1248,6 +1252,7 @@ describe("printer internal helpers", () => {
             elements: [],
             kind: "explicit",
             loc: { end: 0, start: 0 },
+            separators: [],
             type: "ArrayLiteral",
         };
 
@@ -1315,7 +1320,9 @@ describe("printer internal helpers", () => {
             makeTextNode("# explicit comment", "unknown"),
         ]);
 
-        const node = makeParenthesisNode([paramExpression, commentExpression]);
+        const node = makeParenthesisNode([paramExpression, commentExpression], {
+            hasComma: true,
+        });
 
         const doc = printParamParenthesis(node, resolvedOptions);
 
@@ -1333,7 +1340,9 @@ describe("printer internal helpers", () => {
             makeTextNode(proseComment, "unknown"),
         ]);
 
-        const node = makeParenthesisNode([paramExpression, commentExpression]);
+        const node = makeParenthesisNode([paramExpression, commentExpression], {
+            hasComma: true,
+        });
 
         const doc = printParamParenthesis(node, resolvedOptions);
 
@@ -1834,6 +1843,7 @@ function Delta {}`,
             elements: [makeExpressionNode([makeTextNode("1", "number")])],
             kind: "explicit",
             loc,
+            separators: [],
             type: "ArrayLiteral",
         };
 
@@ -2008,9 +2018,10 @@ describe("parser internal helpers", () => {
         expect.hasAssertions();
 
         const tokens = tokensFrom("1, @(2, 3), 4");
-        const elements = parserUtils.splitArrayElements(tokens);
+        const { elements, separators } = parserUtils.splitArrayElements(tokens);
 
         expect(elements).toHaveLength(3);
+        expect(separators).toStrictEqual(["comma", "comma"]);
         expect(elements[1]?.some((token) => token.value === "@(")).toBe(true);
     });
 
@@ -2022,10 +2033,28 @@ describe("parser internal helpers", () => {
             arrayTokens,
             0
         );
-        const elements = parserUtils.splitArrayElements(contentTokens);
+        const { elements, separators } =
+            parserUtils.splitArrayElements(contentTokens);
 
         expect(elements).toHaveLength(2);
+        expect(separators).toStrictEqual(["comma"]);
         expect(elements[0]?.some((token) => token.value === "@(")).toBe(true);
+    });
+
+    it("splitArrayElements preserves mixed top-level separators", () => {
+        expect.hasAssertions();
+
+        const { elements, separators } = parserUtils.splitArrayElements(
+            tokensFrom("1,\n2\n@(3,\n4), 5")
+        );
+
+        expect(elements).toHaveLength(4);
+        expect(separators).toStrictEqual([
+            "comma",
+            "newline",
+            "comma",
+        ]);
+        expect(elements[2]?.some((token) => token.value === "@(")).toBe(true);
     });
 
     it("detects top-level commas within parenthesis tokens", () => {
@@ -2346,9 +2375,10 @@ describe("parser internal helpers", () => {
             { end: 4, start: 3, type: "punctuation", value: "(" },
             { end: 5, start: 4, type: "punctuation", value: ")" },
         ];
-        const elements = parserUtils.splitArrayElements(tokens);
+        const { elements, separators } = parserUtils.splitArrayElements(tokens);
 
         expect(elements).toHaveLength(2);
+        expect(separators).toStrictEqual(["comma"]);
         expect(elements[0]?.[0]?.value).toBe("(");
     });
 

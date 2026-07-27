@@ -1,9 +1,7 @@
-// NO_PARSE_ASSERT: This fixture contains numeric suffixes (e.g., 123u, 1.5e3f) that are not valid PowerShell tokens;
-// skip parser assertions.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { formatAndAssert } from "./utils/format-and-assert.js";
+import { formatAndAssertRoundTrip } from "./utils/format-and-assert.js";
 
 const baseConfig = {
     parser: "powershell" as const,
@@ -20,12 +18,19 @@ describe("number literal handling", () => {
         );
         const input = readFileSync(fixturePath, "utf8");
 
-        const result = await formatAndAssert(input, baseConfig, {
-            skipParse: true,
-        });
+        const result = await formatAndAssertRoundTrip(input, baseConfig);
 
         expect(result).toBe(
-            "$values = @( 123u, 0xFFu, 1.5e3f, 42KB, 5mb, 99l, 0b1010u )\n"
+            `$values = @(
+    123u
+    0xFFu
+    1.5e3f
+    42KB
+    5mb
+    99l
+    0b1010u
+)
+`
         );
         expect(result).not.toContain("123 u");
     });
