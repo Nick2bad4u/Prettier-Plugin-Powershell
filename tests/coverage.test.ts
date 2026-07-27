@@ -220,17 +220,32 @@ Hello
 });
 
 describe("coverage - Parser edge cases", () => {
-    it("handles empty script blocks", async () => {
+    it.each([
+        {
+            expected: "function Foo {}",
+            input: "function Foo {}",
+            name: "handles empty script blocks",
+        },
+        {
+            expected: "",
+            input: "",
+            name: "handles pipeline with no segments",
+        },
+        {
+            expected: "@{}",
+            input: "@{}",
+            name: "handles empty hashtables",
+        },
+    ])("$name", async ({ expected, input }) => {
         expect.hasAssertions();
 
-        const input = "function Foo {}";
         const result = await formatAndAssert(
             input,
             baseConfig,
             "coverage.result|skipParse"
         );
 
-        expect(result.trim()).toBe("function Foo {}");
+        expect(result.trim()).toBe(expected);
     });
 
     it("handles multiple consecutive newlines after comment", async () => {
@@ -365,19 +380,6 @@ b = 2
         expect(result).toBeTypeOf("string");
     });
 
-    it("handles pipeline with no segments", async () => {
-        expect.hasAssertions();
-
-        const input = "";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result.trim()).toBe("");
-    });
-
     it("handles comments at start of expression", async () => {
         expect.hasAssertions();
 
@@ -409,56 +411,32 @@ $x = 1;
         expect(result).toBeTypeOf("string");
     });
 
-    it("handles closing brace without statement", async () => {
+    it.each([
+        {
+            expected: "if",
+            input: "if ($true) { }",
+            name: "handles closing brace without statement",
+        },
+        {
+            expected: "[",
+            input: "[1, 2, 3]",
+            name: "handles multi-element arrays with explicit syntax",
+        },
+        {
+            expected: "()",
+            input: "Get-Process()",
+            name: "handles empty parentheses",
+        },
+    ])("$name", async ({ expected, input }) => {
         expect.hasAssertions();
 
-        const input = "if ($true) { }";
         const result = await formatAndAssert(
             input,
             baseConfig,
             "coverage.result|skipParse"
         );
 
-        expect(result).toContain("if");
-    });
-
-    it("handles multi-element arrays with explicit syntax", async () => {
-        expect.hasAssertions();
-
-        const input = "[1, 2, 3]";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result).toContain("[");
-    });
-
-    it("handles empty hashtables", async () => {
-        expect.hasAssertions();
-
-        const input = "@{}";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result.trim()).toBe("@{}");
-    });
-
-    it("handles empty parentheses", async () => {
-        expect.hasAssertions();
-
-        const input = "Get-Process()";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result).toContain("()");
+        expect(result).toContain(expected);
     });
 
     it("handles parentheses without commas or newlines", async () => {
@@ -494,69 +472,105 @@ Write-Host "Hi"
         expect(result).toContain("\t");
     });
 
-    it("handles text nodes with operator role", async () => {
+    it.each([
+        {
+            expected: "-eq",
+            input: "-eq",
+            name: "handles text nodes with operator role",
+        },
+        {
+            expected: "@(1)",
+            input: "@(1)",
+            name: "handles single-element arrays without breaking",
+        },
+        {
+            expected: "[1]",
+            input: "[1]",
+            name: "handles explicit array with single element",
+        },
+        {
+            expected: "# This is a comment",
+            input: "# This is a comment",
+            name: "handles comment nodes",
+        },
+    ])("$name", async ({ expected, input }) => {
         expect.hasAssertions();
 
-        const input = "-eq";
         const result = await formatAndAssert(
             input,
             baseConfig,
             "coverage.result|skipParse"
         );
 
-        expect(result.trim()).toBe("-eq");
+        expect(result.trim()).toBe(expected);
     });
 
-    it("handles text nodes with punctuation role", async () => {
+    it.each([
+        {
+            expected: ".",
+            input: "$x.Property",
+            name: "handles text nodes with punctuation role",
+        },
+        {
+            expected: "($x)",
+            input: "($x)",
+            name: "handles space after opening punctuation",
+        },
+        {
+            expected: "[0]",
+            input: "$array[0]",
+            name: "handles space before closing punctuation",
+        },
+        {
+            expected: "::",
+            input: "$obj::Method",
+            name: "handles symbol pairs without gap",
+        },
+        {
+            expected: "Where-Object",
+            input: 'Get-Process | Where-Object { $_.Name -eq "test" }',
+            name: "handles script blocks in expressions",
+        },
+        {
+            expected: "@(",
+            input: "$x = @(1, 2, 3)",
+            name: "handles array literals in expressions",
+        },
+        {
+            expected: "@{",
+            input: "$x = @{ a = 1 }",
+            name: "handles hashtables in expressions",
+        },
+        {
+            expected: ".",
+            input: "Write-Host.Invoke()",
+            name: "skips punctuation tokens correctly",
+        },
+        {
+            expected: "$x = {",
+            input: '$x={ Write-Host "test" }',
+            name: "handles no space before block structures",
+        },
+        {
+            expected: " = ",
+            input: "$x=$y+$z",
+            name: "handles operators with spacing",
+        },
+        {
+            expected: "Write-Host",
+            input: 'Write-Host "A"\n\n\nWrite-Host "B"',
+            name: "handles blank lines with specific count",
+        },
+    ])("$name", async ({ expected, input }) => {
         expect.hasAssertions();
 
-        const input = "$x.Property";
         const result = await formatAndAssert(
             input,
             baseConfig,
             "coverage.result|skipParse"
         );
 
-        expect(result).toContain(".");
-    });
-
-    it("handles space after opening punctuation", async () => {
-        expect.hasAssertions();
-
-        const input = "($x)";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result).toContain("($x)");
-    });
-
-    it("handles space before closing punctuation", async () => {
-        expect.hasAssertions();
-
-        const input = "$array[0]";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result).toContain("[0]");
-    });
-
-    it("handles symbol pairs without gap", async () => {
-        expect.hasAssertions();
-
-        const input = "$obj::Method";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result).toContain("::");
+        expect(result).toContain(expected);
     });
 
     it("handles getSymbol returning null for non-text nodes", async () => {
@@ -776,110 +790,6 @@ function B {}`;
         expect(result2).toBeTypeOf("string");
     });
 
-    it("handles script blocks in expressions", async () => {
-        expect.hasAssertions();
-
-        const input = 'Get-Process | Where-Object { $_.Name -eq "test" }';
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result).toContain("Where-Object");
-    });
-
-    it("handles array literals in expressions", async () => {
-        expect.hasAssertions();
-
-        const input = "$x = @(1, 2, 3)";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result).toContain("@(");
-    });
-
-    it("handles hashtables in expressions", async () => {
-        expect.hasAssertions();
-
-        const input = "$x = @{ a = 1 }";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result).toContain("@{");
-    });
-
-    it("skips punctuation tokens correctly", async () => {
-        expect.hasAssertions();
-
-        const input = "Write-Host.Invoke()";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result).toContain(".");
-    });
-
-    it("handles no space before block structures", async () => {
-        expect.hasAssertions();
-
-        const input = '$x={ Write-Host "test" }';
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result).toContain("$x = {");
-    });
-
-    it("handles operators with spacing", async () => {
-        expect.hasAssertions();
-
-        const input = "$x=$y+$z";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result).toContain(" = ");
-    });
-
-    it("handles single-element arrays without breaking", async () => {
-        expect.hasAssertions();
-
-        const input = "@(1)";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result.trim()).toBe("@(1)");
-    });
-
-    it("handles explicit array with single element", async () => {
-        expect.hasAssertions();
-
-        const input = "[1]";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result.trim()).toBe("[1]");
-    });
-
     it("handles empty keyword case transformation", async () => {
         expect.hasAssertions();
 
@@ -911,32 +821,6 @@ function B {}`;
         );
 
         expect(result).toBeTypeOf("string");
-    });
-
-    it("handles comment nodes", async () => {
-        expect.hasAssertions();
-
-        const input = "# This is a comment";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result.trim()).toBe("# This is a comment");
-    });
-
-    it("handles blank lines with specific count", async () => {
-        expect.hasAssertions();
-
-        const input = 'Write-Host "A"\n\n\nWrite-Host "B"';
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result).toContain("Write-Host");
     });
 
     it("handles allman brace style for functions", async () => {
@@ -990,10 +874,38 @@ param(
         expect(result).toContain("param");
     });
 
-    it("handles parenthesis with multiple elements without comma", async () => {
+    it.each([
+        {
+            input: "($x $y $z)",
+            name: "handles parenthesis with multiple elements without comma",
+        },
+        {
+            input: "($x, $y)",
+            name: "handles parenthesis with comma and no newline",
+        },
+        {
+            input: "function Test",
+            name: "handles function header without body",
+        },
+        {
+            input: ";;;",
+            name: "handles statement with only semicolons",
+        },
+        {
+            input: "@(1, 2, 3)",
+            name: "handles shouldBreak true for arrays",
+        },
+        {
+            input: "[1, 2, 3, 4]",
+            name: "handles explicit array with multiple elements",
+        },
+        {
+            input: "($x $y $z)",
+            name: "handles multi-element parenthesis without newline or comma",
+        },
+    ])("$name", async ({ input }) => {
         expect.hasAssertions();
 
-        const input = "($x $y $z)";
         const result = await formatAndAssert(
             input,
             baseConfig,
@@ -1003,56 +915,47 @@ param(
         expect(result).toBeTypeOf("string");
     });
 
-    it("handles parenthesis with comma and no newline", async () => {
+    it.each([
+        {
+            expected: "@()",
+            input: "@()",
+            name: "handles empty array literal",
+        },
+        {
+            expected: "[]",
+            input: "[]",
+            name: "handles explicit empty array",
+        },
+        {
+            expected: "@(1)",
+            input: "@(1)",
+            name: "handles array with shouldBreak false",
+        },
+        {
+            expected: "()",
+            input: "()",
+            name: "handles empty expressions in various contexts",
+        },
+        {
+            expected: "($single)",
+            input: "($single)",
+            name: "handles single element parenthesis without newline",
+        },
+        {
+            expected: "@(42)",
+            input: "@(42)",
+            name: "handles array elements without breaking",
+        },
+    ])("$name", async ({ expected, input }) => {
         expect.hasAssertions();
 
-        const input = "($x, $y)";
         const result = await formatAndAssert(
             input,
             baseConfig,
             "coverage.result|skipParse"
         );
 
-        expect(result).toBeTypeOf("string");
-    });
-
-    it("handles empty array literal", async () => {
-        expect.hasAssertions();
-
-        const input = "@()";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result.trim()).toBe("@()");
-    });
-
-    it("handles explicit empty array", async () => {
-        expect.hasAssertions();
-
-        const input = "[]";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result.trim()).toBe("[]");
-    });
-
-    it("handles array with shouldBreak false", async () => {
-        expect.hasAssertions();
-
-        const input = "@(1)";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result.trim()).toBe("@(1)");
+        expect(result.trim()).toBe(expected);
     });
 
     it("handles hashtable entry without trailing separator", async () => {
@@ -1101,32 +1004,6 @@ b = 2
         );
 
         expect(result).toContain("b");
-    });
-
-    it("handles function header without body", async () => {
-        expect.hasAssertions();
-
-        const input = "function Test";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result).toBeTypeOf("string");
-    });
-
-    it("handles statement with only semicolons", async () => {
-        expect.hasAssertions();
-
-        const input = ";;;";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result).toBeTypeOf("string");
     });
 
     it("handles newlines in nested structures during statement parsing", async () => {
@@ -1239,19 +1116,6 @@ a = 1
         expect(result).toBeTypeOf("string");
     });
 
-    it("handles empty expressions in various contexts", async () => {
-        expect.hasAssertions();
-
-        const input = "()";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result.trim()).toBe("()");
-    });
-
     it("handles various symbol combinations for spacing", async () => {
         expect.hasAssertions();
 
@@ -1297,19 +1161,6 @@ $y
         expect(result).toBeTypeOf("string");
     });
 
-    it("handles shouldBreak true for arrays", async () => {
-        expect.hasAssertions();
-
-        const input = "@(1, 2, 3)";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result).toBeTypeOf("string");
-    });
-
     it("handles hashtable entry with ifBreak for semicolon", async () => {
         expect.hasAssertions();
 
@@ -1330,19 +1181,6 @@ c = 3
         expect(result).toContain("a");
     });
 
-    it("handles explicit array with multiple elements", async () => {
-        expect.hasAssertions();
-
-        const input = "[1, 2, 3, 4]";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result).toBeTypeOf("string");
-    });
-
     it("handles hashtable entry is last flag correctly", async () => {
         expect.hasAssertions();
 
@@ -1353,32 +1191,6 @@ c = 3
                 ...baseConfig,
                 powershellTrailingComma: "none",
             },
-            "coverage.result|skipParse"
-        );
-
-        expect(result).toBeTypeOf("string");
-    });
-
-    it("handles single element parenthesis without newline", async () => {
-        expect.hasAssertions();
-
-        const input = "($single)";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result.trim()).toBe("($single)");
-    });
-
-    it("handles multi-element parenthesis without newline or comma", async () => {
-        expect.hasAssertions();
-
-        const input = "($x $y $z)";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
             "coverage.result|skipParse"
         );
 
@@ -1408,19 +1220,6 @@ $b
         );
 
         expect(result2).toBeTypeOf("string");
-    });
-
-    it("handles array elements without breaking", async () => {
-        expect.hasAssertions();
-
-        const input = "@(42)";
-        const result = await formatAndAssert(
-            input,
-            baseConfig,
-            "coverage.result|skipParse"
-        );
-
-        expect(result.trim()).toBe("@(42)");
     });
 
     it("handles normalizeStringLiteral for non-quoted strings", async () => {

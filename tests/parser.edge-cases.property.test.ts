@@ -195,8 +195,7 @@ describe("parser edge case property tests", () => {
                             const hasPipelineWithComment = ast.body.some(
                                 (node) =>
                                     node.type === "Pipeline" &&
-                                    "trailingComment" in node &&
-                                    node.trailingComment !== undefined
+                                    "trailingComment" in node
                             );
 
                             expect(

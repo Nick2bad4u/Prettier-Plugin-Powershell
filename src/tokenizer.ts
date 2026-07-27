@@ -830,7 +830,7 @@ const consumeAtIdentifierToken = (
     }
 
     const nextChar = source.charAt(index + 1);
-    if (!UNICODE_IDENTIFIER_START_PATTERN.test(nextChar) && nextChar !== "_") {
+    if (nextChar !== "_" && !UNICODE_IDENTIFIER_START_PATTERN.test(nextChar)) {
         return null;
     }
 

@@ -299,7 +299,7 @@ const loadCachedSamples = (
         for (const file of cacheFiles) {
             const isCacheCandidate = file.endsWith(".ps1");
 
-            if (samples.length < limit && isCacheCandidate) {
+            if (isCacheCandidate && samples.length < limit) {
                 const content = readUtf8IfNonEmpty(path.join(cacheDir, file));
 
                 if (content !== null) {

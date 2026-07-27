@@ -5,6 +5,7 @@ import {
     arrayFirst,
     arrayIncludes,
     arrayJoin,
+    assert,
     isDefined,
     isEmpty,
     isPresent,
@@ -295,9 +296,7 @@ class Parser {
     private advance(): Token {
         this.tokenIndex += 1;
         const token = this.tokens[this.tokenIndex - 1];
-        if (!isDefined(token)) {
-            throw new Error("Unexpected end of token stream");
-        }
+        assert(isDefined(token), "Unexpected end of token stream");
         return token;
     }
 
@@ -1581,9 +1580,9 @@ function partitionHashtableEntryTokens(
         }
 
         if (
+            !isFoundEquals &&
             token.type === "operator" &&
-            token.value === "=" &&
-            !isFoundEquals
+            token.value === "="
         ) {
             equalsIndex = otherTokens.length;
             isFoundEquals = true;

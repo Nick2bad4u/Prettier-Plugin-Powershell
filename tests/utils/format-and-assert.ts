@@ -78,7 +78,7 @@ export async function formatAndAssertRoundTrip(
         secondPassOptions
     );
 
-    if (resolvedOptions.expectIdempotent && formatted1 !== formatted2) {
+    if (formatted1 !== formatted2 && resolvedOptions.expectIdempotent) {
         const id = resolvedOptions.id ?? "formatAndAssertRoundTrip";
         throw new Error(
             `Not idempotent: first and second pass differ for ${id}:\nFirst:\n${formatted1}\nSecond:\n${formatted2}`

@@ -92,7 +92,7 @@ describe("tokenizer helper function property tests", () => {
                             }
 
                             // Should preserve content
-                            if (lines.length <= 2 && result !== value) {
+                            if (result !== value && lines.length <= 2) {
                                 throw new Error(
                                     "Should preserve short content"
                                 );

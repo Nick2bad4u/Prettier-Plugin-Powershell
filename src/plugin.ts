@@ -18,7 +18,7 @@ const languages: SupportLanguage[] = [
         tmScope: "source.powershell",
         vscodeLanguageIds: ["powershell"],
     },
-] as const;
+];
 
 /**
  * PowerShell pragma marker recognised by both `hasPragma` and `insertPragma`. A
@@ -36,7 +36,7 @@ const parsers: Plugin["parsers"] = {
         locStart,
         parse: parsePowerShell,
     },
-} as const;
+};
 
 const printers: Plugin["printers"] = {
     "powershell-ast": powerShellPrinter,

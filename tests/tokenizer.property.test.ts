@@ -408,7 +408,7 @@ describe("tokenizer property-based tests", () => {
                         concatenated.trim().length > 0;
 
                     // Verify tokens cover the entire input
-                    if (tokens.length === 0 && hasNonWhitespaceInput) {
+                    if (hasNonWhitespaceInput && tokens.length === 0) {
                         throw new Error(
                             "Tokenizer returned no tokens for non-whitespace concatenated input"
                         );

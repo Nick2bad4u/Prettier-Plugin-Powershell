@@ -810,7 +810,7 @@ function printSpecialExpressionPart(
         part.type === "Text" &&
         part.role === "unknown" &&
         isDefined(previous) &&
-        !part.value.trim().startsWith("#") &&
+        !part.value.trimStart().startsWith("#") &&
         isLikelyCommentText(part.value)
     ) {
         return { doc: lineSuffix([" # ", part.value.trim()]) };

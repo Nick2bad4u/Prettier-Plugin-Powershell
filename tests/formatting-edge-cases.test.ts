@@ -9,82 +9,90 @@ const baseConfig = {
 };
 
 describe("formatting edge cases", () => {
-    it("formats static member access (::) without spaces", async () => {
+    it.each([
+        {
+            expected: "[System.IO.Path]::PathSeparator",
+            name: "formats static member access (::) without spaces",
+            script: "[System.IO.Path] :: PathSeparator",
+        },
+        {
+            expected: "Get-Module -Name:$ModuleName",
+            name: "formats named parameter colons without spaces",
+            script: "Get-Module -Name : $ModuleName",
+        },
+        {
+            expected: "Add-Profile @profileArguments",
+            name: "formats splatting (@) without spaces",
+            script: "Add-Profile @ profileArguments",
+        },
+        {
+            expected: "$h = ($Hue % 1) * 6",
+            name: "formats operators before parentheses with space",
+            script: "$h =($Hue % 1) * 6",
+        },
+        {
+            expected: "Write-Host ($message)",
+            name: "formats cmdlets before parentheses with space",
+            script: "Write-Host($message)",
+        },
+        {
+            expected: "$obj.ContainsKey($key)",
+            name: "formats method calls without space before parenthesis",
+            script: "$obj.ContainsKey ($key)",
+        },
+        {
+            expected: "[Math]::Round($value)",
+            name: "formats static method calls without space",
+            script: "[Math]:: Round ($value)",
+        },
+        {
+            expected: "$mode.Value = 0x0004",
+            name: "formats hexadecimal numbers correctly",
+            script: "$mode.Value = 0x0004",
+        },
+        {
+            expected: "$binary = 0b1010",
+            name: "formats binary literals correctly",
+            script: "$binary = 0b1010",
+        },
+    ])("$name", async ({ expected, script }) => {
         expect.hasAssertions();
 
-        const script = "[System.IO.Path] :: PathSeparator";
         const result = await formatAndAssert(
             script,
             baseConfig,
             "formatting-edge-cases.result"
         );
 
-        expect(result.trim()).toBe("[System.IO.Path]::PathSeparator");
+        expect(result.trim()).toBe(expected);
     });
 
-    it("formats named parameter colons without spaces", async () => {
+    it.each([
+        {
+            expected: "-not (Test-Path $path)",
+            name: "formats logical operators with space before parenthesis",
+            script: "if (-not(Test-Path $path)) { }",
+        },
+        {
+            expected: "-and ($b)",
+            name: "formats -and operator with space before parenthesis",
+            script: "if ($a -and($b)) { }",
+        },
+        {
+            expected: "-or ($b)",
+            name: "formats -or operator with space before parenthesis",
+            script: "if ($a -or($b)) { }",
+        },
+    ])("$name", async ({ expected, script }) => {
         expect.hasAssertions();
 
-        const script = "Get-Module -Name : $ModuleName";
         const result = await formatAndAssert(
             script,
             baseConfig,
             "formatting-edge-cases.result"
         );
 
-        expect(result.trim()).toBe("Get-Module -Name:$ModuleName");
-    });
-
-    it("formats splatting (@) without spaces", async () => {
-        expect.hasAssertions();
-
-        const script = "Add-Profile @ profileArguments";
-        const result = await formatAndAssert(
-            script,
-            baseConfig,
-            "formatting-edge-cases.result"
-        );
-
-        expect(result.trim()).toBe("Add-Profile @profileArguments");
-    });
-
-    it("formats logical operators with space before parenthesis", async () => {
-        expect.hasAssertions();
-
-        const script = "if (-not(Test-Path $path)) { }";
-        const result = await formatAndAssert(
-            script,
-            baseConfig,
-            "formatting-edge-cases.result"
-        );
-
-        expect(result).toContain("-not (Test-Path $path)");
-    });
-
-    it("formats -and operator with space before parenthesis", async () => {
-        expect.hasAssertions();
-
-        const script = "if ($a -and($b)) { }";
-        const result = await formatAndAssert(
-            script,
-            baseConfig,
-            "formatting-edge-cases.result"
-        );
-
-        expect(result).toContain("-and ($b)");
-    });
-
-    it("formats -or operator with space before parenthesis", async () => {
-        expect.hasAssertions();
-
-        const script = "if ($a -or($b)) { }";
-        const result = await formatAndAssert(
-            script,
-            baseConfig,
-            "formatting-edge-cases.result"
-        );
-
-        expect(result).toContain("-or ($b)");
+        expect(result).toContain(expected);
     });
 
     it("handles complex combinations correctly", async () => {
@@ -110,71 +118,7 @@ if (-not(Test-Path $path)) { }
         expect(result).toContain("-Name:$ModuleName");
         expect(result).toContain("@arguments");
         expect(result).toContain("-not (Test-Path $path)");
-    });
-
-    it("formats operators before parentheses with space", async () => {
-        expect.hasAssertions();
-
-        const script = "$h =($Hue % 1) * 6";
-        const result = await formatAndAssert(
-            script,
-            baseConfig,
-            "formatting-edge-cases.result"
-        );
-
-        expect(result.trim()).toBe("$h = ($Hue % 1) * 6");
-    });
-
-    it("formats cmdlets before parentheses with space", async () => {
-        expect.hasAssertions();
-
-        const script = "Write-Host($message)";
-        const result = await formatAndAssert(
-            script,
-            baseConfig,
-            "formatting-edge-cases.result"
-        );
-
-        expect(result.trim()).toBe("Write-Host ($message)");
-    });
-
-    it("formats method calls without space before parenthesis", async () => {
-        expect.hasAssertions();
-
-        const script = "$obj.ContainsKey ($key)";
-        const result = await formatAndAssert(
-            script,
-            baseConfig,
-            "formatting-edge-cases.result"
-        );
-
-        expect(result.trim()).toBe("$obj.ContainsKey($key)");
-    });
-
-    it("formats static method calls without space", async () => {
-        expect.hasAssertions();
-
-        const script = "[Math]:: Round ($value)";
-        const result = await formatAndAssert(
-            script,
-            baseConfig,
-            "formatting-edge-cases.result"
-        );
-
-        expect(result.trim()).toBe("[Math]::Round($value)");
-    });
-
-    it("formats hexadecimal numbers correctly", async () => {
-        expect.hasAssertions();
-
-        const script = "$mode.Value = 0x0004";
-        const result = await formatAndAssert(
-            script,
-            baseConfig,
-            "formatting-edge-cases.result"
-        );
-
-        expect(result.trim()).toBe("$mode.Value = 0x0004");
+        expect(result).not.toContain("[System.IO.Path] :: PathSeparator");
     });
 
     it("formats various hex number formats", async () => {
@@ -196,19 +140,6 @@ $d = 0X1234
         expect(result).toContain("0xFF");
         expect(result).toContain("0xDEADBEEF");
         expect(result).toContain("0X1234");
-    });
-
-    it("formats binary literals correctly", async () => {
-        expect.hasAssertions();
-
-        const script = "$binary = 0b1010";
-        const result = await formatAndAssert(
-            script,
-            baseConfig,
-            "formatting-edge-cases.result"
-        );
-
-        expect(result.trim()).toBe("$binary = 0b1010");
     });
 
     it("formats multiplier suffixes correctly", async () => {

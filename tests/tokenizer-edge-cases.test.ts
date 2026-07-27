@@ -3,29 +3,31 @@ import { describe, expect, it } from "vitest";
 import { tokenize } from "../src/tokenizer.js";
 
 describe("tokenizer edge cases", () => {
-    it("handles block comment at end of file", () => {
+    it.each([
+        {
+            expected: "<#comment#>",
+            name: "handles block comment at end of file",
+            script: "test <#comment#>",
+        },
+        {
+            expected: "<#unclosed",
+            name: "handles unclosed block comment at end of file",
+            script: "test <#unclosed",
+        },
+        {
+            expected: "<#test#>",
+            name: "handles block comment closing at exact last position",
+            script: "<#test#>",
+        },
+    ])("$name", ({ expected, script }) => {
         expect.hasAssertions();
 
-        const script = "test <#comment#>";
         const tokens = tokenize(script);
         const blockComment = tokens.find((t) => t.type === "block-comment");
 
         expect(blockComment).toMatchObject({
             type: "block-comment",
-            value: "<#comment#>",
-        });
-    });
-
-    it("handles unclosed block comment at end of file", () => {
-        expect.hasAssertions();
-
-        const script = "test <#unclosed";
-        const tokens = tokenize(script);
-        const blockComment = tokens.find((t) => t.type === "block-comment");
-
-        expect(blockComment).toMatchObject({
-            type: "block-comment",
-            value: "<#unclosed",
+            value: expected,
         });
     });
 
@@ -55,29 +57,28 @@ describe("tokenizer edge cases", () => {
         });
     });
 
-    it("handles Windows line endings in here-strings correctly", () => {
+    it.each([
+        {
+            name: "handles Windows line endings in here-strings correctly",
+            script: '@"\r\nLine 1\r\nLine 2\r\n"@',
+        },
+        {
+            name: "handles UNIX line endings in here-strings correctly",
+            script: '@"\nLine 1\nLine 2\n"@',
+        },
+        {
+            name: "handles here-string closing at exact position",
+            script: '@"\ntest\n"@',
+        },
+    ])("$name", ({ script }) => {
         expect.hasAssertions();
 
-        const script = '@"\r\nLine 1\r\nLine 2\r\n"@';
         const tokens = tokenize(script);
         const heredoc = tokens.find((t) => t.type === "heredoc");
 
         expect(heredoc).toMatchObject({
             type: "heredoc",
-            value: '@"\r\nLine 1\r\nLine 2\r\n"@',
-        });
-    });
-
-    it("handles UNIX line endings in here-strings correctly", () => {
-        expect.hasAssertions();
-
-        const script = '@"\nLine 1\nLine 2\n"@';
-        const tokens = tokenize(script);
-        const heredoc = tokens.find((t) => t.type === "heredoc");
-
-        expect(heredoc).toMatchObject({
-            type: "heredoc",
-            value: '@"\nLine 1\nLine 2\n"@',
+            value: script,
         });
     });
 
@@ -102,32 +103,6 @@ describe("tokenizer edge cases", () => {
         expect(number).toMatchObject({
             type: "number",
             value: "1.5",
-        });
-    });
-
-    it("handles here-string closing at exact position", () => {
-        expect.hasAssertions();
-
-        const script = '@"\ntest\n"@';
-        const tokens = tokenize(script);
-        const heredoc = tokens.find((t) => t.type === "heredoc");
-
-        expect(heredoc).toMatchObject({
-            type: "heredoc",
-            value: '@"\ntest\n"@',
-        });
-    });
-
-    it("handles block comment closing at exact last position", () => {
-        expect.hasAssertions();
-
-        const script = "<#test#>";
-        const tokens = tokenize(script);
-        const blockComment = tokens.find((t) => t.type === "block-comment");
-
-        expect(blockComment).toMatchObject({
-            type: "block-comment",
-            value: "<#test#>",
         });
     });
 

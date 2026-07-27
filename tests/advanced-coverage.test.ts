@@ -474,31 +474,34 @@ describe("tokenizer advanced coverage", () => {
         ).toBe(true);
     });
 
-    it("tokenizes line continuation backtick as an unknown token", () => {
+    it.each([
+        {
+            expectedType: "unknown",
+            expectedValue: "`",
+            name: "tokenizes line continuation backtick as an unknown token",
+            script: "`",
+        },
+        {
+            expectedType: "variable",
+            expectedValue: "$env:PATH",
+            name: "tokenizes simple variables without braces",
+            script: "$env:PATH",
+        },
+        {
+            expectedType: "unknown",
+            expectedValue: "§",
+            name: "emits unknown tokens when no rules match",
+            script: "§",
+        },
+    ])("$name", ({ expectedType, expectedValue, script }) => {
         expect.hasAssertions();
 
-        const tokens = tokenize("`");
+        const token = tokenize(script).find(
+            (candidate) => candidate.type === expectedType
+        );
 
-        expect(tokens[0]?.type).toBe("unknown");
-        expect(tokens[0]?.value).toBe("`");
-    });
-
-    it("tokenizes simple variables without braces", () => {
-        expect.hasAssertions();
-
-        const tokens = tokenize("$env:PATH");
-        const variable = tokens.find((token) => token.type === "variable");
-
-        expect(variable?.value).toBe("$env:PATH");
-    });
-
-    it("emits unknown tokens when no rules match", () => {
-        expect.hasAssertions();
-
-        const tokens = tokenize("§");
-
-        expect(tokens[0]?.type).toBe("unknown");
-        expect(tokens[0]?.value).toBe("§");
+        expect(token?.type).toBe(expectedType);
+        expect(token?.value).toBe(expectedValue);
     });
 
     it("normalizes here-strings while preserving quote metadata", () => {
@@ -572,28 +575,23 @@ describe("tokenizer advanced coverage", () => {
         expect(heredoc?.value).toBe('@""@');
     });
 
-    it("tokenizes here-strings closing after unix newline", () => {
+    it.each([
+        {
+            name: "tokenizes here-strings closing after unix newline",
+            script: '@"\nUnix\n"@',
+        },
+        {
+            name: "tokenizes here-strings closing after windows newline",
+            script: '@"\r\nWindows\r\n"@',
+        },
+        {
+            name: "tokenizes here-strings closing after mixed newline order",
+            script: '@"\n\rMixed\n\r"@',
+        },
+    ])("$name", ({ script }) => {
         expect.hasAssertions();
 
-        const tokens = tokenize('@"\nUnix\n"@');
-        const heredoc = tokens.find((token) => token.type === "heredoc");
-
-        expect(heredoc?.value.endsWith('"@')).toBe(true);
-    });
-
-    it("tokenizes here-strings closing after windows newline", () => {
-        expect.hasAssertions();
-
-        const tokens = tokenize('@"\r\nWindows\r\n"@');
-        const heredoc = tokens.find((token) => token.type === "heredoc");
-
-        expect(heredoc?.value.endsWith('"@')).toBe(true);
-    });
-
-    it("tokenizes here-strings closing after mixed newline order", () => {
-        expect.hasAssertions();
-
-        const tokens = tokenize('@"\n\rMixed\n\r"@');
+        const tokens = tokenize(script);
         const heredoc = tokens.find((token) => token.type === "heredoc");
 
         expect(heredoc?.value.endsWith('"@')).toBe(true);

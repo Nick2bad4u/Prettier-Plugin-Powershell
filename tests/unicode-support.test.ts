@@ -9,40 +9,32 @@ const baseConfig = {
 };
 
 describe("unicode support in tokenizer", () => {
-    it("supports Unicode variable names (Greek)", async () => {
+    it.each([
+        {
+            name: "supports Unicode variable names (Greek)",
+            script: "$π = 3.14",
+        },
+        {
+            name: "supports Unicode variable names (Chinese)",
+            script: "$变量 = 'value'",
+        },
+        {
+            name: "supports Unicode variable names (Cyrillic)",
+            script: "$ответ = 42",
+        },
+        {
+            name: "handles mixed ASCII and Unicode variable names",
+            script: "$test变量Name = 'mixed'",
+        },
+    ])("$name", async ({ script }) => {
         expect.hasAssertions();
 
-        const script = "$π = 3.14";
         const result = await formatAndAssert(script, baseConfig, {
             id: "unicode-support.test.ts.result",
             skipParse: true,
         });
 
-        expect(result.trim()).toBe("$π = 3.14");
-    });
-
-    it("supports Unicode variable names (Chinese)", async () => {
-        expect.hasAssertions();
-
-        const script = "$变量 = 'value'";
-        const result = await formatAndAssert(script, baseConfig, {
-            id: "unicode-support.test.ts.result",
-            skipParse: true,
-        });
-
-        expect(result.trim()).toBe("$变量 = 'value'");
-    });
-
-    it("supports Unicode variable names (Cyrillic)", async () => {
-        expect.hasAssertions();
-
-        const script = "$ответ = 42";
-        const result = await formatAndAssert(script, baseConfig, {
-            id: "unicode-support.test.ts.result",
-            skipParse: true,
-        });
-
-        expect(result.trim()).toBe("$ответ = 42");
+        expect(result.trim()).toBe(script);
     });
 
     it("supports Unicode identifiers (function names)", async () => {
@@ -97,17 +89,5 @@ describe("unicode support in tokenizer", () => {
         );
 
         expect(result).toContain("世界 🌍");
-    });
-
-    it("handles mixed ASCII and Unicode variable names", async () => {
-        expect.hasAssertions();
-
-        const script = "$test变量Name = 'mixed'";
-        const result = await formatAndAssert(script, baseConfig, {
-            id: "unicode-support.test.ts.result",
-            skipParse: true,
-        });
-
-        expect(result.trim()).toBe("$test变量Name = 'mixed'");
     });
 });

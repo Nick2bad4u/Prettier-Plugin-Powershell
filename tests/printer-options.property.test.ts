@@ -516,9 +516,9 @@ function ${second} {
                                 const hasTrailingSemicolonBeforeBrace =
                                     /;\s*\}$/v.test(allTrimmed);
                                 if (
+                                    !hasTrailingSemicolonBeforeBrace &&
                                     !allTrimmed.includes(";\n}") &&
-                                    !allTrimmed.endsWith(";}") &&
-                                    !hasTrailingSemicolonBeforeBrace
+                                    !allTrimmed.endsWith(";}")
                                 ) {
                                     throw new Error(
                                         `Expected trailing semicolon before closing brace for option "all".\n${all}`
