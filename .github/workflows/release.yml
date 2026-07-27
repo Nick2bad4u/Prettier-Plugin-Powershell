@@ -42,6 +42,11 @@ on:
                 required: false
                 default: false
                 type: "boolean"
+            resume_existing:
+                description: "Resume an npm-published version that is missing its GitHub release"
+                required: false
+                default: false
+                type: "boolean"
 
 defaults:
     run:
@@ -133,9 +138,15 @@ jobs:
               env:
                   EXPLICIT_VERSION: "${{ inputs.version }}"
                   RELEASE_TYPE: "${{ inputs.release_type }}"
+                  RESUME_EXISTING: "${{ inputs.resume_existing }}"
               run: |
                   set -euo pipefail
                   explicit_version="${EXPLICIT_VERSION:-}"
+                  resume_existing="${RESUME_EXISTING:-false}"
+                  if [ "$resume_existing" = "true" ] && [ -z "$explicit_version" ]; then
+                    echo "Resuming an existing release requires an explicit version." >&2
+                    exit 1
+                  fi
                   if [ -n "$explicit_version" ]; then
                     if [[ ! "$explicit_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
                       echo "Invalid version input '$explicit_version'. Use x.y.z format." >&2
@@ -190,12 +201,16 @@ jobs:
               env:
                   EXPLICIT_VERSION: "${{ inputs.version }}"
                   RELEASE_TYPE: "${{ inputs.release_type }}"
+                  RESUME_EXISTING: "${{ inputs.resume_existing }}"
               run: |
                   set -euo pipefail
 
                   if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
                     explicit_version="${EXPLICIT_VERSION:-}"
-                    if [ -n "$explicit_version" ]; then
+                    resume_existing="${RESUME_EXISTING:-false}"
+                    if [ "$resume_existing" = "true" ]; then
+                      version="$explicit_version"
+                    elif [ -n "$explicit_version" ]; then
                       npm version "$explicit_version" --no-git-tag-version
                       version="$explicit_version"
                     else
@@ -221,6 +236,32 @@ jobs:
                     echo "github_release_url=$github_release_url"
                   } >> "$GITHUB_OUTPUT"
 
+            - name: "Checkout existing release tag for recovery"
+              if: "github.event_name == 'workflow_dispatch' && inputs.resume_existing"
+              env:
+                  GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+                  TAG: "${{ steps.version.outputs.tag }}"
+                  VERSION: "${{ steps.version.outputs.version }}"
+              run: |
+                  set -euo pipefail
+                  git fetch --tags --force
+                  tag_ref="refs/tags/${TAG}"
+                  if ! git show-ref --verify --quiet "$tag_ref"; then
+                    echo "Cannot resume release because tag ${TAG} does not exist." >&2
+                    exit 1
+                  fi
+                  if gh release view "$TAG" >/dev/null 2>&1; then
+                    echo "GitHub release ${TAG} already exists; there is nothing to resume." >&2
+                    exit 1
+                  fi
+
+                  git checkout --detach "$tag_ref"
+                  package_version=$(node -p "require('./package.json').version")
+                  if [ "$package_version" != "$VERSION" ]; then
+                    echo "Tag ${TAG} contains package version ${package_version}, expected ${VERSION}." >&2
+                    exit 1
+                  fi
+
             - name: "Rebuild package after manual version bump"
               if: "github.event_name == 'workflow_dispatch'"
               run: "npm run build"
@@ -241,15 +282,23 @@ jobs:
                   fi
 
             - name: "Prevent duplicate workflow_dispatch release version"
-              if: "github.event_name == 'workflow_dispatch' && steps.npm_check.outputs.already_published == 'true'"
+              if: "github.event_name == 'workflow_dispatch' && !inputs.resume_existing && steps.npm_check.outputs.already_published == 'true'"
               env:
                   VERSION: "${{ steps.version.outputs.version }}"
               run: |
                   echo "Version ${VERSION} is already published. Choose a new release type/version." >&2
                   exit 1
 
+            - name: "Validate existing npm publication for recovery"
+              if: "github.event_name == 'workflow_dispatch' && inputs.resume_existing && steps.npm_check.outputs.already_published != 'true'"
+              env:
+                  VERSION: "${{ steps.version.outputs.version }}"
+              run: |
+                  echo "Cannot resume version ${VERSION} because it is not published to npm." >&2
+                  exit 1
+
             - name: "Commit and push release version + tag"
-              if: "github.event_name == 'workflow_dispatch'"
+              if: "github.event_name == 'workflow_dispatch' && !inputs.resume_existing"
               env:
                   BRANCH: "${{ steps.target_ref.outputs.branch }}"
                   TAG: "${{ steps.version.outputs.tag }}"
@@ -337,7 +386,10 @@ jobs:
                     node -e \
                       "const fs = require('node:fs');"\
                       " const packMetadata = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));"\
-                      " process.stdout.write(packMetadata[0].filename);" \
+                      " const entries = Array.isArray(packMetadata) ? packMetadata : Object.values(packMetadata);"\
+                      " const filename = entries[0]?.filename;"\
+                      " if (typeof filename !== 'string' || filename.length === 0) throw new Error('npm pack did not report a filename');"\
+                      " process.stdout.write(filename);" \
                       "$pack_metadata_path"
                   )
                   tarball_path="${assets_dir}/${tarball_filename}"
