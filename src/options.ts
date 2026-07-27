@@ -223,6 +223,7 @@ export interface ResolvedOptions {
     indentStyle: IndentStyleOption;
     keywordCase: KeywordCaseOption;
     lineWidth: number;
+    originalText?: string;
     preferSingleQuote: boolean;
     rewriteAliases: boolean;
     rewriteWriteHost: boolean;

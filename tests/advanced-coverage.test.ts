@@ -75,7 +75,10 @@ interface ParserTestUtils {
         elements: Token[][];
         separators: ArraySeparator[];
     };
-    splitHashtableEntries: (tokens: readonly Readonly<Token>[]) => Token[][];
+    splitHashtableEntries: (
+        tokens: readonly Readonly<Token>[],
+        source?: string
+    ) => Token[][];
 }
 
 type PowerShellParserOptions = ParserOptions & {
@@ -669,36 +672,19 @@ describe("parser advanced coverage", () => {
         ).toBe(true);
     });
 
-    it("breaks pipeline when newline comment prevents continuation", () => {
+    it("retains a pipeline when a comment precedes a line-leading pipe", () => {
         expect.hasAssertions();
 
         const script =
             "Get-Process\n# stop continuation\n| Where-Object { $_ }";
         const ast = parse(script);
-        const comment = ast.body.find(
-            (node): node is CommentNode => node.type === "Comment"
-        );
-
-        expect(comment?.type).toBe("Comment");
-
-        expect(comment?.value.trim()).toBe("stop continuation");
-
         const pipelines = ast.body.filter((node) => node.type === "Pipeline");
 
-        expect(pipelines).toHaveLength(2);
-        expect(pipelines[0]?.segments.length).toBe(1);
-
-        const segmentParts = pipelines[1]?.segments[0]?.parts ?? [];
-        const firstPart = segmentParts[0] as TextNode;
-
-        expect(firstPart.type).toBe("Text");
-
-        expect(firstPart.value).toBe("Where-Object");
-        expect(
-            segmentParts.some(
-                (part) => part.type === "Text" && part.value === "|"
-            )
-        ).toBe(false);
+        expect(pipelines).toHaveLength(1);
+        expect(pipelines[0]?.segments).toHaveLength(2);
+        expect(pipelines[0]?.separatorComments?.[0]?.[0]?.value.trim()).toBe(
+            "stop continuation"
+        );
     });
 
     it("splits statements on semicolons and collects blank lines", () => {
@@ -1642,7 +1628,7 @@ describe("printer internal helpers", () => {
         );
     });
 
-    it("printText rewrites generic aliases when enabled", () => {
+    it("does not rewrite aliases without pipeline command context", () => {
         expect.hasAssertions();
 
         const aliasOptions = resolveOptions(
@@ -1651,7 +1637,7 @@ describe("printer internal helpers", () => {
         const aliasNode = makeTextNode("write", "word");
 
         expect(printerTestUtils.printNode(aliasNode, aliasOptions)).toBe(
-            "Write-Output"
+            "write"
         );
     });
 
@@ -2351,6 +2337,48 @@ describe("parser internal helpers", () => {
 
         expect(entries).toHaveLength(2);
         expect(entries[0]?.[0]?.value).toBe("a");
+    });
+
+    it("assigns a same-line post-semicolon comment to the preceding entry", () => {
+        expect.hasAssertions();
+
+        const source = "Key = 1; # key\nOther = 2";
+        const entries = parserUtils.splitHashtableEntries(
+            tokensFrom(source),
+            source
+        );
+
+        expect(entries).toHaveLength(2);
+        expect(entries[0]?.some((token) => token.value === " key")).toBe(true);
+        expect(entries[1]?.some((token) => token.value === " key")).toBe(false);
+
+        const firstEntry = parserUtils.buildHashtableEntry(
+            entries[0] ?? [],
+            source
+        );
+
+        expect(firstEntry.trailingComments?.[0]).toMatchObject({
+            inline: true,
+            value: " key",
+        });
+    });
+
+    it("assigns a next-line post-semicolon comment to the following entry", () => {
+        expect.hasAssertions();
+
+        const source = "Key = 1;\n# other\nOther = 2";
+        const entries = parserUtils.splitHashtableEntries(
+            tokensFrom(source),
+            source
+        );
+
+        expect(entries).toHaveLength(2);
+        expect(entries[0]?.some((token) => token.value === " other")).toBe(
+            false
+        );
+        expect(entries[1]?.some((token) => token.value === " other")).toBe(
+            true
+        );
     });
 
     it("splitHashtableEntries skips empty segments for consecutive separators", () => {

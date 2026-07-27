@@ -177,7 +177,7 @@ const POWERSHELL_OPERATOR_LOOKUP: Readonly<Record<string, true | undefined>> =
 // These are defined at module level to avoid recreation in the tokenize loop
 const WHITESPACE_PATTERN = /\s/v;
 const IDENTIFIER_START_PATTERN = /\p{L}|_/v;
-const UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}\-:_]$/v;
+const UNICODE_VAR_CHAR_PATTERN = /^[\p{L}\p{N}:?_]$/v;
 const HEX_DIGIT_PATTERN = /[\da-f]/iv;
 const BINARY_DIGIT_PATTERN = /[01]/v;
 const DECIMAL_DIGIT_PATTERN = /\d/v;
@@ -457,6 +457,13 @@ const consumeVariableToken = (
 
     if (scanIndex < length) {
         const nextChar = source.charAt(scanIndex);
+        if (nextChar === "{") {
+            scanIndex += 1;
+            while (scanIndex < length && source[scanIndex] !== "}") {
+                scanIndex += 1;
+            }
+            return source[scanIndex] === "}" ? scanIndex + 1 : scanIndex;
+        }
         if (
             arrayIncludes(
                 [
@@ -873,6 +880,54 @@ const consumePunctuationToken = (
     return end;
 };
 
+const SYMBOL_OPERATORS = [
+    "%=",
+    "&=",
+    "*=",
+    "++",
+    "+=",
+    "--",
+    "-=",
+    "/=",
+    "?.",
+    "??",
+    "??=",
+    "?[",
+    "^=",
+    "|=",
+] as const;
+
+const consumeSymbolOperatorToken = (
+    source: string,
+    index: number,
+    push: PushToken
+): null | number => {
+    let operator: string | undefined;
+    for (const candidate of SYMBOL_OPERATORS) {
+        if (!source.startsWith(candidate, index)) {
+            continue;
+        }
+        if (candidate === "--") {
+            const nextCharacter = source.charAt(index + candidate.length);
+            if (
+                nextCharacter === "%" ||
+                UNICODE_IDENTIFIER_START_PATTERN.test(nextCharacter)
+            ) {
+                continue;
+            }
+        }
+        if (!isDefined(operator) || candidate.length > operator.length) {
+            operator = candidate;
+        }
+    }
+    if (!isDefined(operator)) {
+        return null;
+    }
+    const end = index + operator.length;
+    push({ end, start: index, type: "operator", value: operator });
+    return end;
+};
+
 const consumePipeOrEqualsToken = (
     source: string,
     index: number,
@@ -1213,6 +1268,7 @@ function consumeOperatorTokenAt(
 ): null | number {
     return (
         consumeColonColonToken(source, index, push) ??
+        consumeSymbolOperatorToken(source, index, push) ??
         consumePunctuationToken(source, index, push) ??
         consumePipeOrEqualsToken(source, index, push) ??
         consumePipelineChainToken(source, index, push) ??

@@ -5,13 +5,13 @@ function Test-StaticInPipelines {
     )
 
     $results = $Names
-    ForEach-Object {
-        [System.Console]::WriteLine($_)
-        [System.Guid]::NewGuid().ToString()
-    }
-    Where-Object {
-        $_ -ne $null
-    }
+        | ForEach-Object {
+            [System.Console]::WriteLine($_)
+            [System.Guid]::NewGuid().ToString()
+        }
+        | Where-Object {
+            $_ -ne $null
+        }
 
     # static call in assignment plus chained property
     $envSeparator =

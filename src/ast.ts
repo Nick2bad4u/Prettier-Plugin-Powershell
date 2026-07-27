@@ -121,6 +121,7 @@ export type ParenthesisSeparator = "comma" | "newline";
  */
 export interface PipelineNode extends BaseNode {
     segments: ExpressionNode[];
+    separatorComments?: CommentNode[][];
     trailingComment?: CommentNode;
     type: "Pipeline";
 }

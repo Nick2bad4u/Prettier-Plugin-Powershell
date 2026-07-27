@@ -38,6 +38,7 @@ import type {
 } from "./ast.js";
 
 import { type ResolvedOptions, resolveOptions } from "./options.js";
+import { tokenize } from "./tokenizer.js";
 
 const {
     align,
@@ -61,6 +62,8 @@ const NO_SPACE_BEFORE = new Set([
     ";",
     "<",
     ">",
+    "?.",
+    "?[",
     "]",
     "}",
 ]);
@@ -97,6 +100,8 @@ const NO_SPACE_AFTER = new Set([
     "<",
     ">",
     ">>",
+    "?.",
+    "?[",
     "@",
     "[",
     "\\",
@@ -126,16 +131,16 @@ const CONCATENATED_OPERATOR_PAIRS: ReadonlySet<string> = new Set([
     "^=",
     "|=",
 ]);
+const COMMAND_ALIAS_ROLES = [
+    "operator",
+    "unknown",
+    "word",
+] as const;
 const LOGICAL_OPERATORS = [
     "-and",
     "-not",
     "-or",
     "-xor",
-] as const;
-const REWRITEABLE_ROLES = [
-    "operator",
-    "unknown",
-    "word",
 ] as const;
 const SPECIAL_UNKNOWN_SYMBOLS = [
     ":",
@@ -257,7 +262,10 @@ export const powerShellPrinter: Printer<ScriptNode> = {
         >(path.node);
         let result: Doc = "";
         if (isDefined(node)) {
-            const resolved = resolveOptions(options);
+            const resolved = {
+                ...resolveOptions(options),
+                originalText: options.originalText,
+            } satisfies ResolvedOptions;
             result = printNode(node, resolved);
         }
         return result;
@@ -288,15 +296,31 @@ function appendCommentToLastDoc(
 
 function buildPipelineSegmentsDoc(
     firstSegmentDoc: Doc,
-    segmentDocs: readonly Doc[]
+    segmentDocs: readonly Doc[],
+    separatorComments: readonly (readonly Readonly<CommentNode>[])[]
 ): Doc {
     let result: Doc = firstSegmentDoc;
 
     if (segmentDocs.length > 1) {
-        const shouldAlwaysBreak = segmentDocs.length > 3;
-        const restDocs = segmentDocs
-            .slice(1)
-            .map((segmentDoc) => [line, ["| ", segmentDoc]]);
+        const shouldAlwaysBreak =
+            segmentDocs.length > 3 ||
+            separatorComments.some((comments) => comments.length > 0);
+        const restDocs = segmentDocs.slice(1).map((segmentDoc, index) => {
+            const comments = separatorComments[index] ?? [];
+            if (isEmpty(comments)) {
+                return safeCastTo<Doc>([line, ["| ", segmentDoc]]);
+            }
+            return safeCastTo<Doc>([
+                hardline,
+                "| ",
+                join(
+                    hardline,
+                    comments.map((comment) => printComment(comment))
+                ),
+                hardline,
+                segmentDoc,
+            ]);
+        });
 
         result = shouldAlwaysBreak
             ? [firstSegmentDoc, indent(restDocs.flat())]
@@ -443,6 +467,35 @@ function evaluateSymbolSpacing(
     return "space";
 }
 
+function findCommandIndex(parts: readonly ExpressionPartNode[]): number {
+    const firstPart = arrayFirst(parts);
+    if (
+        firstPart?.type === "Text" &&
+        (firstPart.value === "&" || firstPart.value === ".")
+    ) {
+        return isCommandAliasCandidate(parts[1]) ? 1 : -1;
+    }
+    if (isCommandAliasCandidate(firstPart)) {
+        return 0;
+    }
+
+    for (const [index, part] of parts.entries()) {
+        if (
+            part.type !== "Text" ||
+            part.role !== "operator" ||
+            (part.value !== "=" && part.value !== "&")
+        ) {
+            continue;
+        }
+        const candidateIndex = index + 1;
+        return isCommandAliasCandidate(parts[candidateIndex])
+            ? candidateIndex
+            : -1;
+    }
+
+    return -1;
+}
+
 function gapBetween(
     previous: Readonly<ExpressionPartNode>,
     current: Readonly<ExpressionPartNode>
@@ -458,6 +511,57 @@ function gapBetween(
     return decision === "none" ? null : " ";
 }
 
+function getNodeSourceEnd(
+    node: Readonly<ScriptBodyNode>,
+    source: string
+): number {
+    let end = node.loc.end;
+    if (
+        node.type === "Pipeline" &&
+        isDefined(node.trailingComment) &&
+        node.trailingComment.loc.end > end
+    ) {
+        end = node.trailingComment.loc.end;
+    }
+
+    let delimiterIndex = end;
+    while (
+        delimiterIndex < source.length &&
+        (source[delimiterIndex] === " " || source[delimiterIndex] === "\t")
+    ) {
+        delimiterIndex += 1;
+    }
+    return source[delimiterIndex] === ";" ? delimiterIndex + 1 : end;
+}
+
+function getSourceIndentPrefix(source: string, offset: number): string {
+    let lineStart = offset;
+    while (
+        lineStart > 0 &&
+        source[lineStart - 1] !== "\n" &&
+        source[lineStart - 1] !== "\r"
+    ) {
+        lineStart -= 1;
+    }
+    const prefix = source.slice(lineStart, offset);
+    return /^[^\S\n\r]*$/v.test(prefix) ? prefix : "";
+}
+
+function getSourceLines(source: string): { start: number; text: string }[] {
+    const lines: { start: number; text: string }[] = [];
+    let lineStart = 0;
+    for (const match of source.matchAll(/\r\n|[\n\r]/gv)) {
+        const matchStart = match.index;
+        lines.push({
+            start: lineStart,
+            text: source.slice(lineStart, matchStart),
+        });
+        lineStart = matchStart + match[0].length;
+    }
+    lines.push({ start: lineStart, text: source.slice(lineStart) });
+    return lines;
+}
+
 function indentStatement(
     docToIndent: Doc,
     options: Readonly<ResolvedOptions>
@@ -465,6 +569,14 @@ function indentStatement(
     const indentUnit =
         options.indentStyle === "tabs" ? "\t" : " ".repeat(options.indentSize);
     return safeCastTo<Doc>([indentUnit, align(indentUnit.length, docToIndent)]);
+}
+
+function isCommandAliasCandidate(
+    part: Readonly<ExpressionPartNode> | undefined
+): part is Readonly<TextNode> {
+    return (
+        part?.type === "Text" && arrayIncludes(COMMAND_ALIAS_ROLES, part.role)
+    );
 }
 
 /**
@@ -556,6 +668,13 @@ function isParamStatement(node: null | Readonly<ScriptBodyNode>): boolean {
     return firstPart.value.toLowerCase() === "param";
 }
 
+function isSourceOffsetInRanges(
+    offset: number,
+    ranges: readonly Readonly<{ end: number; start: number }>[]
+): boolean {
+    return ranges.some((range) => offset > range.start && offset < range.end);
+}
+
 function mergeOperatorPair(
     current: Readonly<ExpressionPartNode>,
     next: Readonly<ExpressionPartNode> | undefined
@@ -627,10 +746,14 @@ function normalizeKeywordAfterMemberAccess(
 
 function printExpression(
     node: Readonly<ExpressionNode>,
-    options: Readonly<ResolvedOptions>
+    options: Readonly<ResolvedOptions>,
+    isPipelineSegment = false
 ): Doc {
     const docs: Doc[] = [];
     const normalizedParts = normalizeExpressionParts(node);
+    const commandIndex = isPipelineSegment
+        ? findCommandIndex(normalizedParts)
+        : -1;
 
     let previous: ExpressionPartNode | null = null;
 
@@ -660,7 +783,11 @@ function printExpression(
             continue;
         }
 
-        pushExpressionDoc(docs, printNode(part, options), previous, part);
+        const partDoc =
+            part.type === "Text"
+                ? printText(part, options, index === commandIndex)
+                : printNode(part, options);
+        pushExpressionDoc(docs, partDoc, previous, part);
         previous = part;
     }
 
@@ -751,17 +878,63 @@ function printNode(
     }
 }
 
+function printOriginalNode(
+    node: Readonly<ScriptBodyNode>,
+    source: string
+): Doc | undefined {
+    const end = getNodeSourceEnd(node, source);
+    if (node.loc.start < 0 || end < node.loc.start || end > source.length) {
+        return undefined;
+    }
+
+    const original = source.slice(node.loc.start, end);
+    const indentPrefix = getSourceIndentPrefix(source, node.loc.start);
+    const protectedRanges = tokenize(original)
+        .filter(
+            (token) =>
+                (token.type === "heredoc" || token.type === "string") &&
+                /[\n\r]/v.test(token.value)
+        )
+        .map((token) => ({ end: token.end, start: token.start }));
+    const lines = getSourceLines(original);
+    const docs: Doc[] = [];
+
+    for (const [index, sourceLine] of lines.entries()) {
+        const lineText = sourceLine.text;
+        const isLiteralLine =
+            index > 0 &&
+            isSourceOffsetInRanges(sourceLine.start, protectedRanges);
+        const printableLine = isLiteralLine
+            ? lineText
+            : removeSourceIndent(lineText, indentPrefix);
+
+        if (index === 0) {
+            docs.push(printableLine);
+        } else if (isLiteralLine) {
+            docs.push(dedentToRoot([hardline, printableLine]));
+        } else {
+            docs.push(hardline, printableLine);
+        }
+    }
+
+    return docs;
+}
+
 function printPipeline(
     node: Readonly<PipelineNode>,
     options: Readonly<ResolvedOptions>
 ): Doc {
     const segmentDocs = node.segments.map((segment) =>
-        printExpression(segment, options)
+        printExpression(segment, options, true)
     );
     const firstSegmentDoc = arrayFirst(segmentDocs);
     return !isEmpty(segmentDocs) && isDefined(firstSegmentDoc)
         ? withPipelineTrailingComment(
-              buildPipelineSegmentsDoc(firstSegmentDoc, segmentDocs),
+              buildPipelineSegmentsDoc(
+                  firstSegmentDoc,
+                  segmentDocs,
+                  node.separatorComments ?? []
+              ),
               node.trailingComment
           )
         : "";
@@ -842,26 +1015,39 @@ function printStatementList(
     const docs: Doc[] = [];
     let previous: null | ScriptBodyNode = null;
     let pendingBlankLines = 0;
+    let isPrettierIgnorePending = false;
 
     for (const entry of body) {
         if (entry.type === "BlankLine") {
             pendingBlankLines = Math.max(pendingBlankLines, entry.count);
+            if (isPrettierIgnorePending && entry.count !== 1) {
+                isPrettierIgnorePending = false;
+            }
             continue;
         }
 
         if (previous) {
-            const blankLines = determineBlankLines(
-                previous,
-                entry,
-                pendingBlankLines,
-                options
-            );
+            const blankLines = isPrettierIgnorePending
+                ? 1
+                : determineBlankLines(
+                      previous,
+                      entry,
+                      pendingBlankLines,
+                      options
+                  );
             for (let index = 0; index < blankLines; index += 1) {
                 docs.push(hardline);
             }
         }
 
-        const printed = printNode(entry, options);
+        const shouldPreserveOriginal = isPrettierIgnorePending;
+        isPrettierIgnorePending = false;
+        const { originalText } = options;
+        const originalDoc =
+            shouldPreserveOriginal && isDefined(originalText)
+                ? printOriginalNode(entry, originalText)
+                : undefined;
+        const printed = originalDoc ?? printNode(entry, options);
         if (shouldAppendCommentToPreviousDoc(entry, previous, docs.length)) {
             appendCommentToLastDoc(
                 docs,
@@ -877,6 +1063,11 @@ function printStatementList(
         docs.push(
             shouldIndentStatements ? indentStatement(printed, options) : printed
         );
+        isPrettierIgnorePending =
+            entry.type === "Comment" &&
+            entry.style === "line" &&
+            !entry.inline &&
+            entry.value.trim() === "prettier-ignore";
         previous = entry;
         pendingBlankLines = 0;
     }
@@ -898,6 +1089,13 @@ function pushExpressionDoc(
     }
 
     docs.push(nextDoc);
+}
+
+function removeSourceIndent(lineText: string, prefix: string): string {
+    if (prefix.length === 0 || !lineText.startsWith(prefix)) {
+        return lineText;
+    }
+    return lineText.slice(prefix.length);
 }
 
 function shouldAppendCommentToPreviousDoc(
@@ -1061,6 +1259,10 @@ function flushPendingAttributes(
     }
 
     return [];
+}
+
+function hasInlineTrailingComment(node: Readonly<HashtableEntryNode>): boolean {
+    return node.trailingComments?.some((comment) => comment.inline) ?? false;
 }
 
 function hasLineComment(node: Readonly<ExpressionNode>): boolean {
@@ -1239,6 +1441,9 @@ function printHashtable(
     }
     const groupId = Symbol("hashtable");
     const contentDocs: Doc[] = [];
+    const shouldBreak = entries.some((entry) =>
+        hasInlineTrailingComment(entry)
+    );
 
     for (const [index, entry] of entries.entries()) {
         const entryDoc = printHashtableEntry(entry, options);
@@ -1261,6 +1466,7 @@ function printHashtable(
         ],
         {
             id: groupId,
+            shouldBreak,
         }
     );
 }
@@ -1488,7 +1694,8 @@ function printParenthesisContent(
 
 function printText(
     node: Readonly<TextNode>,
-    options: Readonly<ResolvedOptions>
+    options: Readonly<ResolvedOptions>,
+    canRewriteCommand = false
 ): Doc {
     if (node.role === "string") {
         return normalizeStringLiteral(node.value, options);
@@ -1505,14 +1712,14 @@ function printText(
         }
     }
 
-    if (options.rewriteAliases && arrayIncludes(REWRITEABLE_ROLES, node.role)) {
+    if (canRewriteCommand && options.rewriteAliases) {
         const aliasKey = value.toLowerCase();
         if (objectHasOwn(CMDLET_ALIAS_MAP, aliasKey)) {
             value = CMDLET_ALIAS_MAP[aliasKey] ?? value;
         }
     }
 
-    if (node.role === "word" && options.rewriteWriteHost) {
+    if (canRewriteCommand && options.rewriteWriteHost && node.role === "word") {
         const replacement = DISALLOWED_CMDLET_REWRITE.get(value.toLowerCase());
         if (isDefined(replacement)) {
             value = replacement;

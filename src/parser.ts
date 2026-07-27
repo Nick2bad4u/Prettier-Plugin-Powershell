@@ -66,21 +66,16 @@ const CLOSING_PUNCTUATION_TOKENS = [
     "]",
     "}",
 ] as const;
-const INLINE_WHITESPACE_CHARACTERS = new Set([
-    " ",
-    "\t",
-    "\f",
-    "\v",
-    "\u{A0}",
-    "\u{FEFF}",
-    "\u{200B}",
-    "\u{2060}",
-]);
 const OPENING_PUNCTUATION_TOKENS = [
     "(",
     "[",
     "{",
 ] as const;
+const PIPELINE_TRIVIA_TOKEN_TYPES: ReadonlySet<Token["type"]> = new Set([
+    BLOCK_COMMENT_TOKEN_TYPE,
+    COMMENT_TOKEN_TYPE,
+    "newline",
+]);
 const STATEMENT_BREAK_TERMINATORS = [
     "closing-brace",
     "closing-paren",
@@ -122,7 +117,9 @@ interface SplitOptions<TState = Record<string, never>> {
 
 interface StatementParseState {
     lineContinuation: boolean;
+    pendingPipelineComments: CommentNode[];
     segments: Token[][];
+    separatorComments: CommentNode[][];
     structureStack: string[];
     trailingComment?: CommentNode;
 }
@@ -176,23 +173,13 @@ const shouldMergeNodes = (
     (previous.type === "Pipeline" && next.type === "Comment" && next.inline) ||
     (previous.type === "BlankLine" && next.type === "BlankLine");
 
-const isInlineSpacing = (
-    source: string,
-    start: number,
-    end: number
-): boolean => {
+const isSameLine = (source: string, start: number, end: number): boolean => {
     if (!isDefined(start) || !isDefined(end)) {
         return false;
     }
     for (let index = start; index < end; index += 1) {
         const char = source[index];
-        if (char === "\n" || char === "\r") {
-            return false;
-        }
-        if (!isDefined(char)) {
-            return false;
-        }
-        if (!setHas(INLINE_WHITESPACE_CHARACTERS, char)) {
+        if (char === "\n" || char === "\r" || !isDefined(char)) {
             return false;
         }
     }
@@ -420,11 +407,33 @@ class Parser {
         } satisfies BlankLineNode;
     }
 
+    private consumePipelineComment(
+        token: Readonly<Token>,
+        // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Parser state is intentionally mutated during statement consumption
+        state: StatementParseState
+    ): void {
+        const comment = this.createCommentNode(
+            this.advance(),
+            this.isInlineComment(token)
+        );
+        if (this.isWaitingForPipelineSegment(state)) {
+            const comments = arrayAt(state.separatorComments, -1);
+            comments?.push(comment);
+        } else {
+            state.pendingPipelineComments.push(comment);
+        }
+    }
+
     private consumeStatementBlockComment(
+        token: Readonly<Token>,
         // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Parser state is intentionally mutated during statement consumption
         state: StatementParseState
     ): "break" | "continue" {
         if (isEmpty(state.structureStack)) {
+            if (this.shouldConsumePipelineComment(state)) {
+                this.consumePipelineComment(token, state);
+                return "continue";
+            }
             return "break";
         }
 
@@ -437,14 +446,17 @@ class Parser {
         // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Parser state is intentionally mutated during statement consumption
         state: StatementParseState
     ): "break" | "continue" {
-        if (isEmpty(state.structureStack) && this.isInlineComment(token)) {
-            state.trailingComment = this.createCommentNode(
-                this.advance(),
-                true
-            );
-        }
-
         if (isEmpty(state.structureStack)) {
+            if (this.shouldConsumePipelineComment(state)) {
+                this.consumePipelineComment(token, state);
+                return "continue";
+            }
+            if (this.isInlineComment(token)) {
+                state.trailingComment = this.createCommentNode(
+                    this.advance(),
+                    true
+                );
+            }
             return "break";
         }
 
@@ -473,6 +485,14 @@ class Parser {
             return "continue";
         }
 
+        if (
+            state.pendingPipelineComments.length > 0 ||
+            this.isWaitingForPipelineSegment(state)
+        ) {
+            this.advance();
+            return "continue";
+        }
+
         return "break";
     }
 
@@ -488,6 +508,8 @@ class Parser {
 
         this.advance();
         state.segments.push([]);
+        state.separatorComments.push(state.pendingPipelineComments);
+        state.pendingPipelineComments = [];
         state.lineContinuation = false;
         return "continue";
     }
@@ -518,7 +540,7 @@ class Parser {
         }
 
         if (token.type === BLOCK_COMMENT_TOKEN_TYPE) {
-            return this.consumeStatementBlockComment(state);
+            return this.consumeStatementBlockComment(token, state);
         }
 
         if (token.type === "operator" && token.value === "|") {
@@ -653,21 +675,28 @@ class Parser {
      * subsequent line.
      */
     private isPipelineContinuationAfterNewline(): boolean {
-        let offset = 1;
+        let offset = 0;
         while (true) {
             const next = this.peek(offset);
             if (!isDefined(next)) {
                 return false;
             }
-            if (next.type === "newline") {
+            if (setHas(PIPELINE_TRIVIA_TOKEN_TYPES, next.type)) {
                 offset += 1;
                 continue;
             }
-            if (next.type === COMMENT_TOKEN_TYPE) {
-                return false;
-            }
             return next.type === "operator" && next.value === "|";
         }
+    }
+
+    private isWaitingForPipelineSegment(
+        // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Parser state contains mutable token arrays
+        state: StatementParseState
+    ): boolean {
+        return (
+            state.segments.length > 1 &&
+            (arrayAt(state.segments, -1)?.length ?? 0) === 0
+        );
     }
 
     private parseFunction(): FunctionDeclarationNode {
@@ -748,7 +777,9 @@ class Parser {
     private parseStatement(): null | PipelineNode {
         const state: StatementParseState = {
             lineContinuation: false,
+            pendingPipelineComments: [],
             segments: [[]],
+            separatorComments: [],
             structureStack: [],
         };
 
@@ -805,6 +836,13 @@ class Parser {
             type: "Pipeline",
         };
 
+        if (
+            filteredSegments.length === state.segments.length &&
+            state.separatorComments.some((comments) => comments.length > 0)
+        ) {
+            pipelineNode.separatorComments = state.separatorComments;
+        }
+
         if (state.trailingComment) {
             pipelineNode.trailingComment = state.trailingComment;
         }
@@ -839,6 +877,16 @@ class Parser {
         if (currentSegment) {
             currentSegment.push(token);
         }
+    }
+
+    private shouldConsumePipelineComment(
+        // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Parser state contains mutable token arrays
+        state: StatementParseState
+    ): boolean {
+        return (
+            this.isWaitingForPipelineSegment(state) ||
+            this.isPipelineContinuationAfterNewline()
+        );
     }
 
     // eslint-disable-next-line @typescript-eslint/class-methods-use-this -- Kept as instance method to preserve class member ordering and parser flow consistency
@@ -1125,9 +1173,7 @@ function buildTrailingCommentNodes(
     let referenceEnd = referenceStart;
 
     for (const token of trailingComments) {
-        const isInline =
-            token.type === COMMENT_TOKEN_TYPE &&
-            isInlineSpacing(source, referenceEnd, token.start);
+        const isInline = isSameLine(source, referenceEnd, token.start);
 
         trailingNodes.push(createCommentNodeFromToken(token, isInline));
         referenceEnd = token.end;
@@ -1469,8 +1515,8 @@ function parseHashtablePart(
         tokens,
         startIndex
     );
-    const entries = splitHashtableEntries(contentTokens).map((entryTokens) =>
-        buildHashtableEntry(entryTokens, source)
+    const entries = splitHashtableEntries(contentTokens, source).map(
+        (entryTokens) => buildHashtableEntry(entryTokens, source)
     );
     const end =
         closingToken?.end ?? arrayAt(contentTokens, -1)?.end ?? startToken.end;
@@ -1587,13 +1633,16 @@ function partitionHashtableEntryTokens(
     const leadingComments: Token[] = [];
     const trailingComments: Token[] = [];
     const otherTokens: Token[] = [];
+    const stack: string[] = [];
     let equalsIndex = -1;
     let isFoundEquals = false;
 
     for (const token of tokens) {
+        const isTopLevel = isEmpty(stack);
         if (
-            token.type === COMMENT_TOKEN_TYPE ||
-            token.type === BLOCK_COMMENT_TOKEN_TYPE
+            isTopLevel &&
+            (token.type === COMMENT_TOKEN_TYPE ||
+                token.type === BLOCK_COMMENT_TOKEN_TYPE)
         ) {
             if (isFoundEquals) {
                 trailingComments.push(token);
@@ -1604,6 +1653,7 @@ function partitionHashtableEntryTokens(
         }
 
         if (
+            isTopLevel &&
             !isFoundEquals &&
             token.type === "operator" &&
             token.value === "="
@@ -1611,7 +1661,7 @@ function partitionHashtableEntryTokens(
             equalsIndex = otherTokens.length;
             isFoundEquals = true;
         }
-        otherTokens.push(token);
+        pushTopLevelToken(token, otherTokens, stack);
     }
 
     return { equalsIndex, leadingComments, otherTokens, trailingComments };
@@ -1696,19 +1746,27 @@ function splitArrayElements(tokens: readonly Token[]): ArraySplitResult {
     return { elements, separators };
 }
 
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
-function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
+function splitHashtableEntries(
+    tokens: readonly Token[],
+    source = ""
+): Token[][] {
     interface HashtableSplitState {
         hasEquals: boolean;
+        isDelimiterFlush: boolean;
         justSawEquals: boolean;
+        lastDelimiterEnd: null | number;
         pendingComments: Token[];
+        previousDelimiterSegment: null | Token[];
     }
 
     const rawSegments = splitTopLevelTokens<HashtableSplitState>(tokens, {
         createInitialState: () => ({
             hasEquals: false,
+            isDelimiterFlush: false,
             justSawEquals: false,
+            lastDelimiterEnd: null,
             pendingComments: [],
+            previousDelimiterSegment: null,
         }),
         delimiterValues: [";"],
         onAfterAddToken: (context) => {
@@ -1731,6 +1789,8 @@ function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
             }
         },
         onBeforeAddToken: (context) => {
+            context.state.lastDelimiterEnd = null;
+            context.state.previousDelimiterSegment = null;
             if (isEmpty(context.state.pendingComments)) {
                 return;
             }
@@ -1739,6 +1799,10 @@ function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
             context.state.pendingComments = [];
         },
         onFlush: (segment, state, segments) => {
+            if (state.isDelimiterFlush && segment.length > 0) {
+                state.previousDelimiterSegment = segment;
+            }
+            state.isDelimiterFlush = false;
             if (state.pendingComments.length > 0) {
                 if (segment.length > 0) {
                     segment.push(...state.pendingComments);
@@ -1761,15 +1825,28 @@ function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
 
         onToken: (context): SplitDecision => {
             if (
-                context.token.type === COMMENT_TOKEN_TYPE ||
-                context.token.type === BLOCK_COMMENT_TOKEN_TYPE
+                context.isTopLevel &&
+                (context.token.type === COMMENT_TOKEN_TYPE ||
+                    context.token.type === BLOCK_COMMENT_TOKEN_TYPE)
             ) {
+                const { lastDelimiterEnd, previousDelimiterSegment } =
+                    context.state;
+                if (
+                    previousDelimiterSegment !== null &&
+                    lastDelimiterEnd !== null &&
+                    isSameLine(source, lastDelimiterEnd, context.token.start)
+                ) {
+                    previousDelimiterSegment.push(context.token);
+                    return "skip";
+                }
                 context.state.pendingComments.push(context.token);
                 return "skip";
             }
             return undefined;
         },
         shouldSplitOnDelimiter: (context) => {
+            context.state.isDelimiterFlush = true;
+            context.state.lastDelimiterEnd = context.token.end;
             if (isEmpty(context.current)) {
                 return false;
             }
@@ -1780,6 +1857,8 @@ function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
             return true;
         },
         splitOnNewline: (context) => {
+            context.state.lastDelimiterEnd = null;
+            context.state.previousDelimiterSegment = null;
             if (isEmpty(context.current)) {
                 return false;
             }
