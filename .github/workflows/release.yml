@@ -383,7 +383,18 @@ jobs:
                   npm pack --ignore-scripts --json --pack-destination "$assets_dir" > "$pack_metadata_path"
 
                   tarball_filename=$(
-                    node -e "const fs = require('node:fs'); const tarballs = fs.readdirSync(process.argv[1]).filter((filename) => filename.endsWith('.tgz')); if (tarballs.length !== 1) throw new Error('Expected one npm tarball, found ' + tarballs.length); process.stdout.write(tarballs[0]);" "$assets_dir"
+                    node - "$assets_dir" <<'NODE'
+                  const fs = require("node:fs");
+                  const tarballs = fs
+                      .readdirSync(process.argv[2])
+                      .filter((filename) => filename.endsWith(".tgz"));
+                  if (tarballs.length !== 1) {
+                      throw new Error(
+                          `Expected one npm tarball, found ${tarballs.length}`
+                      );
+                  }
+                  process.stdout.write(tarballs[0]);
+                  NODE
                   )
                   tarball_path="${assets_dir}/${tarball_filename}"
                   safe_package_name=$(printf '%s' "$PACKAGE_NAME" | sed 's/^@//; s#/#-#g')
