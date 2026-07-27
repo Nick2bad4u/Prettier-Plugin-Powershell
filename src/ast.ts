@@ -101,8 +101,14 @@ export interface ParenthesisNode extends BaseNode {
     elements: ExpressionNode[];
     hasComma: boolean;
     hasNewline: boolean;
+    separators: ParenthesisSeparator[];
     type: "Parenthesis";
 }
+
+/**
+ * Source-level separator between adjacent parenthesized expressions.
+ */
+export type ParenthesisSeparator = "comma" | "newline";
 
 /**
  * Pipeline node, including optional trailing comment.

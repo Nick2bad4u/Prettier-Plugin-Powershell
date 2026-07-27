@@ -217,6 +217,22 @@ describe("additional regression fixtures", () => {
             name: "complex parameter attributes",
         },
         {
+            assertFormatted: (output) => {
+                expect(output).not.toContain("[Parameter(Mandatory)],");
+                expect(output).not.toContain(
+                    '[ValidateSet("Set-Temp", "Remove-Temp")],'
+                );
+                expect(output).toContain("[string] $CommandName,");
+                expect(output).toContain("[string]\n        $Name,");
+            },
+            assertInput: (input) => {
+                expect(input).toContain("Handle-CommandResponse");
+                expect(input).toContain("ParameterFixture");
+            },
+            file: "./fixtures/stacked-parameter-attributes.ps1",
+            name: "stacked attributes in direct parameter lists",
+        },
+        {
             assertInput: (input) => {
                 expect(input).toContain("<#");
                 expect(input).toContain("#>");

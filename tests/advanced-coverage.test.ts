@@ -161,14 +161,22 @@ const makeExpressionNode = (
 const makeParenthesisNode = (
     elements: readonly Readonly<ExpressionNode>[],
     overrides: Readonly<Partial<ParenthesisNode>> = {}
-): ParenthesisNode => ({
-    elements: [...elements] as ExpressionNode[],
-    hasComma: false,
-    hasNewline: false,
-    loc: { end: 0, start: 0 },
-    type: "Parenthesis",
-    ...overrides,
-});
+): ParenthesisNode => {
+    const hasComma = overrides.hasComma ?? false;
+
+    return {
+        elements: [...elements] as ExpressionNode[],
+        hasComma,
+        hasNewline: false,
+        loc: { end: 0, start: 0 },
+        separators: Array.from(
+            { length: Math.max(0, elements.length - 1) },
+            () => (hasComma ? ("comma" as const) : ("newline" as const))
+        ),
+        type: "Parenthesis",
+        ...overrides,
+    };
+};
 
 const { cloneNode, createLocation, isNodeType } = astRuntime as {
     cloneNode: <T extends BaseNode>(node: T) => T;

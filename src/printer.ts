@@ -1390,20 +1390,31 @@ function printParenthesis(
         );
     }
 
-    const hasComma = node.hasComma;
     const isForceMultiline =
         node.hasNewline || (!node.hasComma && elementDocs.length > 1);
-    const separator: Doc = hasComma
-        ? [",", isForceMultiline ? hardline : line]
-        : hardline;
-    const hasSoftBreak = hasComma && !isForceMultiline;
+    const hasSoftBreak = node.hasComma && !isForceMultiline;
     const leadingLine: Doc = hasSoftBreak ? line : hardline;
     const trailingLine: Doc = hasSoftBreak ? line : hardline;
+    const contentDocs: Doc[] = [];
+
+    for (const [index, elementDoc] of elementDocs.entries()) {
+        contentDocs.push(elementDoc);
+        if (index >= elementDocs.length - 1) {
+            continue;
+        }
+
+        const separator = node.separators[index];
+        contentDocs.push(
+            separator === "comma"
+                ? [",", isForceMultiline ? hardline : line]
+                : hardline
+        );
+    }
 
     return group(
         [
             "(",
-            indent([leadingLine, join(separator, elementDocs)]),
+            indent([leadingLine, contentDocs]),
             trailingLine,
             ")",
         ],

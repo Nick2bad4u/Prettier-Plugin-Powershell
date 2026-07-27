@@ -23,6 +23,7 @@ import type {
     HashtableNode,
     HereStringNode,
     ParenthesisNode,
+    ParenthesisSeparator,
     PipelineNode,
     ScriptBlockNode,
     ScriptBodyNode,
@@ -672,6 +673,7 @@ class Parser {
     private parseFunction(): FunctionDeclarationNode {
         const startToken = this.advance(); // Function keyword
         const headerTokens: Token[] = [startToken];
+        const structureStack: string[] = [];
 
         while (!this.isEOF()) {
             const token = this.peek();
@@ -679,13 +681,24 @@ class Parser {
             if (!isDefined(token)) {
                 break;
             }
-            if (token.type === COMMENT_TOKEN_TYPE) {
+            if (token.type === COMMENT_TOKEN_TYPE && isEmpty(structureStack)) {
                 break;
             }
-            if (token.type === "punctuation" && token.value === "{") {
+            if (
+                token.type === "punctuation" &&
+                token.value === "{" &&
+                isEmpty(structureStack)
+            ) {
                 break;
             }
             headerTokens.push(this.advance());
+            if (isOpeningToken(token)) {
+                structureStack.push(token.value);
+            } else if (isClosingToken(token)) {
+                structureStack.pop();
+            } else {
+                // Non-structural header tokens do not modify nesting depth.
+            }
         }
 
         const headerExpression = buildExpressionFromTokens(
@@ -1008,6 +1021,11 @@ const extractKeyText = (tokens: readonly Token[]): string => {
     }
     return text;
 };
+
+interface ParenthesisSplitResult {
+    elements: Token[][];
+    separators: ParenthesisSeparator[];
+}
 
 function buildHashtableEntry(
     // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token model is mutable and used per parser conventions; deep-readonly token graph is not currently modeled
@@ -1478,6 +1496,7 @@ function parseParenthesisPart(
                 hasComma: false,
                 hasNewline: false,
                 loc: { end: 0, start: 0 },
+                separators: [],
                 type: "Parenthesis",
             },
         };
@@ -1486,7 +1505,8 @@ function parseParenthesisPart(
         tokens,
         startIndex
     );
-    const elements = splitArrayElements(contentTokens).map((elementTokens) =>
+    const splitResult = splitParenthesisElements(contentTokens);
+    const elements = splitResult.elements.map((elementTokens) =>
         buildExpressionFromTokens(elementTokens, source)
     );
     const hasComma = hasTopLevelComma(contentTokens);
@@ -1499,6 +1519,7 @@ function parseParenthesisPart(
             hasComma,
             hasNewline,
             loc: { end, start: startToken.start },
+            separators: splitResult.separators,
             type: "Parenthesis",
         },
     };
@@ -1757,6 +1778,47 @@ function splitHashtableEntries(tokens: readonly Token[]): Token[][] {
     }
 
     return segments;
+}
+
+function splitParenthesisElements(
+    tokens: readonly Readonly<Token>[]
+): ParenthesisSplitResult {
+    const elements: Token[][] = [];
+    const separators: ParenthesisSeparator[] = [];
+    let current: Token[] = [];
+    const stack: string[] = [];
+
+    const flush = (separator?: ParenthesisSeparator): void => {
+        if (isEmpty(current)) {
+            return;
+        }
+
+        elements.push(current);
+        current = [];
+        if (separator) {
+            separators.push(separator);
+        }
+    };
+
+    for (const token of tokens) {
+        if (isEmpty(stack)) {
+            if (token.type === "newline") {
+                flush("newline");
+                continue;
+            }
+            if (token.type === "punctuation" && token.value === ",") {
+                flush("comma");
+                continue;
+            }
+        }
+
+        pushTopLevelToken(token, current, stack);
+    }
+
+    flush();
+    separators.splice(Math.max(0, elements.length - 1));
+
+    return { elements, separators };
 }
 
 function splitTopLevelTokens<TState = Record<string, never>>(
