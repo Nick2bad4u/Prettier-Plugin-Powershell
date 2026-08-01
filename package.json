@@ -161,6 +161,7 @@
         "update-deps": "ncu --configFileName .ncurc.json --configFilePath node_modules/ncu-config-nick2bad4u && npm update --force && npm install --force"
     },
     "overrides": {
+        "tmp": "0.2.7",
         "tsup": {
             "esbuild": "0.28.1"
         }
