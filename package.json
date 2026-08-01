@@ -58,8 +58,8 @@
     ],
     "scripts": {
         "benchmark": "node benchmark.mjs",
-        "build": "npx tsup --config tsup.config.ts && node scripts/fix-cts-exports.mjs",
-        "build:watch": "npx tsup src/plugin.ts --format esm,cjs --dts --watch",
+        "build": "tsup --config tsup.config.ts && node scripts/fix-cts-exports.mjs",
+        "build:watch": "tsup src/plugin.ts --format esm,cjs --dts --watch",
         "changelog:generate": "git cliff --config node_modules/gitcliff-config-nick2bad4u/cliff.toml --github-repo Nick2bad4u/Prettier-Plugin-Powershell --output CHANGELOG.md",
         "changelog:preview": "git cliff --config node_modules/gitcliff-config-nick2bad4u/cliff.toml --github-repo Nick2bad4u/Prettier-Plugin-Powershell --unreleased",
         "changelog:release-notes": "git cliff --config node_modules/gitcliff-config-nick2bad4u/cliff.toml --github-repo Nick2bad4u/Prettier-Plugin-Powershell --current",
@@ -167,7 +167,6 @@
     },
     "dependencies": {
         "ts-extras": "^1.3.0",
-        "tsup": "^8.5.1",
         "type-fest": "^5.8.0"
     },
     "devDependencies": {
@@ -208,6 +207,7 @@
         "storybook": "^10.5.4",
         "stylelint": "^17.14.1",
         "stylelint-config-nick2bad4u": "^1.0.20",
+        "tsup": "^8.5.1",
         "typescript": "^6.0.3",
         "vitest": "^4.1.10",
         "yamllint-config-nick2bad4u": "^1.1.1",
