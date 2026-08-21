@@ -441,7 +441,7 @@ jobs:
    - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v4.0.4
      with:
       node-version: "20"
-   - run: npm ci --force
+   - run: npm ci
    - run: npx prettier --check "**/*.{ps1,psm1,psd1}"
 ```
 
@@ -452,7 +452,7 @@ steps:
  - task: NodeTool@0
    inputs:
     versionSpec: "20.x"
- - script: npm ci --force
+ - script: npm ci
  - script: npx prettier --check "**/*.{ps1,psm1,psd1}"
    displayName: "Check formatting"
 ```

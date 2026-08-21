@@ -86,7 +86,7 @@
         "lint:all": "npm run lint && npm run typecheck && npm run lint:css && npm run lint:prettier && npm run lint:remark && npm run lint:package && npm run lint:gitleaks && npm run lint:yamllint && npm run lint:secretlint && npm run lint:yaml && npm run lint:circular && npm run sync:rules:check",
         "lint:all:fix": "npm run lint:fix && npm run lint:remark:fix && npm run typecheck && npm run lint:css:fix && npm run lint:prettier:fix && npm run lint:remark && npm run lint:package && npm run lint:secretlint && npm run lint:yaml:fix && npm run lint:circular && npm run sync:rules:write",
         "lint:all:fix:quiet": "npm run lint:fix:quiet && npm run typecheck && npm run lint:css:fix && npm run lint:prettier:fix && npm run lint:remark && npm run lint:package && npm run lint:secretlint && npm run lint:yaml:fix && npm run lint:circular && npm run sync:rules:write",
-        "lint:circular": "npm run madge:circular",
+        "lint:circular": "node scripts/analyze-dependencies.mjs circular",
         "lint:compat:eslint9": "node scripts/eslint9-compat-smoke.mjs",
         "lint:config:build": "npm run build:eslint-inspector",
         "lint:config:inspect": "npx eslint --inspect-config",
@@ -108,13 +108,13 @@
         "lint:knip": "npm run knip",
         "lint:knip:exports": "npm run knip -- --include exports,nsExports,classMembers,types,nsTypes,enumMembers,duplicates",
         "lint:knip:unused:exports": "npm run knip -- --dependencies --exports",
-        "lint:leaves": "npm run madge:leaves",
+        "lint:leaves": "node scripts/analyze-dependencies.mjs leaves",
         "lint:lychee": "lychee --config node_modules/lychee-config-nick2bad4u/lychee.toml .",
         "lint:lychee:smoke": "lychee --config node_modules/lychee-config-nick2bad4u/lychee.toml --dump-inputs README.md",
         "lint:metrics": "npm run sloc",
         "lint:nocache": "npx cross-env NODE_OPTIONS=--max_old_space_size=16384 npx eslint .",
         "lint:node-version-files": "node scripts/sync-node-version-files.mjs --check",
-        "lint:orphans": "npm run madge:orphans",
+        "lint:orphans": "node scripts/analyze-dependencies.mjs orphans",
         "lint:package": "npm run lint:node-version-files && npm run lint:package-sort && npm run lint:packagelintrc && echo \"Package.json lint done!\"",
         "lint:package:strict": "npm run lint:node-version-files && npm run lint:package-sort && npm run lint:package-check:strict && npm run lint:packagelintrc && echo \"Package.json lint done!\"",
         "lint:package-check": "npx publint && npx attw --pack .",
@@ -122,6 +122,7 @@
         "lint:package-json": "npx npmPkgJsonLint . --config .npmpackagejsonlintrc.json",
         "lint:package-sort": "npx sort-package-json \"./package.json\" \"./docs/docusaurus/package.json\"",
         "lint:package-sort-check": "npx sort-package-json --check \"./package.json\" \"./docs/docusaurus/package.json\"",
+        "lint:package-stage:strict": "npx publint ./temp/npm-package && npx attw --pack ./temp/npm-package --profile strict",
         "lint:packagelintrc": "npx npmPkgJsonLint . --config .npmpackagejsonlintrc.json",
         "lint:prettier": "npx prettier . --log-level warn --cache --cache-location=.cache/.prettier-cache --cache-strategy=content --check",
         "lint:prettier:fix": "npx prettier . --log-level warn --cache --cache-location=.cache/.prettier-cache --cache-strategy=content --write",
@@ -136,14 +137,12 @@
         "lint:yaml": "npx cross-env NODE_OPTIONS=--max_old_space_size=16384 npx eslint --cache --cache-strategy content --cache-location .cache/.eslintcache \"**/*.{yml,yaml}\" && echo \"YAML lint done!\"",
         "lint:yaml:fix": "npx cross-env NODE_OPTIONS=--max_old_space_size=16384 npx eslint --cache --cache-strategy content --cache-location .cache/.eslintcache --fix \"**/*.{yml,yaml}\" && echo \"YAML lint (fix) done!\"",
         "lint:yamllint": "yamllint -c .yamllint .",
-        "madge:circular": "npx madge --circular --no-spinner --ts-config tsconfig.json --extensions ts,tsx,js,jsx,mjs,cjs,cts,mts ./src --exclude \"(^|[\\/])(test|dist|node_modules|cache|.cache|coverage|build|eslint-inspector|temp|.docusaurus)($|[\\/])|\\.css$\"",
-        "madge:leaves": "npx madge --leaves --no-spinner --ts-config tsconfig.json --extensions ts,tsx,js,jsx,mjs,cjs,cts,mts ./src --exclude \"(^|[\\/])(test|dist|node_modules|cache|.cache|coverage|build|eslint-inspector|temp|.docusaurus)($|[\\/])|\\.css$\"",
-        "madge:orphans": "npx madge --orphans --no-spinner --ts-config tsconfig.json --extensions ts,tsx,js,jsx,mjs,cjs,cts,mts ./src --exclude \"(^|[\\/])(test|dist|node_modules|cache|.cache|coverage|build|eslint-inspector|temp|.docusaurus)($|[\\/])|\\.css$\"",
+        "package:stage": "node scripts/stage-package.mjs",
         "prepare": "npm run build",
         "profile": "node profile-parser.mjs",
         "profile:enhanced": "node profile-enhanced.mjs",
         "release:check": "npm run release:verify",
-        "release:verify": "npm run build && npm run lint:all:fix && npm run lint:package-check:strict && npm run test:coverage",
+        "release:verify": "npm run build && npm run lint:all:fix && npm run lint:package-check:strict && npm run package:stage && npm run lint:package-stage:strict && npm run test:coverage",
         "sync:node-version-files": "node scripts/sync-node-version-files.mjs",
         "sync:rules:check": "node -e \"console.log('No rule-sync sources configured; check passed.')\"",
         "sync:rules:write": "node -e \"console.log('No rule-sync sources configured; nothing to write.')\"",
@@ -158,7 +157,7 @@
         "typecheck:all": "npm run typecheck",
         "update-actions": "npx actions-up --yes --style sha",
         "update-all": "npm run update-actions && npm run update-deps",
-        "update-deps": "ncu --configFileName .ncurc.json --configFilePath node_modules/ncu-config-nick2bad4u && npm update --force && npm install --force"
+        "update-deps": "ncu --configFileName .ncurc.json --configFilePath node_modules/ncu-config-nick2bad4u && npm update && npm install"
     },
     "overrides": {
         "tmp": "0.2.7",
@@ -167,18 +166,17 @@
         }
     },
     "dependencies": {
-        "ts-extras": "^1.3.0",
-        "type-fest": "^5.8.0"
+        "ts-extras": "^1.3.0"
     },
     "devDependencies": {
         "@arethetypeswrong/cli": "^0.18.5",
-        "@codecov/bundle-analyzer": "^2.0.1",
         "@eslint/config-helpers": "^0.7.0",
         "@eslint/js": "^10.0.1",
         "@types/node": "^26.1.2",
         "@typpi/eslint-plugin-vite": "^1.0.19",
         "@vitest/coverage-v8": "^4.1.10",
         "all-contributors-cli": "^6.26.1",
+        "dependency-cruiser": "^18.2.0",
         "eslint": "^10.8.0",
         "eslint-config-nick2bad4u": "^12.0.1",
         "fast-check": "^4.9.0",
@@ -190,7 +188,6 @@
         "jscpd-config-nick2bad4u": "^1.1.0",
         "jsonc-eslint-parser": "^3.1.0",
         "lychee-config-nick2bad4u": "^2.0.0",
-        "madge": "^8.0.0",
         "ncu-config-nick2bad4u": "^0.2.1",
         "npm-check-updates": "^23.0.0",
         "npm-package-json-lint": "^10.4.1",
@@ -209,14 +206,14 @@
         "stylelint": "^17.14.1",
         "stylelint-config-nick2bad4u": "^1.0.20",
         "tsup": "^8.5.1",
+        "type-fest": "^5.8.0",
         "typescript": "^6.0.3",
         "vitest": "^4.1.10",
         "yamllint-config-nick2bad4u": "^1.1.1",
         "yamllint-js": "^0.2.4"
     },
     "peerDependencies": {
-        "prettier": "^3.0.0 || ^3.9.0",
-        "typescript": "^6.0.3"
+        "prettier": "^3.0.0 || ^3.9.0"
     },
     "packageManager": "npm@12.0.2",
     "engines": {
@@ -225,7 +222,13 @@
     "devEngines": {
         "runtime": {
             "name": "node",
-            "version": ">=20.11.0"
+            "version": "26.7.0",
+            "onFail": "warn"
+        },
+        "packageManager": {
+            "name": "npm",
+            "version": "12.0.2",
+            "onFail": "error"
         }
     },
     "publishConfig": {
@@ -236,6 +239,6 @@
         "esbuild@0.28.1": true,
         "fsevents@2.3.3": true,
         "unrs-resolver@1.12.2": true,
-        "core-js": false
+        "core-js@3.49.0": false
     }
 }
