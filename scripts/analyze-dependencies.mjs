@@ -8,8 +8,8 @@ const supportedModes = new Set([
 ]);
 
 if (!supportedModes.has(mode)) {
-    console.error(
-        "Usage: node scripts/analyze-dependencies.mjs <circular|leaves|orphans>"
+    process.stderr.write(
+        "Usage: node scripts/analyze-dependencies.mjs <circular|leaves|orphans>\n"
     );
     process.exitCode = 2;
 } else {
