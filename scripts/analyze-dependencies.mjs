@@ -9,7 +9,8 @@ const supportedModes = new Set([
 
 if (!supportedModes.has(mode)) {
     process.stderr.write(
-        "Usage: node scripts/analyze-dependencies.mjs <circular|leaves|orphans>\n"
+        "Usage: node scripts/analyze-dependencies.mjs MODE\n" +
+            "MODE must be one of: circular, leaves, or orphans.\n"
     );
     process.exitCode = 2;
 } else {
