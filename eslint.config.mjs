@@ -56,6 +56,25 @@ const config = [
         },
     },
 
+    // Test-signal currently inspects only the direct Vitest callback. These
+    // suites put their real assertions inside Fast-Check, progress, or cleanup
+    // callbacks and use expect.hasAssertions() at the test boundary, so the
+    // direct-callback rules report false positives. Keep all other test-signal
+    // rules enabled, including these rules for ordinary test files.
+    {
+        files: [
+            "tests/**/*.property.test.ts",
+            "tests/property/**/*.test.ts",
+            "tests/utils/powershell-utils.test.ts",
+            "tests/utils/progress-logging.test.ts",
+        ],
+        rules: {
+            "test-signal/no-empty-async-tests": "off",
+            "test-signal/require-assertions": "off",
+            "test-signal/require-negative-path": "off",
+        },
+    },
+
     // The PowerShell validation helper owns a persistent child process and
     // module-level counters by design so property tests can amortize parser
     // startup cost.
