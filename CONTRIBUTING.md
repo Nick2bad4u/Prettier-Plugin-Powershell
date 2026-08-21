@@ -2,13 +2,12 @@
 
 Thanks for your interest in contributing.
 
-This repository contains an ESLint plugin focused on `type-fest` and
-`ts-extras` usage patterns for TypeScript codebases.
+This repository contains a Prettier plugin for formatting PowerShell source.
 
 ## Prerequisites
 
-- Node.js `>=22.0.0` (see `package.json#engines`)
-- npm `>=11`
+- Node.js `26.7.0` (see `.node-version` and `.nvmrc`)
+- npm `12.0.2` (see `package.json#packageManager`)
 - Git
 
 ## Local setup
@@ -18,7 +17,7 @@ This repository contains an ESLint plugin focused on `type-fest` and
 2. Install dependencies from the repository root:
 
    ```bash
-   npm ci --force
+   npm ci
    ```
 
 3. Run the main quality gate:
