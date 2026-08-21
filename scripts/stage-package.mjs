@@ -1,4 +1,4 @@
-import { access, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import * as fileSystem from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,19 +16,14 @@ if (
 }
 
 const packageJsonPath = resolve(repositoryRoot, "package.json");
-const manifest = JSON.parse(await readFile(packageJsonPath, "utf8"));
+const manifest = JSON.parse(await fileSystem.readFile(packageJsonPath, "utf8"));
+manifest.allowScripts = undefined;
+manifest.devDependencies = undefined;
+manifest.devEngines = undefined;
+manifest.scripts = undefined;
 
-for (const field of [
-    "allowScripts",
-    "devDependencies",
-    "devEngines",
-    "scripts",
-]) {
-    delete manifest[field];
-}
-
-await rm(stagingRoot, { force: true, recursive: true });
-await mkdir(stagingRoot, { recursive: true });
+await fileSystem.rm(stagingRoot, { force: true, recursive: true });
+await fileSystem.mkdir(stagingRoot, { recursive: true });
 
 for (const path of [
     "dist",
@@ -36,11 +31,13 @@ for (const path of [
     "README.md",
 ]) {
     const source = resolve(repositoryRoot, path);
-    await access(source);
-    await cp(source, resolve(stagingRoot, path), { recursive: true });
+    await fileSystem.access(source);
+    await fileSystem.cp(source, resolve(stagingRoot, path), {
+        recursive: true,
+    });
 }
 
-await writeFile(
+await fileSystem.writeFile(
     resolve(stagingRoot, "package.json"),
     `${JSON.stringify(manifest, undefined, 4)}\n`,
     "utf8"
