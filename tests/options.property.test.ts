@@ -27,7 +27,11 @@ const trailingCommaArb = fc.constantFrom<TrailingCommaOption>(
     "multiline",
     "all"
 );
-const braceStyleArb = fc.constantFrom<BraceStyleOption>("1tbs", "allman");
+const braceStyleArb = fc.constantFrom<BraceStyleOption>(
+    "1tbs",
+    "allman",
+    "stroustrup"
+);
 const keywordCaseArb = fc.constantFrom<KeywordCaseOption>(
     "preserve",
     "lower",
@@ -110,7 +114,11 @@ const assertResolvedOptionEnumsAndRanges = (
         );
     }
 
-    if (resolved.braceStyle !== "1tbs" && resolved.braceStyle !== "allman") {
+    if (
+        resolved.braceStyle !== "1tbs" &&
+        resolved.braceStyle !== "allman" &&
+        resolved.braceStyle !== "stroustrup"
+    ) {
         throw new Error(`Invalid braceStyle: ${String(resolved.braceStyle)}`);
     }
 

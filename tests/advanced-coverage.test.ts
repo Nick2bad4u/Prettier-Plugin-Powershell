@@ -84,7 +84,10 @@ interface ParserTestUtils {
 type PowerShellParserOptions = ParserOptions & {
     powershellBlankLineAfterParam?: boolean;
     powershellBlankLinesBetweenFunctions?: number;
-    powershellBraceStyle?: "1tbs" | "allman";
+    powershellBraceStyle?:
+        | "1tbs"
+        | "allman"
+        | "stroustrup";
     powershellIndentSize?: number;
     powershellIndentStyle?: "spaces" | "tabs";
     powershellKeywordCase?:

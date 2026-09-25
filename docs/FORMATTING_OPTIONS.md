@@ -205,9 +205,9 @@ function Test-Function {
 
 ## Brace Style
 
-Control the placement of opening braces.
+Control the placement of function opening braces and control-flow continuation keywords.
 
-**Option:** `powershellBraceStyle` **Type:** `"1tbs" | "allman"` **Default:** `"1tbs"`
+**Option:** `powershellBraceStyle` **Type:** `"1tbs" | "allman" | "stroustrup"` **Default:** `"1tbs"`
 
 ### Example with "1tbs" (default)
 
@@ -223,19 +223,60 @@ function Test-Function {
 
 ### Example with "allman"
 
+Allman currently moves function declaration opening braces to a new line. Control-flow opening braces remain inline.
+
 ```powershell
 function Test-Function
 {
-  if ($condition)
-  {
+  if ($condition) {
     Write-Output "true"
-  }
-  else
-  {
+  } else {
     Write-Output "false"
   }
 }
 ```
+
+### Example with "stroustrup"
+
+Stroustrup keeps opening braces on the same line and places continuation keywords on a new line, including empty blocks. It applies to `elseif`, `else`, `catch`, `finally`, and `while`/`until` following a `do` block. Keyword casing follows `powershellKeywordCase`; comments and `prettier-ignore` directives are preserved.
+
+```json
+{
+ "plugins": ["prettier-plugin-powershell"],
+ "powershellBraceStyle": "stroustrup"
+}
+```
+
+```powershell
+if ($first) {
+    "first"
+}
+elseif ($second) {
+    "second"
+}
+else {
+    "last"
+}
+try {
+    "try"
+}
+catch {
+    "catch"
+}
+finally {
+    "finally"
+}
+do {
+    "while"
+}
+while ($false)
+do {
+    "until"
+}
+until ($true)
+```
+
+The default remains `"1tbs"`; Stroustrup is opt-in and can also override the `"invoke-formatter"` preset.
 
 ---
 
@@ -444,6 +485,9 @@ prettier --plugin=prettier-plugin-powershell --parser powershell --powershell-so
 # Format with Allman brace style
 prettier --plugin=prettier-plugin-powershell --parser powershell --powershell-brace-style allman script.ps1
 
+# Format with Stroustrup continuation keywords
+prettier --plugin=prettier-plugin-powershell --parser powershell --powershell-brace-style stroustrup script.ps1
+
 # Format using the Invoke-Formatter preset
 prettier --plugin=prettier-plugin-powershell --parser powershell --powershell-preset invoke-formatter script.ps1
 ```
@@ -458,7 +502,7 @@ prettier --plugin=prettier-plugin-powershell --parser powershell --powershell-pr
 
 3. **Indentation**: 2 or 4 spaces are most common. Avoid mixing tabs and spaces.
 
-4. **Brace Style**: "1tbs" (One True Brace Style) is more common in PowerShell, but "allman" can improve readability for deeply nested code.
+4. **Brace Style**: Keep the default "1tbs" for inline braces, choose "stroustrup" to place continuation keywords on new lines, or use "allman" for function opening braces on new lines.
 
 5. **Trailing Semicolons**: "multiline" helps keep hashtable edits stable by ensuring every entry terminates with `;` when the literal spans multiple lines.
 

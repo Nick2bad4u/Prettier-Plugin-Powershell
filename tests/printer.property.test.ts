@@ -286,7 +286,7 @@ describe("printer property-based tests", () => {
             async (tracker) => {
                 await fc.assert(
                     fc.asyncProperty(
-                        fc.constantFrom("1tbs", "allman"),
+                        fc.constantFrom("1tbs", "allman", "stroustrup"),
                         async (braceStyle) => {
                             tracker.advance();
                             const script =
@@ -320,7 +320,7 @@ describe("printer property-based tests", () => {
                                 functionLineIndex !== -1 &&
                                 nextNonEmptyLine?.trim() === "{";
                             const isStyleExpectationMet =
-                                (braceStyle === "1tbs" && isExpected1tbs) ||
+                                (braceStyle !== "allman" && isExpected1tbs) ||
                                 (braceStyle === "allman" && isExpectedAllman);
 
                             expect(

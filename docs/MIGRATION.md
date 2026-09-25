@@ -2,6 +2,8 @@
 
 This guide helps you migrate from other PowerShell formatters to prettier-plugin-powershell.
 
+Existing configurations keep the default `"powershellBraceStyle": "1tbs"` behavior. To adopt Stroustrup style, set `"powershellBraceStyle": "stroustrup"`; opening braces stay inline while `elseif`, `else`, `catch`, `finally`, and `do` loop continuation keywords move to new lines. See the [brace style examples](FORMATTING_OPTIONS.md#brace-style). This option also works as an explicit override of the `"invoke-formatter"` preset.
+
 ## Table of Contents
 
 - [From PSScriptAnalyzer](#from-psscriptanalyzer)
@@ -243,6 +245,12 @@ prettier --write "src/**/*.ps1"
 
 ```json
 { "powershellBraceStyle": "allman" }
+```
+
+Allman currently affects function declaration opening braces. For inline opening braces with continuation keywords on new lines, use Stroustrup:
+
+```json
+{ "powershellBraceStyle": "stroustrup" }
 ```
 
 ### Indentation

@@ -104,7 +104,11 @@ describe("integration property tests", () => {
                     await fc.assert(
                         fc.asyncProperty(
                             fc.record({
-                                braceStyle: fc.constantFrom("1tbs", "allman"),
+                                braceStyle: fc.constantFrom(
+                                    "1tbs",
+                                    "allman",
+                                    "stroustrup"
+                                ),
                                 indentSize: fc.integer({ max: 4, min: 2 }),
                                 keywordCase: fc.constantFrom(
                                     "preserve",
