@@ -411,40 +411,42 @@ describe("stroustrup continuation headers", () => {
     });
 });
 
+const subexpressionCases = [
+    {
+        expected: "$(\n    try {}\n    catch {}\n    finally {}\n)\n",
+        input: "$(try {}\ncatch {} finally {})",
+    },
+    {
+        expected: "@(\n    try {}\n    catch {}\n    finally {}\n)\n",
+        input: "@(try {}\ncatch {} finally {})",
+    },
+    {
+        expected:
+            "$(\n    if ($true) {}\n    elseif ($false) {}\n    else {}\n)\n",
+        input: "$(if($true){}\nelseif($false){}else{})",
+    },
+    {
+        expected: "@(\n    if ($true) {}\n    else {}\n)\n",
+        input: "@(if($true)\n{}\nelse\n{})",
+    },
+    {
+        expected: "$(\n    try {}\n    catch {}\n    finally {}\n)\n",
+        input: "$(try\n{}\ncatch\n{}\nfinally\n{})",
+    },
+    {
+        expected:
+            "$result = $(\n    if ($true) {}\n    elseif ($false) {}\n    else {}\n)\n",
+        input: "$result = $(if($true){}\nelseif($false){}else{})",
+    },
+    {
+        expected:
+            "$result = @(\n    $(\n        try {}\n        catch {}\n        finally {}\n    )\n)\n",
+        input: "$result = @($(try {}\ncatch {} finally {}))",
+    },
+];
+
 describe("stroustrup subexpressions", () => {
-    it.each([
-        {
-            expected: "$(\n    try {}\n    catch {}\n    finally {}\n)\n",
-            input: "$(try {}\ncatch {} finally {})",
-        },
-        {
-            expected: "@(\n    try {}\n    catch {}\n    finally {}\n)\n",
-            input: "@(try {}\ncatch {} finally {})",
-        },
-        {
-            expected:
-                "$(\n    if ($true) {}\n    elseif ($false) {}\n    else {}\n)\n",
-            input: "$(if($true){}\nelseif($false){}else{})",
-        },
-        {
-            expected: "@(\n    if ($true) {}\n    else {}\n)\n",
-            input: "@(if($true)\n{}\nelse\n{})",
-        },
-        {
-            expected: "$(\n    try {}\n    catch {}\n    finally {}\n)\n",
-            input: "$(try\n{}\ncatch\n{}\nfinally\n{})",
-        },
-        {
-            expected:
-                "$result = $(\n    if ($true) {}\n    elseif ($false) {}\n    else {}\n)\n",
-            input: "$result = $(if($true){}\nelseif($false){}else{})",
-        },
-        {
-            expected:
-                "$result = @(\n    $(\n        try {}\n        catch {}\n        finally {}\n    )\n)\n",
-            input: "$result = @($(try {}\ncatch {} finally {}))",
-        },
-    ])(
+    it.each(subexpressionCases)(
         "formats control-flow subexpression $input",
         async ({ expected, input }) => {
             expect.hasAssertions();
