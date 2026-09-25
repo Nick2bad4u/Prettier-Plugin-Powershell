@@ -88,7 +88,7 @@ const formatted = await prettier.format(source, {
 | `powershellSortHashtableKeys`          | `boolean`                                                                                        | `false`    | Sort hashtable keys alphabetically before printing.                                                             |
 | `powershellBlankLinesBetweenFunctions` | `number`                                                                                         | `1`        | Minimum blank lines preserved between function declarations (clamped between 0 and 3).                          |
 | `powershellBlankLineAfterParam`        | `boolean`                                                                                        | `true`     | Insert a blank line after `param (...)` blocks within functions/script blocks.                                  |
-| `powershellBraceStyle`                 | <code>"1tbs"</code><br><code>"allman"</code>                                                     | `"1tbs"`   | Choose inline braces or newline-aligned Allman style.                                                           |
+| `powershellBraceStyle`                 | <code>"1tbs"</code><br><code>"allman"</code><br><code>"stroustrup"</code>                        | `"1tbs"`   | Choose inline braces, Allman function braces, or Stroustrup continuation keywords on new lines.                 |
 | `powershellLineWidth`                  | `number`                                                                                         | `120`      | Maximum print width for wrapping pipelines, hashtables, and arrays (clamped between 40 and 200).                |
 | `powershellPreferSingleQuote`          | `boolean`                                                                                        | `false`    | Prefer single-quoted strings when interpolation is not required.                                                |
 | `powershellKeywordCase`                | <code>"preserve"</code><br><code>"lower"</code><br><code>"upper"</code><br><code>"pascal"</code> | `"lower"`  | Normalise PowerShell keyword casing (defaults to lowercase to match PSScriptAnalyzer/Invoke-Formatter).         |
@@ -99,6 +99,8 @@ const formatted = await prettier.format(source, {
 ### Invoke-Formatter parity preset
 
 Set `"powershellPreset": "invoke-formatter"` to mirror the behavior of `Invoke-Formatter`/PSScriptAnalyzer's `CodeFormatting` profile. The preset only fills in values that you haven't provided yourself--any explicit option in your Prettier config still wins.
+
+For Stroustrup style, set `"powershellBraceStyle": "stroustrup"`. Opening braces stay on the same line, and continuation keywords (`elseif`, `else`, `catch`, `finally`, and a `do` loop's `while` or `until`) start on a new line. The default remains `"1tbs"`. See the [brace style examples](docs/FORMATTING_OPTIONS.md#brace-style).
 
 ```jsonc
 {

@@ -6,7 +6,10 @@ import { isDefined, isFinite, objectEntries, safeCastTo } from "ts-extras";
 /**
  * Brace placement styles supported by the plugin.
  */
-export type BraceStyleOption = "1tbs" | "allman";
+export type BraceStyleOption =
+    | "1tbs"
+    | "allman"
+    | "stroustrup";
 
 /**
  * Indentation mode for formatted output.
@@ -86,10 +89,15 @@ export const pluginOptions: SupportOptions = {
                     "Allman style – place opening braces on the next line.",
                 value: "allman",
             },
+            {
+                description:
+                    "Stroustrup style – keep opening braces inline and place control-flow continuations on the next line.",
+                value: "stroustrup",
+            },
         ],
         default: "1tbs",
         description:
-            "Control placement of opening braces for script blocks and functions.",
+            "Control placement of braces and control-flow continuation keywords.",
         type: "choice",
     },
     powershellIndentSize: {
@@ -261,7 +269,11 @@ const TRAILING_COMMA_OPTIONS = new Set<TrailingCommaOption>([
     "multiline",
     "none",
 ]);
-const BRACE_STYLE_OPTIONS = new Set<BraceStyleOption>(["1tbs", "allman"]);
+const BRACE_STYLE_OPTIONS = new Set<BraceStyleOption>([
+    "1tbs",
+    "allman",
+    "stroustrup",
+]);
 const KEYWORD_CASE_OPTIONS = new Set<KeywordCaseOption>([
     "lower",
     "pascal",

@@ -81,6 +81,46 @@ const STATEMENT_BREAK_TERMINATORS = [
     "closing-paren",
     "semicolon",
 ] as const;
+const ASSIGNMENT_OPERATORS = new Set([
+    "%=",
+    "*=",
+    "+=",
+    "-=",
+    "/=",
+    "=",
+    "??=",
+]);
+const CONTROL_HEADER_KEYWORDS = new Set([
+    "catch",
+    "do",
+    "else",
+    "elseif",
+    "finally",
+    "for",
+    "foreach",
+    "if",
+    "switch",
+    "try",
+    "while",
+]);
+
+const CONTROL_ROOT_KEYWORDS = new Set([
+    "do",
+    "for",
+    "foreach",
+    "if",
+    "switch",
+    "try",
+    "while",
+]);
+const CONTROL_CONTINUATION_KEYWORDS: ReadonlyMap<string, readonly string[]> =
+    new Map([
+        ["catch", ["catch", "finally"]],
+        ["do", ["while", "until"]],
+        ["elseif", ["else", "elseif"]],
+        ["if", ["else", "elseif"]],
+        ["try", ["catch", "finally"]],
+    ]);
 
 interface SplitContext<TState> {
     current: Token[];
@@ -88,6 +128,7 @@ interface SplitContext<TState> {
     stack: string[];
     state: TState;
     token: Token;
+    tokenIndex: number;
 }
 
 type SplitDecision = "skip" | undefined;
@@ -1188,45 +1229,48 @@ function buildTrailingCommentNodes(
     return trailingNodes;
 }
 
-function captureElseContinuationTokens(
+function captureControlContinuationTokens(
     // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
     tokens: readonly Token[],
     index: number,
-    prefix: readonly Readonly<Token>[]
-): { elseTokens: Token[]; nextIndex: number; terminated: boolean } {
-    const elseTokens: Token[] = [...prefix];
+    prefix: readonly Readonly<Token>[],
+    openingDelimiter: "(" | "{"
+): { continuationTokens: Token[]; nextIndex: number; terminated: boolean } {
+    const continuationTokens: Token[] = [...prefix];
     const stack: string[] = [];
+    let hasContinuationBody = false;
     let nextIndex = index;
 
     for (; nextIndex < tokens.length; nextIndex += 1) {
-        const token = tokens[nextIndex];
+        const token = arrayAt(tokens, nextIndex);
         if (!isDefined(token)) {
             continue;
         }
 
-        elseTokens.push(token);
-        if (token.type === "punctuation" && token.value === "{") {
-            stack.push("{");
-            continue;
+        const boundary = getControlContinuationBoundary(
+            token,
+            stack.length,
+            openingDelimiter
+        );
+        if (boundary === "assignment") {
+            break;
         }
 
-        if (token.type === "punctuation" && token.value === "}") {
-            if (isEmpty(stack)) {
-                continue;
-            }
+        if (boundary === "body") {
+            hasContinuationBody = true;
+        }
 
-            stack.pop();
-            if (isEmpty(stack)) {
-                return {
-                    elseTokens,
-                    nextIndex: nextIndex + 1,
-                    terminated: true,
-                };
-            }
+        pushTopLevelToken(token, continuationTokens, stack);
+        if (hasContinuationBody && isClosingToken(token) && isEmpty(stack)) {
+            return {
+                continuationTokens,
+                nextIndex: nextIndex + 1,
+                terminated: true,
+            };
         }
     }
 
-    return { elseTokens, nextIndex, terminated: false };
+    return { continuationTokens, nextIndex, terminated: false };
 }
 
 function classifyStatementTerminator(
@@ -1256,6 +1300,30 @@ function classifyStatementTerminator(
         }
     }
     return null;
+}
+
+function collectOuterControlTokens(
+    tokens: readonly Readonly<Token>[]
+): Token[] {
+    const outerTokens: Token[] = [];
+    const stack: string[] = [];
+    // Conditions and nested blocks cannot establish a continuation for the
+    // containing entry. The final outer assignment starts its control value.
+    for (const token of tokens) {
+        if (isOpeningToken(token)) {
+            stack.push(token.value);
+        } else if (isClosingToken(token)) {
+            stack.pop();
+        } else if (
+            isEmpty(stack) &&
+            !setHas(PIPELINE_TRIVIA_TOKEN_TYPES, token.type)
+        ) {
+            outerTokens.push(token);
+        } else {
+            // Nested values and trivia cannot introduce an outer clause.
+        }
+    }
+    return outerTokens;
 }
 
 function collectStructureTokens(
@@ -1306,7 +1374,7 @@ function collectStructureTokens(
     return { contentTokens, endIndex: tokens.length };
 }
 
-function consumeElseContinuationPrefix(
+function consumeControlContinuationPrefix(
     // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
     tokens: readonly Token[]
 ): { index: number; prefix: Token[] } {
@@ -1395,30 +1463,117 @@ function createTextNode(token: Readonly<Token>): TextNode {
     } satisfies TextNode;
 }
 
-function extractElseContinuation(
+function extractControlContinuation(
     // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
-    tokens: readonly Token[]
-): null | { elseTokens: Token[]; remainingTokens: Token[] } {
-    const { index, prefix } = consumeElseContinuationPrefix(tokens);
+    tokens: readonly Token[],
+    previousTokens: readonly Readonly<Token>[]
+): null | { continuationTokens: Token[]; remainingTokens: Token[] } {
+    const { index, prefix } = consumeControlContinuationPrefix(tokens);
 
-    const keywordToken = tokens[index];
+    const keywordToken = arrayAt(tokens, index);
     if (keywordToken?.type !== "keyword") {
         return null;
     }
     const keyword = keywordToken.value.toLowerCase();
-    if (keyword !== "else" && keyword !== "elseif") {
+    const openingDelimiter = getControlContinuationDelimiter(
+        keyword,
+        getHashtableControlKeyword(previousTokens)
+    );
+    if (openingDelimiter === null) {
         return null;
     }
 
-    const captured = captureElseContinuationTokens(tokens, index, prefix);
+    const captured = captureControlContinuationTokens(
+        tokens,
+        index,
+        prefix,
+        openingDelimiter
+    );
     if (!captured.terminated) {
         return null;
     }
 
     return {
-        elseTokens: captured.elseTokens,
+        continuationTokens: captured.continuationTokens,
         remainingTokens: tokens.slice(captured.nextIndex),
     };
+}
+
+function getControlContinuationBoundary(
+    token: Readonly<Token>,
+    structureDepth: number,
+    openingDelimiter: "(" | "{"
+):
+    | "assignment"
+    | "body"
+    | null {
+    if (structureDepth > 0) {
+        return null;
+    }
+    if (token.type === "operator" && token.value === "=") {
+        return "assignment";
+    }
+    return isOpeningToken(token) && token.value === openingDelimiter
+        ? "body"
+        : null;
+}
+
+function getControlContinuationDelimiter(
+    keyword: string,
+    precedingKeyword: null | string
+):
+    | "("
+    | "{"
+    | null {
+    const allowedKeywords = CONTROL_CONTINUATION_KEYWORDS.get(
+        precedingKeyword ?? ""
+    );
+    if (allowedKeywords?.includes(keyword) !== true) {
+        return null;
+    }
+    return precedingKeyword === "do" ? "(" : "{";
+}
+
+function getHashtableControlKeyword(
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Token contains mutable properties that cannot be made deeply readonly
+    tokens: readonly Token[]
+): null | string {
+    const valueTokens = getHashtableOuterValueTokens(tokens);
+    let keyword: null | string = null;
+    for (const token of valueTokens) {
+        if (
+            keyword === "catch" &&
+            (token.type === "attribute" ||
+                (token.type === "punctuation" && token.value === ","))
+        ) {
+            continue;
+        }
+        if (token.type !== "keyword") {
+            return null;
+        }
+        keyword = token.value.toLowerCase();
+    }
+    return keyword;
+}
+
+function getHashtableOuterValueTokens(
+    tokens: readonly Readonly<Token>[]
+): Token[] {
+    const outerTokens = collectOuterControlTokens(tokens);
+    const equalsIndex = outerTokens.findLastIndex(
+        (token) =>
+            token.type === "operator" &&
+            setHas(ASSIGNMENT_OPERATORS, token.value)
+    );
+    if (equalsIndex === -1) {
+        return [];
+    }
+
+    const valueTokens = outerTokens.slice(equalsIndex + 1);
+    if (arrayFirst(valueTokens)?.value === ":") {
+        valueTokens.splice(0, 2);
+    }
+    return valueTokens;
 }
 
 function getTopLevelSeparatorDecision<TState>(
@@ -1450,6 +1605,77 @@ function getTopLevelSeparatorDecision<TState>(
     }
 
     return "none";
+}
+
+function hasFollowingScriptBlock(
+    tokens: readonly Readonly<Token>[],
+    tokenIndex: number
+): boolean {
+    for (let index = tokenIndex + 1; index < tokens.length; index += 1) {
+        const token = arrayAt(tokens, index);
+        if (token && !setHas(PIPELINE_TRIVIA_TOKEN_TYPES, token.type)) {
+            return token.type === "punctuation" && token.value === "{";
+        }
+    }
+    return false;
+}
+
+function hasIncompleteHashtableHeader(
+    tokens: readonly Readonly<Token>[]
+): boolean {
+    const firstValueToken = arrayFirst(getHashtableOuterValueTokens(tokens));
+    if (
+        firstValueToken?.type !== "keyword" ||
+        !setHas(CONTROL_ROOT_KEYWORDS, firstValueToken.value.toLowerCase())
+    ) {
+        return false;
+    }
+    const firstKeyword = firstValueToken.value.toLowerCase();
+    const keyword = getHashtableControlKeyword(tokens) ?? firstKeyword;
+    if (!setHas(CONTROL_HEADER_KEYWORDS, keyword)) {
+        return false;
+    }
+    const lastToken = tokens.findLast(
+        (token) => !setHas(PIPELINE_TRIVIA_TOKEN_TYPES, token.type)
+    );
+    if (lastToken?.value === "}") {
+        return false;
+    }
+    return keyword !== "while" || firstKeyword !== "do";
+}
+
+function mergeHashtableContinuations(
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- The preceding entry is extended with continuation tokens
+    previousSegment: Token[],
+    tokens: readonly Readonly<Token>[],
+    source: string
+): Token[] {
+    let remainingTokens: Token[] = [...tokens];
+    while (remainingTokens.length > 0) {
+        const continuation = extractControlContinuation(
+            remainingTokens,
+            previousSegment
+        );
+        if (!continuation) {
+            break;
+        }
+        previousSegment.push(...continuation.continuationTokens);
+        remainingTokens = continuation.remainingTokens;
+        const continuationEnd = arrayAt(previousSegment, -1)?.end ?? 0;
+        const { index: prefixLength, prefix } =
+            consumeControlContinuationPrefix(remainingTokens);
+        const attachedComments =
+            prefixLength === remainingTokens.length
+                ? prefix
+                : prefix.filter((token) =>
+                      isSameLine(source, continuationEnd, token.start)
+                  );
+        if (attachedComments.length > 0) {
+            previousSegment.push(...attachedComments);
+            remainingTokens = remainingTokens.slice(attachedComments.length);
+        }
+    }
+    return remainingTokens;
 }
 
 function parseArrayPart(
@@ -1865,6 +2091,12 @@ function splitHashtableEntries(
             if (!context.state.hasEquals || context.state.justSawEquals) {
                 return false;
             }
+            if (
+                hasFollowingScriptBlock(tokens, context.tokenIndex) &&
+                hasIncompleteHashtableHeader(context.current)
+            ) {
+                return false;
+            }
             if (context.state.pendingComments.length > 0) {
                 context.current.push(...context.state.pendingComments);
                 context.state.pendingComments = [];
@@ -1875,20 +2107,13 @@ function splitHashtableEntries(
 
     const segments: Token[][] = [];
     for (const segment of rawSegments) {
-        if (segments.length > 0) {
-            const continuation = extractElseContinuation(segment);
-            if (continuation) {
-                const previousSegment = arrayAt(segments, -1);
-                if (previousSegment) {
-                    previousSegment.push(...continuation.elseTokens);
-                }
-                if (continuation.remainingTokens.length > 0) {
-                    segments.push(continuation.remainingTokens);
-                }
-                continue;
-            }
+        const previousSegment = arrayAt(segments, -1);
+        const remainingTokens = previousSegment
+            ? mergeHashtableContinuations(previousSegment, segment, source)
+            : segment;
+        if (remainingTokens.length > 0) {
+            segments.push(remainingTokens);
         }
-        segments.push(segment);
     }
 
     return segments;
@@ -1924,7 +2149,7 @@ function splitTopLevelTokens<TState = Record<string, never>>(
         current = [];
     };
 
-    for (const token of tokens) {
+    for (const [tokenIndex, token] of tokens.entries()) {
         const isTopLevel = isEmpty(stack);
         const context: SplitContext<TState> = {
             current,
@@ -1932,6 +2157,7 @@ function splitTopLevelTokens<TState = Record<string, never>>(
             stack,
             state,
             token,
+            tokenIndex,
         };
 
         const separatorDecision = getTopLevelSeparatorDecision(
@@ -1963,6 +2189,7 @@ function splitTopLevelTokens<TState = Record<string, never>>(
             stack,
             state,
             token,
+            tokenIndex,
         });
     }
 
