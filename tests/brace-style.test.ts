@@ -24,7 +24,7 @@ const assignmentPrefixes = [
     "$a = $b =",
 ];
 
-describe("stroustrup brace style", () => {
+describe("stroustrup fixtures and default style", () => {
     it.each([
         "control-flow",
         "nested",
@@ -74,8 +74,11 @@ describe("stroustrup brace style", () => {
         );
 
         expect(result).toBe("if ($true) {} else {}\n");
+        expect(result).not.toContain("\nelse");
     });
+});
 
+describe("stroustrup assignment expressions", () => {
     it.each(assignmentPrefixes)(
         "formats continuation clauses after assignment prefix %s",
         async (prefix) => {
@@ -113,6 +116,7 @@ describe("stroustrup brace style", () => {
             );
 
             expect(result).toBe(`${input}\n`);
+            expect(result).not.toContain("\nelse");
         }
     );
 
@@ -129,8 +133,11 @@ describe("stroustrup brace style", () => {
         );
 
         expect(result).toBe(`${input}\n`);
+        expect(result).not.toContain("\nelse");
     });
+});
 
+describe("stroustrup clauses and command arguments", () => {
     it("places even empty continuation blocks on new lines", async () => {
         expect.hasAssertions();
 
@@ -201,7 +208,9 @@ describe("stroustrup brace style", () => {
         );
         expect(result).not.toContain("\nelse");
     });
+});
 
+describe("stroustrup option compatibility", () => {
     it("lets the explicit style override the Invoke-Formatter preset", async () => {
         expect.hasAssertions();
 
@@ -242,6 +251,7 @@ describe("stroustrup brace style", () => {
         expect(result).toBe(
             "function Test-Braces\n{\n    if ($true) {} else {}\n}\n"
         );
+        expect(result).not.toContain("function Test-Braces {");
     });
 
     it.each(["1tbs", "allman"])(
@@ -263,7 +273,9 @@ describe("stroustrup brace style", () => {
             expect(result).toBe(input);
         }
     );
+});
 
+describe("stroustrup statement boundaries", () => {
     it.each([
         {
             input: "Write-Output if ($true)\n{}\n",
@@ -341,8 +353,11 @@ describe("stroustrup brace style", () => {
         expect(result).toBe(
             "try {}\nfinally {}\ncatch {} finally {}\nif ($true) {};\nelseif ($false) {} else {}\n"
         );
+        expect(result).not.toContain("\nelseif ($false) {}\nelse {}");
     });
+});
 
+describe("stroustrup continuation headers", () => {
     it("formats real continuation chains across intervening comments", async () => {
         expect.hasAssertions();
 
@@ -375,6 +390,7 @@ describe("stroustrup brace style", () => {
         );
 
         expect(result).toBe("if ($true) {}\nelseif ($false) {}\nelse {}\n");
+        expect(result).not.toContain("if ($true)\n");
     });
 
     it("joins switch flags and typed trap headers to their blocks", async () => {
@@ -393,7 +409,9 @@ describe("stroustrup brace style", () => {
             "switch -Regex ($value) {\n    default {}\n}\nswitch -Regex -File 'input.txt' {\n    default {}\n}\ntrap [System.Exception] {\n    'handled'\n}\n"
         );
     });
+});
 
+describe("stroustrup subexpressions", () => {
     it.each([
         {
             expected: "$(\n    try {}\n    catch {}\n    finally {}\n)\n",

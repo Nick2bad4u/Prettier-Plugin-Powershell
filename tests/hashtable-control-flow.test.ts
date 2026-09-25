@@ -175,6 +175,7 @@ Next = 5
     Next = 5
 }
 `);
+        expect(result).not.toMatch(/\b(?:catch|finally)\s*=/v);
     });
 
     it.each([
@@ -240,52 +241,34 @@ until ($true)
 `);
     });
 
-    it("keeps keyword-named script-block keys separate from control values", async () => {
-        expect.hasAssertions();
+    it.each([
+        "else",
+        "elseif",
+        "catch",
+        "finally",
+        "while",
+        "until",
+    ])(
+        "keeps the script-block key %s separate from adjacent values",
+        async (key) => {
+            expect.hasAssertions();
 
-        const result = await formatAndAssertRoundTrip(
-            `$settings = @{
-Value = 1
-else = { 2 }
-elseif = { 3 }
-catch = { 4 }
-finally = { 5 }
-while = { 6 }
-until = { 7 }
-}`,
-            baseConfig
-        );
+            const result = await formatAndAssertRoundTrip(
+                `$settings = @{ Value = 1; ${key} = { 2 }; Next = 3 }`,
+                baseConfig
+            );
 
-        expect(result).toBe(`$settings = @{
+            expect(result).toBe(`$settings = @{
     Value = 1
-    else =
+    ${key} =
         {
             2
         }
-    elseif =
-        {
-            3
-        }
-    catch =
-        {
-            4
-        }
-    finally =
-        {
-            5
-        }
-    while =
-        {
-            6
-        }
-    until =
-        {
-            7
-        }
+    Next = 3
 }
 `);
-        expect(result).not.toContain("} catch =");
-    });
+        }
+    );
 
     it("keeps a final continuation's trailing comment attached", async () => {
         expect.hasAssertions();

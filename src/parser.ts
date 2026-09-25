@@ -113,6 +113,14 @@ const CONTROL_ROOT_KEYWORDS = new Set([
     "try",
     "while",
 ]);
+const CONTROL_CONTINUATION_KEYWORDS: ReadonlyMap<string, readonly string[]> =
+    new Map([
+        ["catch", ["catch", "finally"]],
+        ["do", ["while", "until"]],
+        ["elseif", ["else", "elseif"]],
+        ["if", ["else", "elseif"]],
+        ["try", ["catch", "finally"]],
+    ]);
 
 interface SplitContext<TState> {
     current: Token[];
@@ -1234,41 +1242,31 @@ function captureControlContinuationTokens(
     let nextIndex = index;
 
     for (; nextIndex < tokens.length; nextIndex += 1) {
-        const token = tokens[nextIndex];
+        const token = arrayAt(tokens, nextIndex);
         if (!isDefined(token)) {
             continue;
         }
 
-        if (
-            isEmpty(stack) &&
-            token.type === "operator" &&
-            token.value === "="
-        ) {
+        const boundary = getControlContinuationBoundary(
+            token,
+            stack.length,
+            openingDelimiter
+        );
+        if (boundary === "assignment") {
             break;
         }
 
-        continuationTokens.push(token);
-        if (isOpeningToken(token)) {
-            if (isEmpty(stack) && token.value === openingDelimiter) {
-                hasContinuationBody = true;
-            }
-            stack.push(token.value);
-            continue;
+        if (boundary === "body") {
+            hasContinuationBody = true;
         }
 
-        if (isClosingToken(token)) {
-            if (isEmpty(stack)) {
-                continue;
-            }
-
-            stack.pop();
-            if (hasContinuationBody && isEmpty(stack)) {
-                return {
-                    continuationTokens,
-                    nextIndex: nextIndex + 1,
-                    terminated: true,
-                };
-            }
+        pushTopLevelToken(token, continuationTokens, stack);
+        if (hasContinuationBody && isClosingToken(token) && isEmpty(stack)) {
+            return {
+                continuationTokens,
+                nextIndex: nextIndex + 1,
+                terminated: true,
+            };
         }
     }
 
@@ -1302,6 +1300,30 @@ function classifyStatementTerminator(
         }
     }
     return null;
+}
+
+function collectOuterControlTokens(
+    tokens: readonly Readonly<Token>[]
+): Token[] {
+    const outerTokens: Token[] = [];
+    const stack: string[] = [];
+    // Conditions and nested blocks cannot establish a continuation for the
+    // containing entry. The final outer assignment starts its control value.
+    for (const token of tokens) {
+        if (isOpeningToken(token)) {
+            stack.push(token.value);
+        } else if (isClosingToken(token)) {
+            stack.pop();
+        } else if (
+            isEmpty(stack) &&
+            !setHas(PIPELINE_TRIVIA_TOKEN_TYPES, token.type)
+        ) {
+            outerTokens.push(token);
+        } else {
+            // Nested values and trivia cannot introduce an outer clause.
+        }
+    }
+    return outerTokens;
 }
 
 function collectStructureTokens(
@@ -1448,22 +1470,16 @@ function extractControlContinuation(
 ): null | { continuationTokens: Token[]; remainingTokens: Token[] } {
     const { index, prefix } = consumeControlContinuationPrefix(tokens);
 
-    const keywordToken = tokens[index];
+    const keywordToken = arrayAt(tokens, index);
     if (keywordToken?.type !== "keyword") {
         return null;
     }
     const keyword = keywordToken.value.toLowerCase();
-    const precedingKeyword = getHashtableControlKeyword(previousTokens);
-    const isElseContinuation =
-        (keyword === "else" || keyword === "elseif") &&
-        (precedingKeyword === "if" || precedingKeyword === "elseif");
-    const isTryContinuation =
-        (keyword === "catch" || keyword === "finally") &&
-        (precedingKeyword === "try" || precedingKeyword === "catch");
-    const isDoContinuation =
-        (keyword === "while" || keyword === "until") &&
-        precedingKeyword === "do";
-    if (!isElseContinuation && !isTryContinuation && !isDoContinuation) {
+    const openingDelimiter = getControlContinuationDelimiter(
+        keyword,
+        getHashtableControlKeyword(previousTokens)
+    );
+    if (openingDelimiter === null) {
         return null;
     }
 
@@ -1471,7 +1487,7 @@ function extractControlContinuation(
         tokens,
         index,
         prefix,
-        isDoContinuation ? "(" : "{"
+        openingDelimiter
     );
     if (!captured.terminated) {
         return null;
@@ -1481,6 +1497,41 @@ function extractControlContinuation(
         continuationTokens: captured.continuationTokens,
         remainingTokens: tokens.slice(captured.nextIndex),
     };
+}
+
+function getControlContinuationBoundary(
+    token: Readonly<Token>,
+    structureDepth: number,
+    openingDelimiter: "(" | "{"
+):
+    | "assignment"
+    | "body"
+    | null {
+    if (structureDepth > 0) {
+        return null;
+    }
+    if (token.type === "operator" && token.value === "=") {
+        return "assignment";
+    }
+    return isOpeningToken(token) && token.value === openingDelimiter
+        ? "body"
+        : null;
+}
+
+function getControlContinuationDelimiter(
+    keyword: string,
+    precedingKeyword: null | string
+):
+    | "("
+    | "{"
+    | null {
+    const allowedKeywords = CONTROL_CONTINUATION_KEYWORDS.get(
+        precedingKeyword ?? ""
+    );
+    if (allowedKeywords?.includes(keyword) !== true) {
+        return null;
+    }
+    return precedingKeyword === "do" ? "(" : "{";
 }
 
 function getHashtableControlKeyword(
@@ -1508,24 +1559,7 @@ function getHashtableControlKeyword(
 function getHashtableOuterValueTokens(
     tokens: readonly Readonly<Token>[]
 ): Token[] {
-    const outerTokens: Token[] = [];
-    const stack: string[] = [];
-    // Conditions and nested blocks cannot establish a continuation for the
-    // containing entry. The final outer assignment starts its control value.
-    for (const token of tokens) {
-        if (isOpeningToken(token)) {
-            stack.push(token.value);
-        } else if (isClosingToken(token)) {
-            stack.pop();
-        } else if (
-            isEmpty(stack) &&
-            !setHas(PIPELINE_TRIVIA_TOKEN_TYPES, token.type)
-        ) {
-            outerTokens.push(token);
-        } else {
-            // Nested values and trivia cannot introduce an outer clause.
-        }
-    }
+    const outerTokens = collectOuterControlTokens(tokens);
     const equalsIndex = outerTokens.findLastIndex(
         (token) =>
             token.type === "operator" &&
@@ -1578,7 +1612,7 @@ function hasFollowingScriptBlock(
     tokenIndex: number
 ): boolean {
     for (let index = tokenIndex + 1; index < tokens.length; index += 1) {
-        const token = tokens[index];
+        const token = arrayAt(tokens, index);
         if (token && !setHas(PIPELINE_TRIVIA_TOKEN_TYPES, token.type)) {
             return token.type === "punctuation" && token.value === "{";
         }

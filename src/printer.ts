@@ -9,6 +9,7 @@ import {
     type Printer,
 } from "prettier";
 import {
+    arrayAt,
     arrayFirst,
     arrayIncludes,
     arrayJoin,
@@ -487,7 +488,7 @@ function findAssignmentValueStart(
     start: number
 ): number {
     for (let index = start; index < parts.length; index += 1) {
-        const part = parts[index];
+        const part = arrayAt(parts, index);
         if (
             part?.type === "Text" &&
             part.role === "operator" &&
@@ -548,7 +549,7 @@ function getControlFlowKeyword(
     precedingKeyword?: string
 ): string | undefined {
     let start = 0;
-    let first = parts[start];
+    let first = arrayAt(parts, start);
     while (
         first?.type === "Parenthesis" ||
         (first?.type === "Text" &&
@@ -559,15 +560,15 @@ function getControlFlowKeyword(
         if (start === -1) {
             return undefined;
         }
-        first = parts[start];
+        first = arrayAt(parts, start);
     }
 
     // A loop label is tokenized as ':' followed by its name.
-    const prefix = parts[start];
+    const prefix = arrayAt(parts, start);
     if (prefix?.type === "Text" && prefix.value === ":") {
         start += 2;
     }
-    const keyword = parts[start];
+    const keyword = arrayAt(parts, start);
     if (keyword?.type !== "Text" || keyword.role !== "keyword") {
         return undefined;
     }
@@ -615,11 +616,12 @@ function getNextControlFlowKeyword(
     if (expression && isCommentExpression(expression)) {
         return context;
     }
+    if (arrayFirst(parts)?.type === "ScriptBlock" && !context.awaitingBody) {
+        return { awaitingBody: false };
+    }
     const keyword =
         arrayFirst(parts)?.type === "ScriptBlock"
-            ? context.awaitingBody
-                ? precedingKeyword
-                : undefined
+            ? precedingKeyword
             : getControlFlowKeyword(parts, precedingKeyword);
     if (
         parts.some(
@@ -649,7 +651,7 @@ function getNextStatementIndex(
     start: number
 ): number {
     let index = start;
-    while (body[index]?.type === "BlankLine") {
+    while (arrayAt(body, index)?.type === "BlankLine") {
         index += 1;
     }
     return index;
@@ -975,17 +977,18 @@ function normalizeControlFlowContainer<
     }
     const elements: ExpressionNode[] = [];
     const separators: ArraySeparator[] = [];
+    const sourceSeparators: readonly ArraySeparator[] = node.separators;
     const separatorsByEnd = new Map(
         node.elements.map((element, index) => [
             element.loc.end,
-            node.separators[index],
+            arrayAt(sourceSeparators, index),
         ])
     );
     let chunk: ScriptBodyNode[] = [];
     for (const [index, element] of node.elements.entries()) {
         chunk.push(expressionAsPipeline(element));
         if (
-            node.separators[index] !== "comma" &&
+            arrayAt(sourceSeparators, index) !== "comma" &&
             index < node.elements.length - 1
         ) {
             continue;
@@ -1025,7 +1028,7 @@ function normalizeControlFlowStatements(
     let ignoreControlFlow = false;
     let index = 0;
     while (index < body.length) {
-        let entry = body[index];
+        let entry = arrayAt(body, index);
         if (!entry) {
             index += 1;
             continue;
@@ -1035,7 +1038,7 @@ function normalizeControlFlowStatements(
             !ignoreNext && !ignoreControlFlow && entry.type === "Pipeline"
                 ? joinControlFlowBody(
                       entry,
-                      body[nextIndex],
+                      arrayAt(body, nextIndex),
                       context.keyword,
                       options.originalText
                   )
@@ -1046,7 +1049,7 @@ function normalizeControlFlowStatements(
             nextIndex = getNextStatementIndex(body, index + 1);
             joined = joinControlFlowBody(
                 entry,
-                body[nextIndex],
+                arrayAt(body, nextIndex),
                 context.keyword,
                 options.originalText
             );
@@ -1129,7 +1132,7 @@ function printControlFlowExpressions(
             false,
             context.keyword
         );
-        const next = elements[index + 1];
+        const next = arrayAt(elements, index + 1);
         const isNeedsSeparator =
             isDefined(next) &&
             requiresControlFlowSeparator(
@@ -1138,7 +1141,7 @@ function printControlFlowExpressions(
                 options
             );
         context =
-            separators[index] === "comma"
+            arrayAt(separators, index) === "comma"
                 ? { awaitingBody: false }
                 : getNextControlFlowKeyword(
                       entry,
@@ -1168,14 +1171,8 @@ function printExpression(
     let previous: ExpressionPartNode | null = null;
     let isNeedsStatementBreak = false;
 
-    for (let index = 0; index < normalizedParts.length; index += 1) {
-        const current = normalizedParts[index];
-        let part = current;
-        if (!isDefined(part)) {
-            continue;
-        }
-
-        part = normalizeKeywordAfterMemberAccess(part, previous);
+    for (const [index, current] of normalizedParts.entries()) {
+        const part = normalizeKeywordAfterMemberAccess(current, previous);
 
         const specialDoc = printSpecialExpressionPart(
             part,
@@ -1185,11 +1182,7 @@ function printExpression(
             options
         );
         if (specialDoc) {
-            if (specialDoc.skipSeparator === true) {
-                docs.push(specialDoc.doc);
-            } else {
-                pushExpressionDoc(docs, specialDoc.doc, previous, part);
-            }
+            pushSpecialExpressionDoc(docs, specialDoc, previous, part);
             previous = part;
             continue;
         }
@@ -1537,6 +1530,19 @@ function pushExpressionDoc(
     docs.push(nextDoc);
 }
 
+function pushSpecialExpressionDoc(
+    docs: Doc[],
+    specialDoc: Readonly<{ doc: Doc; skipSeparator?: boolean }>,
+    previous: null | Readonly<ExpressionPartNode>,
+    part: Readonly<ExpressionPartNode>
+): void {
+    if (specialDoc.skipSeparator === true) {
+        docs.push(specialDoc.doc);
+        return;
+    }
+    pushExpressionDoc(docs, specialDoc.doc, previous, part);
+}
+
 function removeSourceIndent(lineText: string, prefix: string): string {
     if (prefix.length === 0 || !lineText.startsWith(prefix)) {
         return lineText;
@@ -1855,7 +1861,7 @@ function printArray(
             continue;
         }
 
-        let printed = expressionDocs[index] ?? "";
+        let printed = arrayAt(expressionDocs, index) ?? "";
         const separator = node.separators[index];
 
         const nextElement = node.elements[index + 1];
@@ -1940,11 +1946,14 @@ function printHashtable(
     for (const [index, entry] of entries.entries()) {
         const entryDoc = printHashtableEntry(entry, options);
         const isLast = index === entries.length - 1;
-        const separator = isLast
-            ? trailingCommaDoc(options, groupId, true, ";")
-            : requiresHashtableSeparator(entry.value, options)
-              ? ";"
-              : ifBreak("", ";", { groupId });
+        let separator: Doc;
+        if (isLast) {
+            separator = trailingCommaDoc(options, groupId, true, ";");
+        } else {
+            separator = requiresHashtableSeparator(entry.value, options)
+                ? ";"
+                : ifBreak("", ";", { groupId });
+        }
         contentDocs.push(entryDoc, separator);
         if (!isLast) {
             contentDocs.push(isSimpleExpression(entry.value) ? line : hardline);
