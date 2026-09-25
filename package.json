@@ -162,7 +162,7 @@
     "overrides": {
         "tmp": "0.2.7",
         "tsup": {
-            "esbuild": "0.28.1"
+            "esbuild": "0.28.2"
         }
     },
     "dependencies": {
@@ -172,63 +172,63 @@
         "@arethetypeswrong/cli": "^0.18.5",
         "@eslint/config-helpers": "^0.7.0",
         "@eslint/js": "^10.0.1",
-        "@types/node": "^26.2.0",
-        "@typpi/eslint-plugin-vite": "^1.0.21",
-        "@vitest/coverage-v8": "^4.1.11",
+        "@types/node": "^26.6.2",
+        "@typpi/eslint-plugin-vite": "^1.0.22",
+        "@vitest/coverage-v8": "^5.0.2",
         "all-contributors-cli": "^6.26.1",
-        "dependency-cruiser": "^18.2.0",
-        "eslint": "^10.9.0",
-        "eslint-config-nick2bad4u": "^14.1.1",
-        "fast-check": "^4.9.0",
-        "git-cliff": "^2.13.1",
-        "gitcliff-config-nick2bad4u": "^1.5.0",
+        "dependency-cruiser": "^18.4.0",
+        "eslint": "^10.11.0",
+        "eslint-config-nick2bad4u": "^15.0.0",
+        "fast-check": "^4.10.2",
+        "git-cliff": "^2.14.2",
+        "gitcliff-config-nick2bad4u": "^1.5.1",
         "gitleaks-config-nick2bad4u": "^1.0.5",
-        "globals": "^17.11.0",
-        "jscpd": "^5.0.16",
+        "globals": "^17.12.0",
+        "jscpd": "^5.3.2",
         "jscpd-config-nick2bad4u": "^1.1.1",
         "jsonc-eslint-parser": "^3.3.0",
-        "lychee-config-nick2bad4u": "^3.0.0",
+        "lychee-config-nick2bad4u": "^3.0.2",
         "ncu-config-nick2bad4u": "^0.2.1",
-        "npm-check-updates": "^23.0.2",
+        "npm-check-updates": "^23.1.0",
         "npm-package-json-lint": "^11.0.0",
         "npm-package-json-lint-config-nick2bad4u": "^1.0.4",
-        "prettier": "^3.9.6",
-        "prettier-config-nick2bad4u": "^2.0.2",
+        "prettier": "^3.9.9",
+        "prettier-config-nick2bad4u": "^3.0.0",
         "prettier-plugin-tailwindcss": "^0.8.1",
         "publint": "^0.3.24",
         "remark": "^15.0.1",
         "remark-cli": "^12.0.1",
-        "remark-config-nick2bad4u": "^1.1.4",
-        "secretlint": "^13.0.4",
+        "remark-config-nick2bad4u": "^2.0.0",
+        "secretlint": "^13.0.6",
         "secretlint-config-nick2bad4u": "^1.1.2",
         "sort-package-json": "^4.0.0",
-        "storybook": "^10.5.10",
-        "stylelint": "^17.14.1",
-        "stylelint-config-nick2bad4u": "^2.2.1",
+        "storybook": "^10.6.0",
+        "stylelint": "^17.15.0",
+        "stylelint-config-nick2bad4u": "^4.0.1",
         "stylelint-formatter-pretty": "^4.0.1",
         "tsup": "^8.5.1",
-        "type-fest": "^5.8.0",
+        "type-fest": "^5.10.0",
         "typescript": "^6.0.3",
-        "vitest": "^4.1.11",
+        "vitest": "^5.0.2",
         "yamllint-config-nick2bad4u": "^1.1.1",
         "yamllint-js": "^0.2.4"
     },
     "peerDependencies": {
         "prettier": "^3.0.0 || ^3.9.0"
     },
-    "packageManager": "npm@12.0.2",
+    "packageManager": "npm@12.1.0",
     "engines": {
         "node": ">=20.11.0"
     },
     "devEngines": {
         "runtime": {
             "name": "node",
-            "version": "26.7.0",
+            "version": "26.10.0",
             "onFail": "warn"
         },
         "packageManager": {
             "name": "npm",
-            "version": "12.0.2",
+            "version": "12.1.0",
             "onFail": "error"
         }
     },
@@ -237,8 +237,8 @@
         "registry": "https://registry.npmjs.org/"
     },
     "allowScripts": {
-        "core-js@3.49.0": false,
-        "esbuild@0.28.1": true,
+        "core-js@3.50.0": false,
+        "esbuild@0.28.2": true,
         "fsevents@2.3.3": true,
         "unrs-resolver@1.12.2": true
     }
