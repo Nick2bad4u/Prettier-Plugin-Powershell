@@ -1073,6 +1073,94 @@ function normalizeControlFlowStatements(
     return normalized;
 }
 
+// In command argument mode these characters can be part of a bareword.
+const COMMAND_BAREWORD_SYMBOL = /^[\\/*=%]+$/u;
+
+function isCommandBarewordPart(
+    part: Readonly<ExpressionPartNode> | undefined
+): part is Readonly<TextNode> {
+    return (
+        part?.type === "Text" &&
+        (part.role === "word" ||
+            part.role === "keyword" ||
+            part.role === "number" ||
+            part.value === "." ||
+            part.value === ":" ||
+            part.value === "--" ||
+            COMMAND_BAREWORD_SYMBOL.test(part.value))
+    );
+}
+
+function preserveCommandBarewords(
+    parts: ExpressionPartNode[]
+): ExpressionPartNode[] {
+    const commandIndex = findCommandIndex(parts);
+    const command = parts[commandIndex];
+    if (command?.type !== "Text") {
+        return parts;
+    }
+
+    // The alias detector treats a leading dot as dot-sourcing. When there is
+    // no space before a slash it is part of the command path instead.
+    const preceding = parts[commandIndex - 1];
+    const start =
+        preceding?.type === "Text" &&
+        preceding.value === "." &&
+        preceding.loc.end === command.loc.start &&
+        (command.value.startsWith("\\") || command.value.startsWith("/"))
+            ? commandIndex - 1
+            : commandIndex;
+    const first = parts[start];
+    if (
+        first?.type !== "Text" ||
+        (first.role !== "word" && first.value !== ".")
+    ) {
+        return parts;
+    }
+
+    const preserved = parts.slice(0, start);
+    let index = start;
+    while (index < parts.length) {
+        const part = parts[index];
+        if (!isDefined(part)) {
+            break;
+        }
+
+        if (!isCommandBarewordPart(part)) {
+            preserved.push(part);
+            index += 1;
+            continue;
+        }
+
+        let end = index + 1;
+        let last = part;
+        let containsSymbol = COMMAND_BAREWORD_SYMBOL.test(part.value);
+        const values = [part.value];
+        let next = parts[end];
+        while (isCommandBarewordPart(next) && last.loc.end === next.loc.start) {
+            containsSymbol ||= COMMAND_BAREWORD_SYMBOL.test(next.value);
+            values.push(next.value);
+            last = next;
+            end += 1;
+            next = parts[end];
+        }
+
+        if (containsSymbol && end > index + 1) {
+            preserved.push({
+                loc: { end: last.loc.end, start: part.loc.start },
+                role: "word",
+                type: "Text",
+                value: arrayJoin(values, ""),
+            });
+        } else {
+            preserved.push(...parts.slice(index, end));
+        }
+        index = end;
+    }
+
+    return preserved;
+}
+
 function normalizeExpressionParts(
     node: Readonly<ExpressionNode>
 ): ExpressionPartNode[] {
@@ -1159,7 +1247,10 @@ function printExpression(
     precedingKeyword?: string
 ): Doc {
     const docs: Doc[] = [];
-    const normalizedParts = normalizeExpressionParts(node);
+    const expressionParts = normalizeExpressionParts(node);
+    const normalizedParts = isPipelineSegment
+        ? preserveCommandBarewords(expressionParts)
+        : expressionParts;
     const commandIndex = isPipelineSegment
         ? findCommandIndex(normalizedParts)
         : -1;
