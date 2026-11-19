@@ -1074,7 +1074,20 @@ function normalizeControlFlowStatements(
 }
 
 // In command argument mode these characters can be part of a bareword.
-const COMMAND_BAREWORD_SYMBOL = /^[\\/*=%]+$/u;
+const COMMAND_BAREWORD_SYMBOL = /^[%*\/=\\]+$/v;
+
+function hasRelativeCommandPrefix(
+    preceding: Readonly<ExpressionPartNode> | undefined,
+    command: Readonly<TextNode>
+): boolean {
+    // A dot touching the path separator belongs to the command path.
+    return (
+        preceding?.type === "Text" &&
+        preceding.value === "." &&
+        preceding.loc.end === command.loc.start &&
+        (command.value.startsWith("\\") || command.value.startsWith("/"))
+    );
+}
 
 function isCommandBarewordPart(
     part: Readonly<ExpressionPartNode> | undefined
@@ -1089,76 +1102,6 @@ function isCommandBarewordPart(
             part.value === "--" ||
             COMMAND_BAREWORD_SYMBOL.test(part.value))
     );
-}
-
-function preserveCommandBarewords(
-    parts: ExpressionPartNode[]
-): ExpressionPartNode[] {
-    const commandIndex = findCommandIndex(parts);
-    const command = parts[commandIndex];
-    if (command?.type !== "Text") {
-        return parts;
-    }
-
-    // The alias detector treats a leading dot as dot-sourcing. When there is
-    // no space before a slash it is part of the command path instead.
-    const preceding = parts[commandIndex - 1];
-    const start =
-        preceding?.type === "Text" &&
-        preceding.value === "." &&
-        preceding.loc.end === command.loc.start &&
-        (command.value.startsWith("\\") || command.value.startsWith("/"))
-            ? commandIndex - 1
-            : commandIndex;
-    const first = parts[start];
-    if (
-        first?.type !== "Text" ||
-        (first.role !== "word" && first.value !== ".")
-    ) {
-        return parts;
-    }
-
-    const preserved = parts.slice(0, start);
-    let index = start;
-    while (index < parts.length) {
-        const part = parts[index];
-        if (!isDefined(part)) {
-            break;
-        }
-
-        if (!isCommandBarewordPart(part)) {
-            preserved.push(part);
-            index += 1;
-            continue;
-        }
-
-        let end = index + 1;
-        let last = part;
-        let containsSymbol = COMMAND_BAREWORD_SYMBOL.test(part.value);
-        const values = [part.value];
-        let next = parts[end];
-        while (isCommandBarewordPart(next) && last.loc.end === next.loc.start) {
-            containsSymbol ||= COMMAND_BAREWORD_SYMBOL.test(next.value);
-            values.push(next.value);
-            last = next;
-            end += 1;
-            next = parts[end];
-        }
-
-        if (containsSymbol && end > index + 1) {
-            preserved.push({
-                loc: { end: last.loc.end, start: part.loc.start },
-                role: "word",
-                type: "Text",
-                value: arrayJoin(values, ""),
-            });
-        } else {
-            preserved.push(...parts.slice(index, end));
-        }
-        index = end;
-    }
-
-    return preserved;
 }
 
 function normalizeExpressionParts(
@@ -1204,6 +1147,69 @@ function normalizeKeywordAfterMemberAccess(
     }
 
     return part;
+}
+
+function preserveCommandBarewords(
+    parts: ExpressionPartNode[]
+): ExpressionPartNode[] {
+    const commandIndex = findCommandIndex(parts);
+    const command = parts[commandIndex];
+    if (command?.type !== "Text") {
+        return parts;
+    }
+
+    const start = hasRelativeCommandPrefix(parts[commandIndex - 1], command)
+        ? commandIndex - 1
+        : commandIndex;
+    const first = parts[start];
+    if (
+        first?.type !== "Text" ||
+        (first.role !== "word" && first.value !== ".")
+    ) {
+        return parts;
+    }
+
+    const preserved = parts.slice(0, start);
+    let index = start;
+    while (index < parts.length) {
+        const part = parts[index];
+        if (!isDefined(part)) {
+            break;
+        }
+
+        if (!isCommandBarewordPart(part)) {
+            preserved.push(part);
+            index += 1;
+            continue;
+        }
+
+        let end = index + 1;
+        let last = part;
+        let isSymbolicBareword = COMMAND_BAREWORD_SYMBOL.test(part.value);
+        const values = [part.value];
+        let next = parts[end];
+        while (isCommandBarewordPart(next) && last.loc.end === next.loc.start) {
+            isSymbolicBareword ||= COMMAND_BAREWORD_SYMBOL.test(next.value);
+            values.push(next.value);
+            last = next;
+            end += 1;
+            next = parts[end];
+        }
+
+        if (isSymbolicBareword && end > index + 1) {
+            preserved.push({
+                loc: { end: last.loc.end, start: part.loc.start },
+                role: "word",
+                type: "Text",
+                value: arrayJoin(values, ""),
+            });
+        } else {
+            preserved.push(...parts.slice(index, end));
+        }
+        index = end;
+    }
+
+    return preserved;
 }
 
 function printControlFlowExpressions(
